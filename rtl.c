@@ -1,10 +1,12 @@
 #include "rtl.h"
 #include <ctype.h>
 #include <string.h>
+#include <stdio.h>
 
-char * rtl_strupr(char * str) {
-  for (;*str;++str) {
-    *str = tolower(*str);
+char * rtl_strlwr(char * str) {
+  char * s;
+  for (s=str;*s;++s) {
+    *s = tolower(*s);
   }
   return str;
 }

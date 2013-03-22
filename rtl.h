@@ -1,6 +1,9 @@
 #ifndef RTL_H
 #define RTL_H
 
+int rtl_strcmpl(const char *a, const char *b);
+char * rtl_strlwr(char * str);
+
 #include "config.h"
 #if defined(HAVE_STRINGS_H)
 #include <strings.h>
@@ -10,13 +13,11 @@
 #elif defined(HAVE_STRICMP)
 #define strcmpl(a, b) stricmp(a, b)
 #else
-char * rtl_strcmpl(char * str);
 #define strcmpl(a, b) rtl_strcmpl(a, b)
 #endif
 
 #if !defined(HAVE_STRLWR)
-char * rtl_strupr(char * str);
-#define strupr(a) rtl_strupr(a)
+#define strlwr(a) rtl_strlwr(a)
 #endif
 
 #endif
