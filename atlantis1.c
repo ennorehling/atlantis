@@ -6,6 +6,7 @@
 	sold or used commercially without prior written permission from the author.
 */
 
+#include  "rtl.h"
 #include	<stdio.h>
 #include	<stdlib.h>
 #include	<string.h>
