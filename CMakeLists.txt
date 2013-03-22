@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 2.6)
-project (atlantis C)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+PROJECT (atlantis C)
 
-enable_testing()
+ADD_SUBDIRECTORY (cutest)
 
 IF(CMAKE_COMPILER_IS_GNUCC)
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -Wno-unknown-pragmas -Wpointer-arith -Wno-char-subscripts -Wno-long-long")
@@ -22,4 +22,12 @@ CONFIGURE_FILE (
   ${CMAKE_BINARY_DIR}/include/config.h)
 INCLUDE_DIRECTORIES (${CMAKE_BINARY_DIR}/include)
 
-add_executable(atlantis rtl.c rtl.h atlantis1.c)
+ADD_EXECUTABLE(atlantis rtl.c rtl.h atlantis1.c)
+
+INCLUDE_DIRECTORIES (${CUTEST_INCLUDE_DIR})
+
+ADD_EXECUTABLE(rtl_tests rtl.c rtl.h rtl.test.c)
+TARGET_LINK_LIBRARIES (rtl_tests cutest)
+
+ENABLE_TESTING()
+ADD_TEST (rtl rtl_tests)
