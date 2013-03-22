@@ -1,6 +1,8 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 PROJECT (atlantis C)
 
+ENABLE_TESTING()
+
 ADD_SUBDIRECTORY (cutest)
 
 IF(CMAKE_COMPILER_IS_GNUCC)
@@ -29,5 +31,7 @@ INCLUDE_DIRECTORIES (${CUTEST_INCLUDE_DIR})
 ADD_EXECUTABLE(rtl_tests rtl.c rtl.h rtl.test.c)
 TARGET_LINK_LIBRARIES (rtl_tests cutest)
 
-ENABLE_TESTING()
 ADD_TEST (rtl rtl_tests)
+ADD_CUSTOM_TARGET(check COMMAND ${CMAKE_CTEST_COMMAND}
+                  DEPENDS rtl_tests CuTestTest
+                  COMMENT "Running Tests...")
