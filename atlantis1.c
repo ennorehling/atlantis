@@ -7,15 +7,12 @@
 */
 
 #include	<stdio.h>
-#include	<io.h>
 #include	<stdlib.h>
 #include	<string.h>
 #include	<math.h>
 #include	<ctype.h>
 #include	<assert.h>
-#include	<direct.h>
 #include	<time.h>
-#include	<dos.h>
 #include	<stddef.h>
 #include	<limits.h>
 
@@ -52,6 +49,7 @@ enum
 	T_FOREST,
 	T_SWAMP,
 };
+#define NUMTERRAINS 5
 
 enum
 {
@@ -736,22 +734,22 @@ int maxfoodoutput[] =
 	10000,
 };
 
-char productivity[][4] =
+char productivity[NUMTERRAINS][4] =
 {
-	0,0,0,0,
-	0,0,0,1,
-	1,0,1,0,
-	0,1,0,0,
-	0,1,0,0,
+	{0,0,0,0},
+	{0,0,0,1},
+	{1,0,1,0},
+	{0,1,0,0},
+	{0,1,0,0},
 };
 
-int maxoutput[][4] =
+int maxoutput[NUMTERRAINS][4] =
 {
-	  0,  0,  0,  0,
-	  0,  0,  0,200,
-	200,  0,200,  0,
-	  0,200,  0,  0,
-	  0,100,  0,  0,
+	 { 0,  0,  0,  0},
+	 { 0,  0,  0,200},
+	 { 200,  0,200,  0},
+	{  0,200,  0,  0},
+	{  0,100,  0,  0},
 };
 
 char *shiptypenames[] =
@@ -796,8 +794,9 @@ char *skillnames[] =
 	"magic",
 };
 
-char *itemnames[][MAXITEMS] =
+char *itemnames[2][MAXITEMS] =
 {
+  {
 	"iron",
 	"wood",
 	"stone",
@@ -819,7 +818,7 @@ char *itemnames[][MAXITEMS] =
 	"Staff of Fire",
 	"Staff of Lightning",
 	"Wand of Teleportation",
-
+  }, {
 	"iron",
 	"wood",
 	"stone",
@@ -841,6 +840,7 @@ char *itemnames[][MAXITEMS] =
 	"Staffs of Fire",
 	"Staffs of Lightning",
 	"Wands of Teleportation",
+  }
 };
 
 char itemskill[] =
@@ -1124,7 +1124,7 @@ char *spelldata[] =
 	"to cast.",
 };
 
-atoip (char *s)
+int atoip (char *s)
 {
 	int n;
 
@@ -1179,7 +1179,7 @@ void *cmalloc (int n)
 	return p;
 }
 
-rnd (void)
+int rnd (void)
 {
 	rndno = rndno * 1103515245 + 12345;
 	return (rndno >> 16) & 0x7FFF;
@@ -1293,7 +1293,7 @@ void freelist (void *p1)
 	}
 }
 
-listlen (void *l)
+int listlen (void *l)
 {
 	int i;
 	list *p;
@@ -1303,7 +1303,7 @@ listlen (void *l)
 	return i;
 }
 
-effskill (unit *u,int i)
+int effskill (unit *u,int i)
 {
 	int n,j,result;
 
@@ -1323,7 +1323,7 @@ effskill (unit *u,int i)
 	return result;
 }
 
-ispresent (faction *f,region *r)
+int ispresent (faction *f,region *r)
 {
 	unit *u;
 
@@ -1334,7 +1334,7 @@ ispresent (faction *f,region *r)
 	return 0;
 }
 
-cansee (faction *f,region *r,unit *u)
+int cansee (faction *f,region *r,unit *u)
 {
 	int n,o;
 	int cansee;
@@ -1399,7 +1399,7 @@ char *getstr (void)
 	return igetstr (0);
 }
 
-geti (void)
+int geti (void)
 {
 	return atoip (getstr ());
 }
@@ -1565,12 +1565,12 @@ unit *getunit (region *r,unit *u)
 	return 0;
 }
 
-_cdecl strpcmp (const void *s1,const void *s2)
+int strpcmp (const void *s1,const void *s2)
 {
 	return strcmpl (*(char **)s1,*(char **)s2);
 }
 
-findkeyword (char *s)
+int findkeyword (char *s)
 {
 	char **sp;
 
@@ -1591,17 +1591,17 @@ findkeyword (char *s)
 	return sp - keywords;
 }
 
-igetkeyword (char *s)
+int igetkeyword (char *s)
 {
 	return findkeyword (igetstr (s));
 }
 
-getkeyword (void)
+int getkeyword (void)
 {
 	return findkeyword (getstr ());
 }
 
-findstr (char **v,char *s,int n)
+int findstr (char **v,char *s,int n)
 {
 	int i;
 
@@ -1612,7 +1612,7 @@ findstr (char **v,char *s,int n)
 	return -1;
 }
 
-findskill (char *s)
+int findskill (char *s)
 {
 	if (!strcmpl (s,"horse"))
 		return SK_HORSE_TRAINING;
@@ -1622,12 +1622,12 @@ findskill (char *s)
 	return findstr (skillnames,s,MAXSKILLS);
 }
 
-getskill (void)
+int getskill (void)
 {
 	return findskill (getstr ());
 }
 
-finditem (char *s)
+int finditem (char *s)
 {
 	int i;
 
@@ -1643,17 +1643,17 @@ finditem (char *s)
 	return findstr (itemnames[1],s,MAXITEMS);
 }
 
-getitem (void)
+int getitem (void)
 {
 	return finditem (getstr ());
 }
 
-findspell (char *s)
+int findspell (char *s)
 {
 	return findstr (spellnames,s,MAXSPELLS);
 }
 
-getspell (void)
+int getspell (void)
 {
 	return findspell (getstr ());
 }
@@ -1694,7 +1694,7 @@ unit *createunit (region *r1)
 	}
 }
 
-_cdecl scramblecmp (void *p1,void *p2)
+int scramblecmp (void *p1,void *p2)
 {
 	return *((long *)p1) - *((long *)p2);
 }
@@ -1876,7 +1876,7 @@ void seed (int to,int n)
 	transmute (T_PLAIN,to,n,1);
 }
 
-regionnameinuse (char *s)
+int regionnameinuse (char *s)
 {
 	region *r;
 
@@ -1887,7 +1887,7 @@ regionnameinuse (char *s)
 	return 0;
 }
 
-blockcoord (int x)
+int blockcoord (int x)
 {
 	return (x / (BLOCKSIZE + BLOCKBORDER*2)) * (BLOCKSIZE + BLOCKBORDER*2);
 }
@@ -2439,7 +2439,7 @@ void togglerf (unit *u,strlist *S,rfaction **r)
 		mistake2 (u,S,"Faction not found");
 }
 
-iscoast (region *r)
+int iscoast (region *r)
 {
 	int i;
 
@@ -2450,7 +2450,7 @@ iscoast (region *r)
 	return 0;
 }
 
-distribute (int old,int new,int n)
+int distribute (int old,int new,int n)
 {
 	int i;
 	int t;
@@ -2468,7 +2468,7 @@ distribute (int old,int new,int n)
 	return t;
 }
 
-armedmen (unit *u)
+int armedmen (unit *u)
 {
 	int n;
 
@@ -2513,8 +2513,8 @@ troop **maketroops (troop **tp,unit *u,int terrain)
 {
 	int i;
 	troop *t;
-	static skills[MAXSKILLS];
-	static items[MAXITEMS];
+	static int skills[MAXSKILLS];
+	static int items[MAXITEMS];
 
 	for (i = 0; i != MAXSKILLS; i++)
 		skills[i] = effskill (u,i);
@@ -2644,7 +2644,7 @@ void battlepunit (region *r,unit *u)
 			spunit (&f->battles,f,r,u,4,1);
 }
 
-contest (int a,int d)
+int contest (int a,int d)
 {
 	int i;
 	static char table[] = { 10,25,40 };
@@ -2657,7 +2657,7 @@ contest (int a,int d)
 	return rnd () % 100 < table[i];
 }
 
-hits (void)
+int hits (void)
 {
 	int k;
 
@@ -2692,31 +2692,31 @@ hits (void)
 	return k;
 }
 
-validtarget (int i)
+int validtarget (int i)
 {
 	return !ta[i].status &&
 			 ta[i].side == defender.side &&
 			 (!ta[i].behind || !infront[defender.side]);
 }
 
-canbedemoralized (int i)
+int canbedemoralized (int i)
 {
 	return validtarget (i) && !ta[i].demoralized;
 }
 
-canbedazzled (int i)
+int canbedazzled (int i)
 {
 	return validtarget (i) && !ta[i].dazzled;
 }
 
-canberemoralized (int i)
+int canberemoralized (int i)
 {
 	return !ta[i].status &&
 			 ta[i].side == attacker.side &&
 			 ta[i].demoralized;
 }
 
-selecttarget (void)
+int selecttarget (void)
 {
 	int i;
 
@@ -2743,7 +2743,7 @@ void terminate (int i)
 		runeswords[defender.side]--;
 }
 
-lovar (int n)
+int lovar (int n)
 {
 	n /= 2;
 	return (rnd () % n + 1) + (rnd () % n + 1);
@@ -2949,7 +2949,7 @@ void doshot (void)
 		terminate (di);
 }
 
-isallied (unit *u,unit *u2)
+int isallied (unit *u,unit *u2)
 {
 	rfaction *rf;
 
@@ -2966,7 +2966,7 @@ isallied (unit *u,unit *u2)
 	return 0;
 }
 
-accepts (unit *u,unit *u2)
+int accepts (unit *u,unit *u2)
 {
 	rfaction *rf;
 
@@ -2980,7 +2980,7 @@ accepts (unit *u,unit *u2)
 	return 0;
 }
 
-admits (unit *u,unit *u2)
+int admits (unit *u,unit *u2)
 {
 	rfaction *rf;
 
@@ -3016,7 +3016,7 @@ unit *shipowner (region *r,ship *sh)
 	return 0;
 }
 
-mayenter (region *r,unit *u,building *b)
+int mayenter (region *r,unit *u,building *b)
 {
 	unit *u2;
 
@@ -3024,7 +3024,7 @@ mayenter (region *r,unit *u,building *b)
 	return u2 == 0 || admits (u2,u);
 }
 
-mayboard (region *r,unit *u,ship *sh)
+int mayboard (region *r,unit *u,ship *sh)
 {
 	unit *u2;
 
@@ -3795,7 +3795,7 @@ void removenullfactions (void)
 	}
 }
 
-itemweight (unit *u)
+int itemweight (unit *u)
 {
 	int i;
 	int n;
@@ -3819,7 +3819,7 @@ itemweight (unit *u)
 	return n;
 }
 
-horseweight (unit *u)
+int horseweight (unit *u)
 {
 	int i;
 	int n;
@@ -3837,17 +3837,17 @@ horseweight (unit *u)
 	return n;
 }
 
-canmove (unit *u)
+int canmove (unit *u)
 {
 	return itemweight (u) - horseweight (u) - (u->number * 5) <= 0;
 }
 
-canride (unit *u)
+int canride (unit *u)
 {
 	return itemweight (u) - horseweight (u) + (u->number * 10) <= 0;
 }
 
-cansail (region *r,ship *sh)
+int cansail (region *r,ship *sh)
 {
 	int n;
 	unit *u;
@@ -3861,14 +3861,14 @@ cansail (region *r,ship *sh)
 	return n <= shipcapacity[sh->type];
 }
 
-spellitem (int i)
+int spellitem (int i)
 {
 	if (i < SP_MAKE_AMULET_OF_DARKNESS || i > SP_MAKE_WAND_OF_TELEPORTATION)
 		return -1;
 	return i - SP_MAKE_AMULET_OF_DARKNESS + I_AMULET_OF_DARKNESS;
 }
 
-cancast (unit *u,int i)
+int cancast (unit *u,int i)
 {
 	if (u->spells[i])
 		return u->number;
@@ -3897,7 +3897,7 @@ cancast (unit *u,int i)
 	return 0;
 }
 
-magicians (faction *f)
+int magicians (faction *f)
 {
 	int n;
 	region *r;
@@ -3964,7 +3964,7 @@ void processorders (void)
 	int leader[2];
 	int lmoney;
 	int dh;
-	static litems[MAXITEMS];
+	static int litems[MAXITEMS];
 	char *s,*s2;
 	faction *f,*f2,**fa;
 	rfaction *rf;
@@ -6362,7 +6362,7 @@ void rs (char *s)
 	*s = 0;
 }
 
-ri (void)
+int ri (void)
 {
 	int i;
 	char buf[20];
@@ -6946,7 +6946,7 @@ LOOP:
 	writemap ();
 }
 
-_cdecl main (void)
+int main (void)
 {
 	rndno = time (0);
 
