@@ -1694,7 +1694,7 @@ unit *createunit (region *r1)
 	}
 }
 
-int scramblecmp (void *p1,void *p2)
+int scramblecmp (const void *p1, const void *p2)
 {
 	return *((long *)p1) - *((long *)p2);
 }
