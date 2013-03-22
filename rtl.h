@@ -10,7 +10,13 @@
 #elif defined(HAVE_STRICMP)
 #define strcmpl(a, b) stricmp(a, b)
 #else
-#error "could not define strcmpl"
+char * rtl_strcmpl(char * str);
+#define strcmpl(a, b) rtl_strcmpl(a, b)
+#endif
+
+#if !defined(HAVE_STRLWR)
+char * rtl_strupr(char * str);
+#define strupr(a) rtl_strupr(a)
 #endif
 
 #endif

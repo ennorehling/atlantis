@@ -15,10 +15,11 @@ INCLUDE (CheckIncludeFiles)
 INCLUDE (CheckSymbolExists)
 CHECK_INCLUDE_FILES (strings.h HAVE_STRINGS_H)
 CHECK_SYMBOL_EXISTS (stricmp "string.h" HAVE_STRICMP)
+CHECK_SYMBOL_EXISTS (strlwr "string.h" HAVE_STRLWR)
 CHECK_SYMBOL_EXISTS (_stricmp "string.h" HAVE__STRICMP)
 CONFIGURE_FILE (
 	${CMAKE_CURRENT_SOURCE_DIR}/config.h.in
   ${CMAKE_BINARY_DIR}/include/config.h)
 INCLUDE_DIRECTORIES (${CMAKE_BINARY_DIR}/include)
 
-add_executable(atlantis atlantis1.c rtl.h)
+add_executable(atlantis rtl.c rtl.h atlantis1.c)
