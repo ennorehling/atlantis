@@ -6879,7 +6879,6 @@ void addunits (void)
 
 void initgame (void)
 {
-	int i;
 	struct FIND *fd;
 
 	fd = findfirst ("data/*",0);
@@ -6899,7 +6898,7 @@ void initgame (void)
 
 		do
 		{
-			i = atoi (fd->name);
+			int i = atoi (fd->name);
 			if (i > turn)
 				turn = i;
 			fd = findnext ();
@@ -6947,13 +6946,32 @@ LOOP:
 	writemap ();
 }
 
-int main (void)
+int main (int argc, char ** argv)
 {
+  int i;
 	rndno = time (0);
 
 	puts ("Atlantis v1.0  " __DATE__ "\n"
 			"Copyright 1993 by Russell Wallace.\n"
 			"Type ? for list of commands.");
+  
+  for (i=1;i!=argc;++i) {
+    if (argv[i][0]=='-') {
+      switch(argv[i][1]) {
+      case 't': /* turn */
+        if (argv[i][2]) {
+          turn = atoi(argv[i]+3);
+          break;
+        } else if (i+1<argc) {
+          turn = atoi(argv[++i]);
+          break;
+        }
+      default:
+        fprintf(stderr, "invalid argument %d: '%s'\n", i, argv[i]);
+        return -1;
+      }
+    }
+  }
 
 	initgame ();
 
