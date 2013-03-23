@@ -13,12 +13,30 @@ static void test_strcmpl(CuTest * tc) {
   CuAssertTrue(tc, strcmpl("barfly", "bar")>0);
 }
 
+static void test_memicmp(CuTest * tc) {
+  CuAssertIntEquals(tc, 0, memicmp("Foo", "foo", 3));
+  CuAssertIntEquals(tc, 0, memicmp("FOo", "foobar", 3));
+}
+
+static void test_rtl_strncmpl(CuTest * tc) {
+  CuAssertIntEquals(tc, 0, rtl_strncmpl("foo", "foo", 3));
+  CuAssertIntEquals(tc, 0, rtl_strncmpl("foo", "FOO", 3));
+  CuAssertTrue(tc, rtl_strncmpl("aab", "aaa", 3)>0);
+  CuAssertTrue(tc, rtl_strncmpl("aaa", "aab", 3)<0);
+  CuAssertTrue(tc, rtl_strncmpl("foo", "foobar", 10)<0);
+}
+
 static void test_rtl_strcmpl(CuTest * tc) {
   CuAssertIntEquals(tc, 0, rtl_strcmpl("foo", "foo"));
+  CuAssertIntEquals(tc, 0, rtl_strcmpl("foo", "FoO"));
   CuAssertIntEquals(tc, 0, rtl_strcmpl("$%^&#", "$%^&#"));
   CuAssertIntEquals(tc, 0, rtl_strcmpl("foo", "FOO"));
   CuAssertIntEquals(tc, 0, rtl_strcmpl("foo", "Foo"));
+  CuAssertTrue(tc, rtl_strcmpl("aaa", "aab")<0);
+  CuAssertTrue(tc, rtl_strcmpl("aab", "aaa")>0);
+  CuAssertTrue(tc, rtl_strcmpl("foo", "foobar")<0);
   CuAssertTrue(tc, rtl_strcmpl("foo", "bar")>0);
+  CuAssertTrue(tc, rtl_strcmpl("foobar", "bar")>0);
   CuAssertTrue(tc, rtl_strcmpl("bar", "foo")<0);
   CuAssertTrue(tc, rtl_strcmpl("barfly", "bar")>0);
 }
@@ -44,8 +62,10 @@ int main(int argc, char ** argv) {
   CuSuite *suite = CuSuiteNew();
 
   SUITE_ADD_TEST(suite, test_strcmpl);
-  SUITE_ADD_TEST(suite, test_rtl_strcmpl);
   SUITE_ADD_TEST(suite, test_strlwr);
+  SUITE_ADD_TEST(suite, test_memicmp);
+  SUITE_ADD_TEST(suite, test_rtl_strcmpl);
+  SUITE_ADD_TEST(suite, test_rtl_strncmpl);
   SUITE_ADD_TEST(suite, test_rtl_strlwr);
 
   CuSuiteRun(suite);

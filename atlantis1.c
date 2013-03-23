@@ -3046,7 +3046,7 @@ void readorders (void)
 
 	while (buf[0] != EOF)
 	{
-		if (!memicmp (buf,"#atlantis",9))
+		if (!strncmp (buf,"#atlantis",9))
 		{
 NEXTPLAYER:
 			igetstr (buf);
