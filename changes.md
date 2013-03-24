@@ -1,4 +1,8 @@
-# Compiling C code that we found on the internet
+# How to compile, and improve, C code that we found on the internet
+
+This is the code for the play-by-email game Atlantis 1.0, and it's very old. It was written for MS-DOS, back in the days when that was what people ran on their home computers. As such, it does not run on modern compilers and operating systems without some serious modifications. This is me documenting the modifications I made to make the code palatable to modern systems.
+
+Enno Rehling, March 2013
 
 ## Let's have some version control
 
