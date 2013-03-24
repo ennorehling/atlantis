@@ -65,8 +65,10 @@ View these latest changes on [github](https://github.com/badgerman/atlantis1/com
 ## qsort signature and const-correctness
 
 Here's an interesting error: "passing argument 4 of ‘qsort’ from incompatible pointer type". The offending line of code is
+
     qsort (v,n,width + 4,scramblecmp);
 What's wrong with this? qsort takes a function as argument 4 which compares two elements in the array, and `man qsort` tells us that it's signature is 
+
     int (\*compar)(const void \*, const void \*);
 Looking at scramblecmp, it takes two arguments of type void \*, notice the absence of the const modifier. specifying an argument as const means that the function receiving the argument is not allowed to modify it, and it's helpful for the reader of a codebase to know that there is at least one side-effect that the function you're looking at *doesn't* have. Since scramblecmp does not modify the arguments, we add the const modifier.
 
@@ -78,6 +80,7 @@ We're getting a lot of warnings about "implicit declaration of function ‘name�
 
 Let's start with strcmpl, which we find in the [Digital Mars documentation][dm_docs], where it says that "strcmp is case sensitive whereas strcmpi and strcmpl are not". So, basically, strcmpl is a case-insensitive version of strcmp. A lot of early C libraries have one of these functions, under different names: gcc has strcasecmp, Visual C++ has \_stricmp. What each of them has in common is that they are not part of any ANSI C standard, and for very good reasons. case-sensitive behavior is locale-dependent, and unless you assume that all strings are encoded in ASCII and only contain letters from the English alphabet (no umlauts, no accents, etc), it's impossible to write a correct function that converts a character from upper to lower case or vice versa. As an example, in Turkish, the lowercase letter for I does not have a dot on it, while the uppercase version of i does. [Wikipedia has a page about this][wp_dottedi].
 Atlantis is an English PBEM, and all input is assumed to be in English, so even if a function like this is a bad idea in the general case, we can work with these assumptions. We could replace all occurrences of strcmpl with strcasecmp, and the code would compile, but we would just be replacing one compiler-dependency with a different one. Bad Form. Instead, we are going to add a layer between our code and the runtime library of whatever compiler we happen to be using. I'm going to call it rtl.h (RTL for runtime-library). Here is our initial version, which we're going to improve in the next section:
+
     #ifndef RTL_H
     #define RTL_H
     #if defined(__GNUC__)
@@ -95,6 +98,7 @@ View these latest changes on [github](https://github.com/badgerman/atlantis1/com
 If you've ever used configure, you've used a set of tools called autoconf, and they figure out what platform-dependent stuff your build can do, and write a config.h file that contains a ton of macros that your code can use. Instead of writing code for every possible compiler or platform, we want to achieve the same thing with CMake.
 
 There is a pretty good explanation of how to achieve this [on the cmake website](http://www.cmake.org/Wiki/CMake:How_To_Write_Platform_Checks "How To Write Platform Checks") that I've been following. The result is that running make will create a config.h file that we include from rtl.h, and rtl.h no longer uses compiler-specific macros, but the macros from config.h instead:
+
     #include "config.h"
     #if defined(HAVE_STRINGS_H)
     #include <strings.h>
@@ -112,6 +116,7 @@ View these latest changes on [github](https://github.com/badgerman/atlantis1/com
 ## adding rtl.c to write some meatier shims
 
 Now that we have this technique understood, we should build the same kind of shim for[strlwr](http://www.digitalmars.com/rtl/string.html#_strlwr). It's a function that does an in-place conversion of all uppercase letters to their lowercase equivalent, and there is no equivalent for it in ANSI C. To make matters worse, lots of runtime libraries only have a tolower function in ctype.h that converts an individual character, not one that deals with entire strings. So let's just write our own, adding an rtl.c file to our library wrapper.
+
     #include "rtl.h"
     #include <ctype.h>
     #if !defined(HAVE_STRLWR)
@@ -129,6 +134,7 @@ View these latest changes on [github](https://github.com/badgerman/atlantis1/com
 ## testing, 1 2 3
 
 Now that we're writing code of our own, it's time to write tests, too. I like the [CuTest](http://cutest.sourceforge.net/) unit test framwework for C because it's small and incredibly simple to use. Because I use it a lot, I already have a slightly adapted version of it in a [github repository](https://github.com/badgerman/cutest), complete with CMake build. Let's add that as a submodule under the main atlantis/ directory:
+
     $ git submodule add git://github.com/badgerman/cutest.git
     $ git add cutest .gitmodules
     $ git commit
@@ -136,6 +142,7 @@ Now that we're writing code of our own, it's time to write tests, too. I like th
 View these latest changes on [github](https://github.com/badgerman/atlantis1/commit/2938490e2d35780353b5c4e86dba4d68aa32cdf8)
 
 The boilerplate for a simple CuTest file that does nothing looks like this:
+
     #include <CuTest.h>
     #include <stdio.h>
     #include "rtl.h"
@@ -152,6 +159,7 @@ The boilerplate for a simple CuTest file that does nothing looks like this:
     }
 
 We add this to our CMakeLists.txt rules by adding an executable and adding it as a test (with ADD_TEST), as well as adding the cutest library to it, and then run the tests:
+
     $ make rtl_tests CuTestTest test
     Running tests...
     Test project /home/enno/atlantis/build
@@ -173,6 +181,7 @@ Sadly, there's a [problem in CMake](http://stackoverflow.com/questions/733475/cm
 View these latest changes on [github](https://github.com/badgerman/atlantis1/commit/051f69e9f44a0848f6510259983fe2d37d67c157)
 
 Finally, we extend rtl.test.c with a couple of tests that cover the two functions we just wrote, and add them to the test suite. In rtl.tests.c, we will test both our custom implementation and the implementation that is chosen by config.h:
+
     SUITE_ADD_TEST(suite, test_strcmpl);
     SUITE_ADD_TEST(suite, test_rtl_strcmpl);
 
@@ -218,12 +227,14 @@ At this point, the server compiles for the first time.
 ## Success! Or is it?
 
 We should do some basic functional testing now. It's surprising how few games have a basic test that verifies the game can even start, so let's be better than 70% of the professional games industry, and write that test. We want to test that we can start the server and entering a Q (for quit) exits it with an exit code of 0. For various reasons mostly to do with CMake, this is best done in a small shell script that receives the executable's location as an argument and looks like this:
+
     #!/bin/sh
     if [ ! -x $1 ] ; then
       echo "usage: $0 <executable>" ; exit 1
     fi
     echo Q | $1
 We create this script in `tests/atlantis_starts`, and add a CMakeLists.txt file for tests in this directory that contains this command:
+
     ADD_TEST(NAME atlantis_starts
       COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/atlantis_starts $<TARGET_FILE:atlantis>)
 
