@@ -6879,34 +6879,14 @@ void addunits (void)
 
 void initgame (void)
 {
-	struct FIND *fd;
-
-	fd = findfirst ("data/*",0);
-
-	if (!fd)
-	{
-		puts ("No data files found, creating game...");
-		mkdir ("data");
-		makeblock (0,0);
-
-		writesummary ();
-		writegame ();
-	}
-	else
-	{
-		turn = 0;
-
-		do
-		{
-			int i = atoi (fd->name);
-			if (i > turn)
-				turn = i;
-			fd = findnext ();
-		}
-		while (fd);
-
+  if (turn==0) {
+    mkdir ("data");
+    makeblock (0,0);
+    writesummary ();
+    writegame ();
+  } else {
 		readgame ();
-	}
+  }
 }
 
 void processturn (void)
