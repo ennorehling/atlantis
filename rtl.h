@@ -22,6 +22,17 @@ char * rtl_strlwr(char * str);
 #endif
 #endif
 
+#if defined(HAVE_DIRECT__MKDIR)
+#include <direct.h>
+#define mkdir(a) _mkdir(a)
+#elif defined(HAVE_DIRECT_MKDIR)
+#include <direct.h>
+#define mkdir(a) mkdir(a)
+#elif defined(HAVE_SYS_STAT_MKDIR)
+#include <sys/stat.h>
+#define mkdir(a) mkdir(a, 0777)
+#endif
+
 #if !defined(HAVE_STRLWR)
 #define strlwr(a) rtl_strlwr(a)
 #endif
