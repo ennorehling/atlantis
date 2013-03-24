@@ -69,7 +69,7 @@ Here's an interesting error: "passing argument 4 of ‘qsort’ from incompatibl
     qsort (v,n,width + 4,scramblecmp);
 What's wrong with this? qsort takes a function as argument 4 which compares two elements in the array, and `man qsort` tells us that it's signature is 
 
-    int (\*compar)(const void \*, const void \*);
+    int (*compar)(const void *, const void *);
 Looking at scramblecmp, it takes two arguments of type void \*, notice the absence of the const modifier. specifying an argument as const means that the function receiving the argument is not allowed to modify it, and it's helpful for the reader of a codebase to know that there is at least one side-effect that the function you're looking at *doesn't* have. Since scramblecmp does not modify the arguments, we add the const modifier.
 
 git revision 97f8caff4323c41f2e31d423823465f5698618b5
@@ -147,9 +147,9 @@ The boilerplate for a simple CuTest file that does nothing looks like this:
     #include <stdio.h>
     #include "rtl.h"
     
-    int main(int argc, char \*\* argv) {
-      CuString \*output = CuStringNew();
-      CuSuite \*suite = CuSuiteNew();
+    int main(int argc, char ** argv) {
+      CuString *output = CuStringNew();
+      CuSuite *suite = CuSuiteNew();
     
       CuSuiteRun(suite);
       CuSuiteSummary(suite, output);
