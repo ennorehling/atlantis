@@ -4,6 +4,7 @@ PROJECT (atlantis C)
 ENABLE_TESTING()
 
 ADD_SUBDIRECTORY (cutest)
+ADD_SUBDIRECTORY (tests)
 
 IF(CMAKE_COMPILER_IS_GNUCC)
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -Wno-unknown-pragmas -Wpointer-arith -Wno-char-subscripts -Wno-long-long")
@@ -37,6 +38,7 @@ ADD_EXECUTABLE(rtl_tests rtl.c rtl.h rtl.test.c)
 TARGET_LINK_LIBRARIES (rtl_tests cutest)
 
 ADD_TEST (rtl rtl_tests)
+
 ADD_CUSTOM_TARGET(check COMMAND ${CMAKE_CTEST_COMMAND}
-                  DEPENDS rtl_tests CuTestTest
+                  DEPENDS rtl_tests CuTestTest atlantis
                   COMMENT "Running Tests...")

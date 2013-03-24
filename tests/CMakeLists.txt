@@ -1,0 +1,11 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+PROJECT (tests C)
+
+ENABLE_TESTING()
+
+ADD_TEST(NAME atlantis
+  COMMAND test -x $<TARGET_FILE:atlantis>)
+
+ADD_TEST(NAME atlantis_starts
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/atlantis_starts $<TARGET_FILE:atlantis>)
+SET_TESTS_PROPERTIES(atlantis_starts PROPERTIES DEPENDS atlantis)
