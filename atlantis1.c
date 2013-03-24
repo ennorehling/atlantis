@@ -1520,7 +1520,7 @@ unit *getunitg (region *r,unit *u)
 
 	s = getstr ();
 
-	if (!strcmpl (s,"new"))
+	if (!_strcmpl (s,"new"))
 		return getnewunit (r,u);
 
 	return findunitg (atoi (s));
@@ -1540,10 +1540,10 @@ unit *getunit (region *r,unit *u)
 
 	s = getstr ();
 
-	if (!strcmpl (s,"new"))
+	if (!_strcmpl (s,"new"))
 		return getnewunit (r,u);
 
-	if (r->terrain != T_OCEAN && !strcmpl (s,"peasants"))
+	if (r->terrain != T_OCEAN && !_strcmpl (s,"peasants"))
 	{
 		getunitpeasants = 1;
 		return 0;
@@ -1566,22 +1566,22 @@ unit *getunit (region *r,unit *u)
 
 int strpcmp (const void *s1,const void *s2)
 {
-	return strcmpl (*(char **)s1,*(char **)s2);
+	return _strcmpl (*(char **)s1,*(char **)s2);
 }
 
 int findkeyword (char *s)
 {
 	char **sp;
 
-	if (!strcmpl (s,"describe"))
+	if (!_strcmpl (s,"describe"))
 		return K_DISPLAY;
-	if (!strcmpl (s,"n"))
+	if (!_strcmpl (s,"n"))
 		return K_NORTH;
-	if (!strcmpl (s,"s"))
+	if (!_strcmpl (s,"s"))
 		return K_SOUTH;
-	if (!strcmpl (s,"e"))
+	if (!_strcmpl (s,"e"))
 		return K_EAST;
-	if (!strcmpl (s,"w"))
+	if (!_strcmpl (s,"w"))
 		return K_WEST;
 
 	sp = bsearch (&s,keywords,MAXKEYWORDS,sizeof s,strpcmp);
@@ -1605,7 +1605,7 @@ int findstr (char **v,char *s,int n)
 	int i;
 
 	for (i = 0; i != n; i++)
-		if (!strcmpl (v[i],s))
+		if (!_strcmpl (v[i],s))
 			return i;
 
 	return -1;
@@ -1613,9 +1613,9 @@ int findstr (char **v,char *s,int n)
 
 int findskill (char *s)
 {
-	if (!strcmpl (s,"horse"))
+	if (!_strcmpl (s,"horse"))
 		return SK_HORSE_TRAINING;
-	if (!strcmpl (s,"entertain"))
+	if (!_strcmpl (s,"entertain"))
 		return SK_ENTERTAINMENT;
 
 	return findstr (skillnames,s,MAXSKILLS);
@@ -1630,9 +1630,9 @@ int finditem (char *s)
 {
 	int i;
 
-	if (!strcmpl (s,"chain"))
+	if (!_strcmpl (s,"chain"))
 		return I_CHAIN_MAIL;
-	if (!strcmpl (s,"plate"))
+	if (!_strcmpl (s,"plate"))
 		return I_PLATE_ARMOR;
 
 	i = findstr (itemnames[0],s,MAXITEMS);
@@ -3065,13 +3065,13 @@ NEXTPLAYER:
 				{
 					getbuf ();
 
-					if (!memicmp (buf,"#atlantis",9))
+					if (!_memicmp (buf,"#atlantis",9))
 						goto NEXTPLAYER;
 
 					if (buf[0] == EOF || buf[0] == '\f' || buf[0] == '#')
 						goto DONEPLAYER;
 
-					if (!strcmpl (igetstr (buf),"unit"))
+					if (!_strcmpl (igetstr (buf),"unit"))
 					{
 NEXTUNIT:
 						i = geti ();
@@ -3086,13 +3086,13 @@ NEXTUNIT:
 							{
 								getbuf ();
 
-								if (!strcmpl (igetstr (buf),"unit"))
+								if (!_strcmpl (igetstr (buf),"unit"))
 								{
 									*SP = 0;
 									goto NEXTUNIT;
 								}
 
-								if (!memicmp (buf,"#atlantis",9))
+								if (!_memicmp (buf,"#atlantis",9))
 								{
 									*SP = 0;
 									goto NEXTPLAYER;
@@ -3447,7 +3447,7 @@ void report (faction *f)
 	unit *u;
 	strlist *S;
 
-	if (strcmpl (f->addr,"n/a"))
+	if (_strcmpl (f->addr,"n/a"))
 		sprintf (buf,"reports/%d.r",f->no);
 	else
 		sprintf (buf,"nreports/%d.r",f->no);
@@ -3653,8 +3653,8 @@ void reports (void)
 	struct FIND *fd;
 	faction *f;
 
-	mkdir ("reports");
-	mkdir ("nreports");
+	_mkdir ("reports");
+	_mkdir ("nreports");
 
 	for (f = factions; f; f = f->next)
 		report (f);
@@ -3663,7 +3663,7 @@ void reports (void)
 	puts ("Writing send file...");
 
 	for (f = factions; f; f = f->next)
-		if (strcmpl (f->addr,"n/a"))
+		if (_strcmpl (f->addr,"n/a"))
 		{
 			fprintf (F,"mail %d.r\n",f->no);
 			fprintf (F,"in%%\"%s\"\n",f->addr);
@@ -3676,7 +3676,7 @@ void reports (void)
 	puts ("Writing maillist file...");
 
 	for (f = factions; f; f = f->next)
-		if (strcmpl (f->addr,"n/a"))
+		if (_strcmpl (f->addr,"n/a"))
 			fprintf (F,"%s\n",f->addr);
 
 	fclose (F);
@@ -5461,7 +5461,7 @@ void processorders (void)
 
 				default:
 					strcpy (u->lastorder,u->thisorder);
-					strlwr (u->lastorder);
+					_strlwr (u->lastorder);
 			}
 		}
 
@@ -6825,7 +6825,7 @@ void addunits (void)
 	{
 		rs (buf);
 
-		if (!strcmpl (buf,"end"))
+		if (!_strcmpl (buf,"end"))
 			return;
 
 		u = createunit (r);
@@ -6840,7 +6840,7 @@ void addunits (void)
 		{
 			rs (buf);
 
-			if (!strcmpl (buf,"end"))
+			if (!_strcmpl (buf,"end"))
 				break;
 
 			j = ri ();
@@ -6860,7 +6860,7 @@ void addunits (void)
 void initgame (void)
 {
   if (turn==0) {
-    mkdir ("data");
+    _mkdir ("data");
     makeblock (0,0);
     writesummary ();
     writegame ();

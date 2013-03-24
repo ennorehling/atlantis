@@ -11,13 +11,13 @@ char * rtl_strlwr(char * str) {
   return str;
 }
 
-int rtl_strncmpl(const char * a, const char * b, size_t size) {
+int rtl_memicmp(const char * a, const char * b, size_t size) {
   int ca = tolower(*a);
   int cb = tolower(*b);
   if (size==0) return 0;
   if (ca<cb) return -1;
   if (ca>cb) return 1;
-  return rtl_strncmpl(a+1, b+1, size-1);
+  return rtl_memicmp(a+1, b+1, size-1);
 }
 
 int rtl_strcmpl(const char * a, const char * b) {
