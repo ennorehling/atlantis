@@ -20,8 +20,6 @@
 #define	NAMESIZE					81
 #define	DISPLAYSIZE				161
 #define	addlist2(l,p)			(*l = p, l = &p->next)
-#define	min(a,b)					((a) < (b) ? (a) : (b))
-#define	max(a,b)					((a) > (b) ? (a) : (b))
 #define	xisdigit(c)				((c) == '-' || ((c) >= '0' && (c) <= '9'))
 #define	addptr(p,i)				((void *)(((char *)p) + i))
 
@@ -2480,7 +2478,7 @@ int armedmen (unit *u)
 		n += u->items[I_CROSSBOW];
 	if (effskill (u,SK_LONGBOW))
 		n += u->items[I_LONGBOW];
-	return min (n,u->number);
+	return MIN (n,u->number);
 }
 
 void getmoney (region *r,unit *u,int n)
@@ -2493,7 +2491,7 @@ void getmoney (region *r,unit *u,int n)
 	for (u2 = r->units; u2 && n >= 0; u2 = u2->next)
 		if (u2->faction == u->faction && u2 != u)
 		{
-			i = min (u2->money,n);
+			i = MIN (u2->money,n);
 			u2->money -= i;
 			u->money += i;
 			n -= i;
@@ -2755,7 +2753,7 @@ void dozap (int n)
 	static char buf2[40];
 
 	n = lovar (n * (1 + attacker.power));
-	n = min (n,left[defender.side]);
+	n = MIN (n,left[defender.side]);
 
 	sprintf (buf2,", inflicting %d %s",n,(n == 1) ? "casualty" : "casualties");
 	scat (buf2);
@@ -2803,7 +2801,7 @@ void docombatspell (int i)
 				if (canbedemoralized (j))
 					m++;
 
-			n = min (n,m);
+			n = MIN (n,m);
 
 			sprintf (buf2,", affecting %d %s",n,(n == 1) ? "person" : "people");
 			scat (buf2);
@@ -2827,7 +2825,7 @@ void docombatspell (int i)
 				if (canbedazzled (j))
 					m++;
 
-			n = min (n,m);
+			n = MIN (n,m);
 
 			sprintf (buf2,", dazzling %d %s",n,(n == 1) ? "person" : "people");
 			scat (buf2);
@@ -2859,7 +2857,7 @@ void docombatspell (int i)
 				if (canberemoralized (j))
 					m++;
 
-			n = min (n,m);
+			n = MIN (n,m);
 
 			sprintf (buf2,", affecting %d %s",n,(n == 1) ? "person" : "people");
 			scat (buf2);
@@ -3221,10 +3219,10 @@ void writemap (void)
 
 	for (r = regions; r; r = r->next)
 	{
-		minx = min (minx,r->x);
-		maxx = max (maxx,r->x);
-		miny = min (miny,r->y);
-		maxy = max (maxy,r->y);
+		minx = MIN (minx,r->x);
+		maxx = MAX (maxx,r->x);
+		miny = MIN (miny,r->y);
+		maxy = MAX (maxy,r->y);
 	}
 
 	for (y = miny; y <= maxy; y++)
@@ -3874,7 +3872,7 @@ int cancast (unit *u,int i)
 			return u->items[I_STAFF_OF_LIGHTNING];
 
 		case SP_TELEPORT:
-			return min (u->number,u->items[I_WAND_OF_TELEPORTATION]);
+			return MIN (u->number,u->items[I_WAND_OF_TELEPORTATION]);
 	}
 
 	return 0;
@@ -4691,7 +4689,7 @@ void processorders (void)
 								if (!ta[i].status && ta[i].canheal)
 								{
 									k = lovar (50 * (1 + ta[i].power));
-									k = min (k,initial[attacker.side] -
+									k = MIN (k,initial[attacker.side] -
 													  left[attacker.side] - n);
 
 									sprintf (buf,"%s heals %d wounded.",
@@ -5363,7 +5361,7 @@ void processorders (void)
 							break;
 						}
 
-						n = min (n,availmoney / RECRUITCOST);
+						n = MIN (n,availmoney / RECRUITCOST);
 
 						o = cmalloc (sizeof (order));
 						o->qty = n;
@@ -5656,7 +5654,7 @@ void processorders (void)
 							}
 
 							n = u->number * effskill (u,SK_BUILDING);
-							n = min (n,u->items[I_STONE]);
+							n = MIN (n,u->items[I_STONE]);
 							b->size += n;
 							u->items[I_STONE] -= n;
 
@@ -5695,8 +5693,8 @@ void processorders (void)
 
 BUILDSHIP:
 							n = u->number * effskill (u,SK_SHIPBUILDING);
-							n = min (n,sh->left);
-							n = min (n,u->items[I_WOOD]);
+							n = MIN (n,sh->left);
+							n = MIN (n,u->items[I_WOOD]);
 							sh->left -= n;
 							u->items[I_WOOD] -= n;
 
@@ -5789,7 +5787,7 @@ CREATESHIP:
 					}
 					else
 					{
-						n = min (n,u->items[rawmaterial[i]]);
+						n = MIN (n,u->items[rawmaterial[i]]);
 
 						if (n == 0)
 						{
@@ -5930,7 +5928,7 @@ CREATESHIP:
 						}
 
 						n = (u2->number * 30) - u2->learning;
-						n = min (n,teaching);
+						n = MIN (n,teaching);
 
 						if (n == 0)
 							continue;
@@ -5994,7 +5992,7 @@ CREATESHIP:
 
 		free (oa);
 
-		r->money += min (n,r->peasants * foodproductivity[r->terrain]);
+		r->money += MIN (n,r->peasants * foodproductivity[r->terrain]);
 
 		for (u = r->units; u; u = u->next)
 			if (u->n >= 0)
@@ -6111,7 +6109,7 @@ CREATESHIP:
 								break;
 							}
 
-							n = min (u->number,u->money / (200 * spelllevel[i]));
+							n = MIN (u->number,u->money / (200 * spelllevel[i]));
 							u->items[j] += n;
 							u->money -= n * 200 * spelllevel[i];
 							u->skills[SK_MAGIC] += n * 10;
@@ -6131,13 +6129,13 @@ CREATESHIP:
 						{
 							case SP_CONTAMINATE_WATER:
 								n = cancast (u,SP_CONTAMINATE_WATER);
-								n = min (n,u->money / 50);
+								n = MIN (n,u->money / 50);
 
 								u->money -= n * 50;
 								u->skills[SK_MAGIC] += n * 10;
 
 								n = lovar (n * 50);
-								n = min (n,r->peasants);
+								n = MIN (n,r->peasants);
 
 								if (!n)
 									break;
@@ -6190,7 +6188,7 @@ CREATESHIP:
 								}
 
 								n = cancast (u,SP_TELEPORT);
-								n = min (n,u->money / 50);
+								n = MIN (n,u->money / 50);
 
 								u->money -= n * 50;
 								u->skills[SK_MAGIC] += n * 10;
@@ -6256,7 +6254,7 @@ CREATESHIP:
 					r->peasants++;
 
 			n = r->money / MAINTENANCE;
-			r->peasants = min (r->peasants,n);
+			r->peasants = MIN (r->peasants,n);
 			r->money -= r->peasants * MAINTENANCE;
 
 			for (n = r->peasants; n; n--)

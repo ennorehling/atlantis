@@ -37,4 +37,11 @@ char * rtl_strlwr(char * str);
 #define strlwr(a) rtl_strlwr(a)
 #endif
 
+#ifndef MIN
+# define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
+#ifndef MAX
+# define MAX(a,b) ((a) > (b) ? (a) : (b))
+#endif
+
 #endif
