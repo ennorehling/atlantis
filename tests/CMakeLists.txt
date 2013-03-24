@@ -9,3 +9,7 @@ ADD_TEST(NAME atlantis
 ADD_TEST(NAME atlantis_starts
   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/atlantis_starts $<TARGET_FILE:atlantis>)
 SET_TESTS_PROPERTIES(atlantis_starts PROPERTIES DEPENDS atlantis)
+
+ADD_TEST(NAME atlantis_process
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/atlantis_process $<TARGET_FILE:atlantis>)
+SET_TESTS_PROPERTIES(atlantis_process PROPERTIES DEPENDS atlantis)

@@ -1,0 +1,35 @@
+#!/bin/bash
+if [ -z $1 ] || [ ! -x $1 ] ; then
+  echo "usage: $0 <executable>"
+  exit 1
+fi
+
+FILES="orders maillist send summary data/0 data/1"
+DIRECTORIES="reports nreports data"
+function cleanup {
+  rm -rf $FILES $DIRECTORIES
+}
+
+touch orders
+( echo P ; echo orders ) | $1
+let RESULT=$?
+if [ $RESULT -ne 0 ] ; then
+  echo "non-zero exit code from server: $RESULT"
+  cleanup
+  exit $RESULT
+fi
+for FILE in $FILES ; do
+  if [ ! -e $FILE ] ; then
+    echo "failed to create $FILE"
+    cleanup
+    exit 2
+  fi
+done
+for DIR in $DIRECTORIES ; do
+  if [ ! -d $DIR ] ; then
+    echo "failed to create directory $DIR"
+    cleanup
+    exit 3
+  fi
+done
+cleanup
