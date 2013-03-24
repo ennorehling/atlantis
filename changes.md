@@ -242,5 +242,9 @@ This seems like a simple enough blueprint for any other functional tests we'll w
 
 View these latest changes on [github](https://github.com/badgerman/atlantis1/commit/c5652a00a2e122ca6756afcb38ce57e0fcd0158b)
 
+## Other compilers, especially Visual C++
+
+The good news is, we have a working atlantis server that compiled on Linux with gcc. The bad news is, not everyone has this setup, and what we've produced here will probably not compile in the Microsoft Visual C++ (or short, MSVC) compiler. That's a whole other story, though.
+
 [dm_docs]: http://www.digitalmars.com/rtl/rtl.html "Digital Mars RTL documentation"
 [wp_dottedi]: https://en.wikipedia.org/wiki/Dotted_and_dotless_I "Wikipedia on dotted vs. dotless I"
