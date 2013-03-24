@@ -3658,24 +3658,6 @@ void reports (void)
 	mkdir ("reports");
 	mkdir ("nreports");
 
-	fd = findfirst ("reports/*.*",0);
-
-	while (fd)
-	{
-		sprintf (buf,"reports/%s",fd->name);
-		unlink (buf);
-		fd = findnext ();
-	}
-
-	fd = findfirst ("nreports/*.*",0);
-
-	while (fd)
-	{
-		sprintf (buf,"nreports/%s",fd->name);
-		unlink (buf);
-		fd = findnext ();
-	}
-
 	for (f = factions; f; f = f->next)
 		report (f);
 
