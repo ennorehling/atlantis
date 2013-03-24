@@ -1722,28 +1722,28 @@ void scramble (void *v1,int n,int width)
 region *inputregion (void)
 {
 	int x,y;
-	region *r;
+	region *r = 0;
 
-LOOP:
-	printf ("X? ");
-	gets (buf);
-	if (buf[0] == 0)
-		return 0;
-	x = atoi (buf);
-
-	printf ("Y? ");
-	gets (buf);
-	if (buf[0] == 0)
-		return 0;
-	y = atoi (buf);
-
-	r = findregion (x,y);
-
-	if (!r)
-	{
-		puts ("No such region.");
-		goto LOOP;
-	}
+  while (!r) {
+    printf ("X? ");
+    gets (buf);
+    if (buf[0] == 0)
+      return 0;
+    x = atoi (buf);
+    
+    printf ("Y? ");
+    gets (buf);
+    if (buf[0] == 0)
+      return 0;
+    y = atoi (buf);
+    
+    r = findregion (x,y);
+    
+    if (!r) {
+      puts ("No such region.");
+    }
+  }
+  return r;
 }
 
 void addplayers (void)
