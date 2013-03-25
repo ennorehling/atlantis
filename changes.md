@@ -246,5 +246,117 @@ View these latest changes on [github](https://github.com/badgerman/atlantis1/com
 
 The good news is, we have a working atlantis server that compiled on Linux with gcc. The bad news is, not everyone has this setup, and what we've produced here will probably not compile in the Microsoft Visual C++ (or short, MSVC) compiler. That's a whole other story, though.
 
+## CMake and MSVC
+
+It is now time to try our code with a second compiler. Writin code that works on one compiler is easy, but we have gone out of our way to make it compiler-agnostic. Even our build scripts are mostly compiler-agnostic, but the proof of that is in the pudding. Microsoft's Visual C++ compiler is in many ways the polar opposite of gcc: It omes with a big IDE, doesn't use Makefiles, but its own proprietary solution file format, and supports a differnt subset of the C standard as well as shipping with a differnt C library.
+
+The best news is that CMake doesn't just generate Makefiles, but can create Solution files for a number of MSVC versions as well (there are a number of other supported toolchains, actually). Before we install and configure CMake for Windows, we are going to add a folder of custom cmake modules to the project that I wrote earlier. It's in the git://github.com/eressea/cmake.git repository:
+
+    git submodule add git://github.com/eressea/cmake.git
+
+The file we are interested from this is cmake/Modules/FindMSVC.cmake, and it contains some macros to change compiler settings for MSVC that we're going to use. We need to configure CMake with a CMAKE_MODULE_PATH that points at this Modules directory (you can do that from the CMake GUI using the `Add Entry` button), then configure and generate our project. Select the generator that matches your version of MSVC (I'm testing this with Microsoft Visual Studio 10). Open the Solution in Visual Studio and build it.
+
+## min and max
+
+Trying to compile, we see this:
+
+    3>C:\Users\Enno\Documents\Eressea\atlantis1\atlantis1.c(23): warning C4005: 'min' : macro redefinition
+    3>          C:\Program Files\Microsoft Visual Studio 10.0\VC\include\stdlib.h(855) : see previous definition of 'min'
+
+This is one of the most common problems with old C code. The C standard does not prescribe the existence of macros for min and max, but many programs want them, and define their own. They are so popular that most compilers added them eventually, but each in a different header or under a different name. We're going to remove these defines and add our own to rtl.h. There is no point in re-using any pre-existing macros, because these are so easy to write. We'll side-step the whole issue by renaming min and max to MIN and MAX, which doesn't collide with any existing headers that I know of.
+
+View these latest changes on [github](https://github.com/badgerman/atlantis1/commit/21893c165ebdbee1757612bfad2d3d35d823a850)
+
+## Microsoft is reinventing the libc
+
+This is a common sight when trying to compile C code with MSVC:
+
+    C:\Users\Enno\Documents\Eressea\atlantis1\atlantis1.c(1152): warning C4996: 'strcat': This function or variable may be unsafe. Consider using strcat_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+              C:\Program Files\Microsoft Visual Studio 10.0\VC\include\string.h(110) : see declaration of 'strcat'
+
+In their wisdom, Microsoft have taken it upon themselves to deprecate valid functions in the standard C library, and supplying their own versions that are somehow "safer", but using them would take us down the terrible path of writing compiler-dependent code, something we've been trying to avoid. We'd much rather turn off that deprecation warning, and continue to risk whatever dangers there are. The warning gives us a pretty clear recipe for doing that: define _CRT_SECURE_NO_WARNINGS. We're going back to our CMakeLists.txt file, and if the compiler is MSVC, we want to add that to the CFLAGS. So far, we have only ever defined CFLAGS for gcc, but there is a CMake module in the cmake submodule we just added that defines a function for doing that:
+    IF (MSVC)
+        find_package (MSVC MODULE)
+        MSVC_CRT_SECURE_NO_WARNINGS (${PROJECT_NAME} atlantis)
+    ENDIF (MSVC)
+
+## Microsoft and POSIX names
+
+Here is another warning that only Microsoft's compiler will give you:
+
+    C:\Users\Enno\Documents\Eressea\atlantis1\atlantis1.c(3068): warning C4996: 'memicmp': The POSIX name for this item is deprecated. Instead, use the ISO C++ conformant name: _memicmp. See online help for details.
+              C:\Program Files\Microsoft Visual Studio 10.0\VC\include\string.h(93) : see declaration of 'memicmp'
+
+Microsoft decided to rename their library extensions with a leading underscore, because implementation specific extensions should use names starting with an underscore in the global namespace if they want to adhere to the C or C++ Standard. That is actually a quite sensible move, even if it breaks compatibility with just about any existing program that used those extensions. Serves you right for writing compiler-specific code! We should go along with this, and rename the extensions in our rtl.h file to have a leading underscore, also. That means strlwr, memicp, etc. will get a leading underscore, and we will fix the Atlantis code to call the underscore functions instead.
+
+View these latest changes on [github](https://github.com/badgerman/atlantis1/commit/f132777e41e831820aa498c489d521cde19994c1)
+
+## Integers, Characters, and other abominations
+
+We are now left with code that compiles, but still has warnings about integers being converted to characters, like this:
+
+    warning C4244: '=' : conversion from 'int' to 'char', possible loss of data
+
+What MSVC is warnign us about here is that the code is assigning a value from an int to a variable that only holds a char. In C, these types are not guaranteed to be any particular size, and they are usually not the same size, so there are valid int values that do not fit into a char, and would be truncated. For a common 32-bit system, a char is usually 1 byte and holds values from 0 to 255, while an int is 32 bits wide and can hold values between negative and positive 2 billion. When we assign from the latter to the former, we need to be very sure that the value in the int is inside the 0-255 range.
+
+### Boolean values
+
+Prior to C99, there was no bool type in C, but any numeric type can store valuees of 0 and 1, so everyone just helped themselves to whatever type they could find. One example in this code base is the following:
+
+    f2->seesbattle = ispresent (f2,r);
+
+Here, `seesbattle` is a char, while ispresent() returns an int. We know this assignment is going to be okay, because all values are in the [0,1] range. we could just add a (char) type coercion here to suppress the warning. Alternatively, we can ask ourselves "why is seesbattle a char?", and the most likely reason here is memory. Back in the days of MS-DOS, this game had to run inside 640KB of memory, and every byte was precious, so saving 3 bytes for every fction in the game must have seemd like a good idea. Given that modern computers have gigabytes of memory, this would be a premature optimization if we wrote it today, so it sounds like we should just make `seesbattle` an int instead. But since we're in the future now, why can't we just use bool? Good question.
+Compiler vendors are notoriously slow at shipping new language features, and a lot of systems run compilers that are either not fully ANSI-compliant, or comply with some old version of it. For a long time, my personal rule of thumb was that if it wasn't in C89, I wouldn't use it, but for bool, I'm willing to make an exception, because having a specialized type for boolean values is expressive and useful. The problem arises when you interact with a code base or compiler that have defined their own boolean types, either as a typedef or #define. After a lot of false starts, I have arrived at a bool.h header that I use in situations like this which looks like so:
+
+    #if HAVE_STDBOOL_H
+    # include <stdbool.h>
+    #else
+    # if ! HAVE__BOOL
+    #  ifdef __cplusplus
+    typedef bool _Bool;
+    #  else
+    typedef unsigned char _Bool;
+    #  endif
+    # endif
+    # define bool _Bool
+    # define false 0
+    # define true 1
+    # define __bool_true_false_are_defined 1
+    #endif
+
+The header stdbool.h is defined i C99, and the best possible implementation of a boolean. If our system doesn't have it, we typedef bool to an unsigned char, with a little bit of #define magic that overrides the case where someone has already defined a bool.
+
+View these latest changes on [github](https://github.com/badgerman/atlantis1/commit/0a2cdcf9239a0218559b7435a0c9d4b8e5098e5c)
+
+I forgot to add the required entries to config.h.in, which is a constant source of irritation, so to make that work with gcc, I needed to make a few small tweaks.
+
+View these latest changes on [github](https://github.com/badgerman/atlantis1/commit/b0c877a113f997272d0c387abb5064cde2bfb47f)
+
+### stdio functions returning int
+
+Another source of int-to-char conversion warnings are functions like fgetc() that return a character as an int value. These functions always return a character (or EOF), so most of the time, casting the return value to (char) is a fairly safe way to get rid of the warning. Also, for our newly created bool type, assigning an int to it is going to cause a warning message, so we want to rewrite those lines, too.
+
+View these latest changes on [github](https://github.com/badgerman/atlantis1/commit/0d198c97baea585e1b1df6f96c1b87de67d1d27e)
+
+## enum vs. int
+
+There is a curious line in the code that makes ships:
+
+    sh->type = i;
+
+As you'd expect, i is an int that contains the intended ship-type, but sh-type is a char (again, for space reasons). If we ignore the space reasons, we could simply mak ship.type an int, but we can do better: ship types are not ints, because their valid domain is the set of values (SH_LONGBOAT, SH_CLIPPER, SH_GALLEON) which are defined in an enum at the top of the code. Let's turn that enum into a typedef (I'm going to call the type ship_t), and use ship_t everywhere. This is more expressive than using an int everywhere, and will come in handy if we ever use a debugger, because if it's smart, it will tell us the name of the enum value instead of just an integer that we need to decode.
+
+View these latest changes on [github](https://github.com/badgerman/atlantis1/commit/94726e57b4e385eb6516f08bcf95584c7b2f683a)
+
+Next, let's add the spell_t, terrain_t, and skill_t enum types.
+
+View these latest changes on [github](https://github.com/badgerman/atlantis1/commit/6afc66e46af191ec19d552e7982ee67805cddde5)
+
+At this point, the code is compiling wihtout warnings on two compilers. That's pretty neat. In fact, because we've done such a good job at writing the code and the build scripts in a compiler-agnostic way, it should run on more than that. Installing TinyCC on my linux machine, I can configure CMake to use tcc instead of gcc:
+
+    cmake .. -DCMAKE_C_COMPILER=tcc
+
+And voila! the code compiles and works without any further modifications.
+
 [dm_docs]: http://www.digitalmars.com/rtl/rtl.html "Digital Mars RTL documentation"
 [wp_dottedi]: https://en.wikipedia.org/wiki/Dotted_and_dotless_I "Wikipedia on dotted vs. dotless I"
