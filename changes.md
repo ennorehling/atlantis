@@ -338,7 +338,7 @@ Another source of int-to-char conversion warnings are functions like fgetc() tha
 
 View these latest changes on [github](https://github.com/badgerman/atlantis1/commit/0d198c97baea585e1b1df6f96c1b87de67d1d27e)
 
-## enum vs. int
+### enum vs. int
 
 There is a curious line in the code that makes ships:
 
