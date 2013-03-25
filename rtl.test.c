@@ -57,7 +57,7 @@ static void test_rtl_strlwr(CuTest * tc) {
   CuAssertStrEquals(tc, "$%^&*", rtl_strlwr(strcpy(str, "$%^&*")));
 }
 
-int main(int argc, char ** argv) {
+int main(void) {
   CuString *output = CuStringNew();
   CuSuite *suite = CuSuiteNew();
 

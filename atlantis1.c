@@ -7,6 +7,7 @@
 */
 
 #include  "rtl.h"
+#include  "bool.h"
 #include	<stdio.h>
 #include	<stdlib.h>
 #include	<string.h>
@@ -262,7 +263,7 @@ typedef struct faction
 	strlist *events;
 	char alive;
 	char attacking;
-	char seesbattle;
+	bool seesbattle;
 	char dh;
 	int nunits;
 	int number;
@@ -285,7 +286,7 @@ struct unit
 	char guard;
 	char thisorder[NAMESIZE];
 	char lastorder[NAMESIZE];
-	char combatspell;
+	int combatspell;
 	int skills[MAXSKILLS];
 	int items[MAXITEMS];
 	char spells[MAXSPELLS];
@@ -313,17 +314,17 @@ typedef struct troop
 	int lmoney;
 	char status;
 	char side;
-	char attacked;
+	bool attacked;
 	char weapon;
 	char missile;
-	char skill;
+	int skill;
 	char armor;
 	char behind;
 	char inside;
 	char reload;
 	char canheal;
 	char runesword;
-	char invulnerable;
+	bool invulnerable;
 	char power;
 	char shieldstone;
 	char demoralized;
@@ -1228,7 +1229,7 @@ void getbuf (void)
 			return;
 		}
 
-		buf[i++] = c;
+		buf[i++] = (char)c;
 	}
 }
 
@@ -1322,15 +1323,15 @@ int effskill (unit *u,int i)
 	return result;
 }
 
-int ispresent (faction *f,region *r)
+bool ispresent (faction *f,region *r)
 {
 	unit *u;
 
 	for (u = r->units; u; u = u->next)
 		if (u->faction == f)
-			return 1;
+			return true;
 
-	return 0;
+	return false;
 }
 
 int cansee (faction *f,region *r,unit *u)
@@ -1855,7 +1856,7 @@ void transmute (int from,int to,int n,int count)
 		if (i > 10)
 			break;
 
-		newblock[x][y] = to;
+		newblock[x][y] = (char)to;
 	}
 	while (--n);
 }
@@ -1871,7 +1872,7 @@ void seed (int to,int n)
 	}
 	while (newblock[x][y] != T_PLAIN);
 
-	newblock[x][y] = to;
+	newblock[x][y] = (char)to;
 	transmute (T_PLAIN,to,n,1);
 }
 
@@ -2084,7 +2085,7 @@ void sparagraph (strlist **SP,char *s,int indent,int mark)
 			buf[j] = ' ';
 
 		if (firstline && mark)
-			buf[indent - 2] = mark;
+			buf[indent - 2] = (char)mark;
 
 		for (j = 0; j != i - 1; j++)
 			buf[indent + j] = s[j];
@@ -2339,7 +2340,6 @@ void leave (region *r,unit *u)
 void removeempty (void)
 {
 	int i;
-	faction *f;
 	region *r;
 	ship *sh,*sh2;
 	unit *u,*u2,*u3;
@@ -2668,11 +2668,6 @@ int hits (void)
 
 	switch (attacker.weapon)
 	{
-		case 0:
-		case I_SWORD:
-			k = contest (attacker.skill,defender.skill);
-			break;
-
 		case I_CROSSBOW:
 			k = contest (attacker.skill,0);
 			break;
@@ -2680,6 +2675,11 @@ int hits (void)
 		case I_LONGBOW:
 			k = contest (attacker.skill,2);
 			break;
+
+        default:
+			k = contest (attacker.skill,defender.skill);
+			break;
+
 	}
 
 	if (defender.invulnerable && rnd () % 10000)
@@ -3373,7 +3373,7 @@ void rnl (void)
 
 void rpc (int c)
 {
-	outbuf[outi++] = c;
+	outbuf[outi++] = (char)c;
 	assert (outi < sizeof outbuf);
 }
 
@@ -3650,7 +3650,6 @@ void report (faction *f)
 
 void reports (void)
 {
-	struct FIND *fd;
 	faction *f;
 
 	_mkdir ("reports");
@@ -4077,7 +4076,7 @@ void processorders (void)
 						break;
 
 					case K_BEHIND:
-						u->behind = geti ();
+						u->behind = (char)geti ();
 						break;
 
 					case K_COMBAT:
@@ -6887,7 +6886,6 @@ void createcontinent (void)
 {
 	int x,y;
 
-LOOP:
 	printf ("X? ");
 	gets (buf);
 	if (buf[0] == 0)

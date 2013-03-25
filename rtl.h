@@ -8,6 +8,7 @@ char * rtl_strlwr(char * str);
 
 #include "config.h"
 
+#if !defined(HAVE__MEMICMP)
 #if defined(HAVE_MEMICMP)
 #define _memicmp(a, b, n) memicmp(a, b, n)
 #elif defined(HAVE_STRINGS_H)
@@ -16,18 +17,21 @@ char * rtl_strlwr(char * str);
 #else
 #define _memicmp(a, b, n) rtl_memicmp(a, b, n)
 #endif
+#endif
 
+#if !defined(HAVE__STRCMPL)
 #if defined(HAVE_STRCMPL)
 #define _strcmpl(a, b) strcmpl(a, b)
-#elif defined(HAVE_STRINGS_H)
-#include <strings.h>
-#define _strcmpl(a, b) strcasecmp(a, b)
 #elif defined(HAVE__STRICMP)
 #define _strcmpl(a, b) _stricmp(a, b)
 #elif defined(HAVE_STRICMP)
 #define _strcmpl(a, b) stricmp(a, b)
+#elif defined(HAVE_STRINGS_H)
+#include <strings.h>
+#define _strcmpl(a, b) strcasecmp(a, b)
 #else
 #define _strcmpl(a, b) rtl_strcmpl(a, b)
+#endif
 #endif
 
 #if defined(HAVE_DIRECT__MKDIR)
@@ -40,10 +44,12 @@ char * rtl_strlwr(char * str);
 #define _mkdir(a) mkdir(a, 0777)
 #endif
 
+#if !defined(HAVE__STRLWR)
 #if defined(HAVE_STRLWR)
 #define _strlwr(a) strlwr(a)
 #else
 #define _strlwr(a) rtl_strlwr(a)
+#endif
 #endif
 
 #ifndef MIN
