@@ -1,46 +1,45 @@
 
-/*
- * Atlantis v1.0 13 September 1993 Copyright 1993 by Russell Wallace
- * 
- * This program may be freely used, modified and distributed. It may not
- * be sold or used commercially without prior written permission from the
- * author. 
- */
+/*	Atlantis v1.0 13 September 1993
+	Copyright 1993 by Russell Wallace
+
+	This program may be freely used, modified and distributed. It may not be
+	sold or used commercially without prior written permission from the author.
+*/
 
 #include "rtl.h"
 #include "bool.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <ctype.h>
-#include <assert.h>
-#include <time.h>
-#include <stddef.h>
-#include <limits.h>
+#include	<stdio.h>
+#include	<stdlib.h>
+#include	<string.h>
+#include	<math.h>
+#include	<ctype.h>
+#include	<assert.h>
+#include	<time.h>
+#include	<stddef.h>
+#include	<limits.h>
 
-#define NAMESIZE 81
-#define DISPLAYSIZE 161
-#define addlist2(l,p) (*l = p, l = &p->next)
-#define xisdigit(c) ((c) == '-' || ((c) >= '0' && (c) <= '9'))
-#define addptr(p,i) ((void *)(((char *)p) + i))
+#define	NAMESIZE					81
+#define	DISPLAYSIZE				161
+#define	addlist2(l,p)			(*l = p, l = &p->next)
+#define	xisdigit(c)				((c) == '-' || ((c) >= '0' && (c) <= '9'))
+#define	addptr(p,i)				((void *)(((char *)p) + i))
 
-#define ORDERGAP 4
-#define BLOCKSIZE 7
-#define BLOCKBORDER 1
-#define MAINTENANCE 10
-#define STARTMONEY 5000
-#define RECRUITCOST 50
-#define RECRUITFRACTION 4
-#define ENTERTAININCOME 20
-#define ENTERTAINFRACTION 20
-#define TAXINCOME 200
-#define COMBATEXP 10
-#define PRODUCEEXP 10
-#define TEACHNUMBER 10
-#define STUDYCOST 200
-#define POPGROWTH 5
-#define PEASANTMOVE 5
+#define	ORDERGAP					4
+#define	BLOCKSIZE				7
+#define	BLOCKBORDER				1
+#define	MAINTENANCE				10
+#define	STARTMONEY				5000
+#define	RECRUITCOST				50
+#define	RECRUITFRACTION		4
+#define	ENTERTAININCOME		20
+#define	ENTERTAINFRACTION		20
+#define	TAXINCOME				200
+#define	COMBATEXP				10
+#define	PRODUCEEXP				10
+#define	TEACHNUMBER				10
+#define	STUDYCOST				200
+#define	POPGROWTH				5
+#define	PEASANTMOVE				5
 
 typedef enum {
     T_OCEAN,
@@ -283,8 +282,8 @@ struct unit {
     int learning;
     int n;
     int *litems;
-    char side;
-    char isnew;
+    int side;
+    bool isnew;
 };
 
 typedef struct order {
@@ -297,17 +296,17 @@ typedef struct troop {
     struct troop *next;
     unit *unit;
     int lmoney;
-    char status;
-    char side;
+    int status;
+    int side;
     bool attacked;
-    char weapon;
-    char missile;
+    item_t weapon;
+    bool missile;
     int skill;
-    char armor;
+    int armor;
     bool behind;
-    char inside;
-    char reload;
-    char canheal;
+    int inside;
+    int reload;
+    bool canheal;
     char runesword;
     bool invulnerable;
     char power;
@@ -1742,7 +1741,7 @@ void addplayers(void)
 	u->number = 1;
 	u->money = STARTMONEY;
 	u->faction = f;
-	u->isnew = 1;
+	u->isnew = true;
     }
 }
 
@@ -2062,9 +2061,8 @@ void spskill(unit * u, int i, int *dh, int days)
     }
 }
 
-void
-spunit(strlist ** SP, faction * f, region * r, unit * u, int indent,
-       int battle)
+void spunit(strlist ** SP, faction * f, region * r, unit * u, int indent,
+	    int battle)
 {
     int i;
     int dh;
@@ -2438,7 +2436,7 @@ troop **maketroops(troop ** tp, unit * u, int terrain)
 	t->behind = u->behind;
 
 	if (u->combatspell >= 0)
-	    t->missile = 1;
+	    t->missile = true;
 	else if (items[I_RUNESWORD] && skills[SK_SWORD]) {
 	    t->weapon = I_SWORD;
 	    t->skill = skills[SK_SWORD] + 2;
@@ -2453,12 +2451,12 @@ troop **maketroops(troop ** tp, unit * u, int terrain)
 	    }
 	} else if (items[I_LONGBOW] && skills[SK_LONGBOW]) {
 	    t->weapon = I_LONGBOW;
-	    t->missile = 1;
+	    t->missile = true;
 	    t->skill = skills[SK_LONGBOW];
 	    items[I_LONGBOW]--;
 	} else if (items[I_CROSSBOW] && skills[SK_CROSSBOW]) {
 	    t->weapon = I_CROSSBOW;
-	    t->missile = 1;
+	    t->missile = true;
 	    t->skill = skills[SK_CROSSBOW];
 	    items[I_CROSSBOW]--;
 	} else if (items[I_SWORD] && skills[SK_SWORD]) {
@@ -2474,7 +2472,7 @@ troop **maketroops(troop ** tp, unit * u, int terrain)
 	}
 
 	if (u->spells[SP_HEAL] || items[I_AMULET_OF_HEALING] > 0) {
-	    t->canheal = 1;
+	    t->canheal = true;
 	    items[I_AMULET_OF_HEALING]--;
 	}
 
@@ -2581,8 +2579,8 @@ int hits(void)
 int validtarget(int i)
 {
     return !ta[i].status &&
-	ta[i].side == defender.side && (!ta[i].behind
-					|| !infront[defender.side]);
+	ta[i].side == defender.side &&
+	(!ta[i].behind || !infront[defender.side]);
 }
 
 int canbedemoralized(int i)
@@ -2597,8 +2595,8 @@ int canbedazzled(int i)
 
 int canberemoralized(int i)
 {
-    return !ta[i].status && ta[i].side == attacker.side
-	&& ta[i].demoralized;
+    return !ta[i].status &&
+	ta[i].side == attacker.side && ta[i].demoralized;
 }
 
 int selecttarget(void)
@@ -2779,9 +2777,7 @@ void doshot(void)
 {
     int ai, di;
 
-    /*
-     * Select attacker 
-     */
+    /* Select attacker */
 
     do
 	ai = rnd() % ntroops;
@@ -2815,17 +2811,13 @@ void doshot(void)
 	    ta[ai].reload = 2;
     }
 
-    /*
-     * Select defender 
-     */
+    /* Select defender */
 
     di = selecttarget();
     defender = ta[di];
     assert(defender.side == 1 - attacker.side);
 
-    /*
-     * If attack succeeds 
-     */
+    /* If attack succeeds */
 
     if (hits())
 	terminate(di);
@@ -2971,8 +2963,8 @@ void readorders(void)
 				    goto NEXTPLAYER;
 				}
 
-				if (buf[0] == EOF
-				    || buf[0] == '\f' || buf[0] == '#') {
+				if (buf[0] == EOF || buf[0] == '\f'
+				    || buf[0] == '#') {
 				    *SP = 0;
 				    goto DONEPLAYER;
 				}
@@ -2991,24 +2983,21 @@ void readorders(void)
 					i++;
 
 					for (;;) {
-					    while (buf[i]
-						   == '_' || buf[i]
-						   == ' ' || buf[i]
-						   == '\t')
+					    while (buf[i] == '_' ||
+						   buf[i] == ' ' ||
+						   buf[i] == '\t')
 						i++;
 
-					    if (buf[i] == 0 || buf[i]
-						== '"')
+					    if (buf[i] == 0 ||
+						buf[i] == '"')
 						break;
 
-					    while (buf[i]
-						   != 0 && buf[i]
-						   != '"' && buf[i]
-						   != '_' && buf[i]
-						   != ' ' && buf[i]
-						   != '\t')
-						buf2[j++]
-						    = buf[i++];
+					    while (buf[i] != 0 &&
+						   buf[i] != '"' &&
+						   buf[i] != '_' &&
+						   buf[i] != ' ' &&
+						   buf[i] != '\t')
+						buf2[j++] = buf[i++];
 
 					    buf2[j++] = '_';
 					}
@@ -3016,37 +3005,32 @@ void readorders(void)
 					if (buf[i] != 0)
 					    i++;
 
-					if (j && (buf2[j - 1]
-						  == '_'))
+					if (j && (buf2[j - 1] == '_'))
 					    j--;
 				    } else {
 					for (;;) {
-					    while (buf[i]
-						   == '_')
+					    while (buf[i] == '_')
 						i++;
 
-					    if (buf[i] == 0 || buf[i]
-						== ';' || buf[i]
-						== '"' || buf[i]
-						== ' ' || buf[i]
-						== '\t')
+					    if (buf[i] == 0 ||
+						buf[i] == ';' ||
+						buf[i] == '"' ||
+						buf[i] == ' ' ||
+						buf[i] == '\t')
 						break;
 
-					    while (buf[i]
-						   != 0 && buf[i]
-						   != ';' && buf[i]
-						   != '"' && buf[i]
-						   != '_' && buf[i]
-						   != ' ' && buf[i]
-						   != '\t')
-						buf2[j++]
-						    = buf[i++];
+					    while (buf[i] != 0 &&
+						   buf[i] != ';' &&
+						   buf[i] != '"' &&
+						   buf[i] != '_' &&
+						   buf[i] != ' ' &&
+						   buf[i] != '\t')
+						buf2[j++] = buf[i++];
 
 					    buf2[j++] = '_';
 					}
 
-					if (j && (buf2[j - 1]
-						  == '_'))
+					if (j && (buf2[j - 1] == '_'))
 					    j--;
 				    }
 
@@ -3790,9 +3774,7 @@ void processorders(void)
     static order *produceorders[MAXITEMS];
     strlist *S, *S2;
 
-    /*
-     * FORM orders 
-     */
+    /* FORM orders */
 
     puts("Processing FORM orders...");
 
@@ -3832,9 +3814,7 @@ void processorders(void)
 		    S = S->next;
 		}
 
-    /*
-     * Instant orders - diplomacy etc. 
-     */
+    /* Instant orders - diplomacy etc. */
 
     puts("Processing instant orders...");
 
@@ -4065,9 +4045,7 @@ void processorders(void)
 		    break;
 		}
 
-    /*
-     * FIND orders 
-     */
+    /* FIND orders */
 
     puts("Processing FIND orders...");
 
@@ -4089,9 +4067,7 @@ void processorders(void)
 		    break;
 		}
 
-    /*
-     * Leaving and entering buildings and ships 
-     */
+    /* Leaving and entering buildings and ships */
 
     puts("Processing leaving and entering orders...");
 
@@ -4187,9 +4163,7 @@ void processorders(void)
 		    break;
 		}
 
-    /*
-     * Combat 
-     */
+    /* Combat */
 
     puts("Processing ATTACK orders...");
 
@@ -4197,17 +4171,13 @@ void processorders(void)
     fa = cmalloc(nfactions * sizeof(faction *));
 
     for (r = regions; r; r = r->next) {
-	/*
-	 * Create randomly sorted list of factions 
-	 */
+	/* Create randomly sorted list of factions */
 
 	for (f = factions, i = 0; f; f = f->next, i++)
 	    fa[i] = f;
 	scramble(fa, nfactions, sizeof(faction *));
 
-	/*
-	 * Handle each faction's attack orders 
-	 */
+	/* Handle each faction's attack orders */
 
 	for (fno = 0; fno != nfactions; fno++) {
 	    f = fa[fno];
@@ -4233,9 +4203,7 @@ void processorders(void)
 				continue;
 			    }
 
-			    /*
-			     * Draw up troops for the battle 
-			     */
+			    /* Draw up troops for the battle */
 
 			    for (b = r->buildings; b; b = b->next)
 				b->sizeleft = b->size;
@@ -4245,9 +4213,7 @@ void processorders(void)
 			    left[0] = left[1] = 0;
 			    infront[0] = infront[1] = 0;
 
-			    /*
-			     * If peasants are defenders 
-			     */
+			    /* If peasants are defenders */
 
 			    if (!u2) {
 				for (i = r->peasants; i; i--) {
@@ -4260,9 +4226,7 @@ void processorders(void)
 				infront[0] = r->peasants;
 			    }
 
-			    /*
-			     * What units are involved? 
-			     */
+			    /* What units are involved? */
 
 			    for (f2 = factions; f2; f2 = f2->next)
 				f2->attacking = 0;
@@ -4272,11 +4236,10 @@ void processorders(void)
 				    if (igetkeyword(S2->s) == K_ATTACK) {
 					u4 = getunit(r, u3);
 
-					if ((getunitpeasants && !u2)
-					    || (u4
-						&& u4->faction ==
-						u2->faction
-						&& !isallied(u3, u4))) {
+					if ((getunitpeasants && !u2) ||
+					    (u4
+					     && u4->faction == u2->faction
+					     && !isallied(u3, u4))) {
 					    u3->faction->attacking = 1;
 					    S2->s[0] = 0;
 					    break;
@@ -4300,18 +4263,14 @@ void processorders(void)
 
 			    *tp = 0;
 
-			    /*
-			     * If only one side shows up, cancel 
-			     */
+			    /* If only one side shows up, cancel */
 
 			    if (!left[0] || !left[1]) {
 				freelist(troops);
 				continue;
 			    }
 
-			    /*
-			     * Set up array of troops 
-			     */
+			    /* Set up array of troops */
 
 			    ntroops = listlen(troops);
 			    ta = cmalloc(ntroops * sizeof(troop));
@@ -4330,9 +4289,7 @@ void processorders(void)
 			    lmoney = 0;
 			    memset(litems, 0, sizeof litems);
 
-			    /*
-			     * Initial attack message 
-			     */
+			    /* Initial attack message */
 
 			    for (f2 = factions; f2; f2 = f2->next) {
 				f2->seesbattle = ispresent(f2, r);
@@ -4344,13 +4301,11 @@ void processorders(void)
 				strcpy(buf2, unitid(u2));
 			    else
 				strcpy(buf2, "the peasants");
-			    sprintf(buf, "%s attacks %s in %s!",
-				    unitid(u), buf2, regionid(r));
+			    sprintf(buf, "%s attacks %s in %s!", unitid(u),
+				    buf2, regionid(r));
 			    battlerecord(buf);
 
-			    /*
-			     * List sides 
-			     */
+			    /* List sides */
 
 			    battlerecord("");
 
@@ -4369,8 +4324,8 @@ void processorders(void)
 					r->peasants);
 				for (f2 = factions; f2; f2 = f2->next)
 				    if (f2->seesbattle)
-					sparagraph(&f2->battles, buf,
-						   4, '-');
+					sparagraph(&f2->battles, buf, 4,
+						   '-');
 			    }
 
 			    for (u3 = r->units; u3; u3 = u3->next)
@@ -4379,9 +4334,7 @@ void processorders(void)
 
 			    battlerecord("");
 
-			    /*
-			     * Does one side have an advantage in tactics? 
-			     */
+			    /* Does one side have an advantage in tactics? */
 
 			    maxtactics[0] = 0;
 			    maxtactics[1] = 0;
@@ -4402,14 +4355,10 @@ void processorders(void)
 			    if (maxtactics[1] > maxtactics[0])
 				attacker.side = 1;
 
-			    /*
-			     * Better leader gets free round of attacks 
-			     */
+			    /* Better leader gets free round of attacks */
 
 			    if (attacker.side >= 0) {
-				/*
-				 * Note the fact in the battle report 
-				 */
+				/* Note the fact in the battle report */
 
 				if (attacker.side)
 				    sprintf(buf,
@@ -4424,9 +4373,7 @@ void processorders(void)
 					    "The peasants get a free round of attacks!");
 				battlerecord(buf);
 
-				/*
-				 * Number of troops to attack 
-				 */
+				/* Number of troops to attack */
 
 				toattack[attacker.side] = 0;
 
@@ -4439,9 +4386,7 @@ void processorders(void)
 				    }
 				}
 
-				/*
-				 * Do round of attacks 
-				 */
+				/* Do round of attacks */
 
 				do
 				    doshot();
@@ -4449,17 +4394,13 @@ void processorders(void)
 				       && left[defender.side]);
 			    }
 
-			    /*
-			     * Handle main body of battle 
-			     */
+			    /* Handle main body of battle */
 
 			    toattack[0] = 0;
 			    toattack[1] = 0;
 
 			    while (left[defender.side]) {
-				/*
-				 * End of a round 
-				 */
+				/* End of a round */
 
 				if (toattack[0] == 0 && toattack[1] == 0)
 				    for (i = 0; i != ntroops; i++) {
@@ -4474,9 +4415,7 @@ void processorders(void)
 				doshot();
 			    }
 
-			    /*
-			     * Report on winner 
-			     */
+			    /* Report on winner */
 
 			    if (attacker.side)
 				sprintf(buf, "%s wins the battle!",
@@ -4489,9 +4428,7 @@ void processorders(void)
 					"The peasants win the battle!");
 			    battlerecord(buf);
 
-			    /*
-			     * Has winner suffered any casualties? 
-			     */
+			    /* Has winner suffered any casualties? */
 
 			    winnercasualties = 0;
 
@@ -4502,9 +4439,7 @@ void processorders(void)
 				    break;
 				}
 
-			    /*
-			     * Can wounded be healed? 
-			     */
+			    /* Can wounded be healed? */
 
 			    n = 0;
 
@@ -4513,12 +4448,10 @@ void processorders(void)
 				 left[attacker.side]; i++)
 				if (!ta[i].status && ta[i].canheal) {
 				    k = lovar(50 * (1 + ta[i].power));
-				    k = MIN(k,
-					    initial[attacker.side] -
+				    k = MIN(k, initial[attacker.side] -
 					    left[attacker.side] - n);
 
-				    sprintf(buf,
-					    "%s heals %d wounded.",
+				    sprintf(buf, "%s heals %d wounded.",
 					    unitid(ta[i].unit), k);
 				    battlerecord(buf);
 
@@ -4534,9 +4467,7 @@ void processorders(void)
 				ta[i].status = 0;
 			    }
 
-			    /*
-			     * Count the casualties 
-			     */
+			    /* Count the casualties */
 
 			    deadpeasants = 0;
 
@@ -4549,9 +4480,7 @@ void processorders(void)
 				else
 				    deadpeasants += ta[i].status;
 
-			    /*
-			     * Report the casualties 
-			     */
+			    /* Report the casualties */
 
 			    reportcasualtiesdh = 0;
 
@@ -4567,8 +4496,7 @@ void processorders(void)
 				else if (deadpeasants) {
 				    battlerecord("");
 				    reportcasualtiesdh = 1;
-				    sprintf(buf,
-					    "The peasants lose %d.",
+				    sprintf(buf, "The peasants lose %d.",
 					    deadpeasants);
 				    battlerecord(buf);
 				}
@@ -4578,9 +4506,7 @@ void processorders(void)
 					reportcasualties(u3);
 			    }
 
-			    /*
-			     * Dead peasants 
-			     */
+			    /* Dead peasants */
 
 			    k = r->peasants - deadpeasants;
 
@@ -4590,16 +4516,12 @@ void processorders(void)
 
 			    r->peasants = k;
 
-			    /*
-			     * Adjust units 
-			     */
+			    /* Adjust units */
 
 			    for (u3 = r->units; u3; u3 = u3->next) {
 				k = u3->number - u3->dead;
 
-				/*
-				 * Redistribute items and skills 
-				 */
+				/* Redistribute items and skills */
 
 				if (u3->side == defender.side) {
 				    j = distribute(u3->number, k,
@@ -4620,23 +4542,16 @@ void processorders(void)
 					distribute(u3->number, k,
 						   u3->skills[i]);
 
-				/*
-				 * Adjust unit numbers 
-				 */
+				/* Adjust unit numbers */
 
 				u3->number = k;
 
-				/*
-				 * Need this flag cleared for reporting of 
-				 * loot 
-				 */
+				/* Need this flag cleared for reporting of loot */
 
 				u3->n = 0;
 			    }
 
-			    /*
-			     * Distribute loot 
-			     */
+			    /* Distribute loot */
 
 			    for (n = lmoney; n; n--) {
 				do
@@ -4663,9 +4578,8 @@ void processorders(void)
 					if (ta[j].unit) {
 					    if (!ta[j].unit->litems) {
 						ta[j].unit->litems =
-						    cmalloc
-						    (MAXITEMS *
-						     sizeof(int));
+						    cmalloc(MAXITEMS *
+							    sizeof(int));
 						memset(ta[j].unit->litems,
 						       0,
 						       MAXITEMS *
@@ -4677,9 +4591,7 @@ void processorders(void)
 					}
 				    }
 
-			    /*
-			     * Report loot 
-			     */
+			    /* Report loot */
 
 			    for (f2 = factions; f2; f2 = f2->next)
 				f2->dh = 0;
@@ -4724,9 +4636,7 @@ void processorders(void)
 				    addbattle(u3->faction, buf);
 				}
 
-			    /*
-			     * Does winner get combat experience? 
-			     */
+			    /* Does winner get combat experience? */
 
 			    if (winnercasualties) {
 				if (maxtactics[attacker.side] &&
@@ -4737,8 +4647,8 @@ void processorders(void)
 
 				for (i = 0; i != ntroops; i++)
 				    if (ta[i].unit &&
-					!ta[i].status
-					&& ta[i].side == attacker.side)
+					!ta[i].status &&
+					ta[i].side == attacker.side)
 					switch (ta[i].weapon) {
 					case I_SWORD:
 					    ta[i].unit->skills[SK_SWORD] +=
@@ -4746,13 +4656,15 @@ void processorders(void)
 					    break;
 
 					case I_CROSSBOW:
-					    ta[i].unit->skills[SK_CROSSBOW]
-						+= COMBATEXP;
+					    ta[i].unit->
+						skills[SK_CROSSBOW] +=
+						COMBATEXP;
 					    break;
 
 					case I_LONGBOW:
-					    ta[i].unit->skills[SK_LONGBOW]
-						+= COMBATEXP;
+					    ta[i].unit->
+						skills[SK_LONGBOW] +=
+						COMBATEXP;
 					    break;
 					}
 			    }
@@ -4764,9 +4676,7 @@ void processorders(void)
 
     free(fa);
 
-    /*
-     * Economic orders 
-     */
+    /* Economic orders */
 
     puts("Processing economic orders...");
 
@@ -4774,9 +4684,7 @@ void processorders(void)
 	taxorders = 0;
 	recruitorders = 0;
 
-	/*
-	 * DEMOLISH, GIVE, PAY, SINK orders 
-	 */
+	/* DEMOLISH, GIVE, PAY, SINK orders */
 
 	for (u = r->units; u; u = u->next)
 	    for (S = u->orders; S; S = S->next)
@@ -4979,9 +4887,7 @@ void processorders(void)
 		    break;
 		}
 
-	/*
-	 * TRANSFER orders 
-	 */
+	/* TRANSFER orders */
 
 	for (u = r->units; u; u = u->next)
 	    for (S = u->orders; S; S = S->next)
@@ -5065,9 +4971,7 @@ void processorders(void)
 		    break;
 		}
 
-	/*
-	 * TAX orders 
-	 */
+	/* TAX orders */
 
 	for (u = r->units; u; u = u->next) {
 	    taxed = 0;
@@ -5105,9 +5009,7 @@ void processorders(void)
 		}
 	}
 
-	/*
-	 * Do taxation 
-	 */
+	/* Do taxation */
 
 	for (u = r->units; u; u = u->next)
 	    u->n = -1;
@@ -5145,9 +5047,7 @@ void processorders(void)
 		addevent(u->faction, buf);
 	    }
 
-	/*
-	 * GUARD 1, RECRUIT orders 
-	 */
+	/* GUARD 1, RECRUIT orders */
 
 	for (u = r->units; u; u = u->next) {
 	    availmoney = u->money;
@@ -5183,9 +5083,7 @@ void processorders(void)
 		}
 	}
 
-	/*
-	 * Do recruiting 
-	 */
+	/* Do recruiting */
 
 	expandorders(r, recruitorders);
 
@@ -5207,9 +5105,7 @@ void processorders(void)
 	    }
     }
 
-    /*
-     * QUIT orders 
-     */
+    /* QUIT orders */
 
     puts("Processing QUIT orders...");
 
@@ -5227,24 +5123,18 @@ void processorders(void)
 		    break;
 		}
 
-    /*
-     * Remove players who haven't sent in orders 
-     */
+    /* Remove players who haven't sent in orders */
 
     for (f = factions; f; f = f->next)
 	if (turn - f->lastorders > ORDERGAP)
 	    destroyfaction(f);
 
-    /*
-     * Clear away debris of destroyed factions 
-     */
+    /* Clear away debris of destroyed factions */
 
     removeempty();
     removenullfactions();
 
-    /*
-     * Set production orders 
-     */
+    /* Set production orders */
 
     puts("Setting production orders...");
 
@@ -5279,9 +5169,7 @@ void processorders(void)
 	    }
 	}
 
-    /*
-     * MOVE orders 
-     */
+    /* MOVE orders */
 
     puts("Processing MOVE orders...");
 
@@ -5336,9 +5224,7 @@ void processorders(void)
 	    u = u2;
 	}
 
-    /*
-     * SAIL orders 
-     */
+    /* SAIL orders */
 
     puts("Processing SAIL orders...");
 
@@ -5366,8 +5252,7 @@ void processorders(void)
 		}
 
 		if (r2->terrain != T_OCEAN && !iscoast(r2)) {
-		    sprintf(buf,
-			    "%s discovers that (%d,%d) is inland.",
+		    sprintf(buf, "%s discovers that (%d,%d) is inland.",
 			    unitid(u), r2->x, r2->y);
 		    addevent(u->faction, buf);
 		    break;
@@ -5403,9 +5288,7 @@ void processorders(void)
 	    u = u2;
 	}
 
-    /*
-     * Do production orders 
-     */
+    /* Do production orders */
 
     puts("Processing production orders...");
 
@@ -5594,8 +5477,8 @@ void processorders(void)
 			sprintf(buf, "%s produces 1 %s.", unitid(u),
 				itemnames[0][i]);
 		    else
-			sprintf(buf, "%s produces %d %s.", unitid(u),
-				n, itemnames[1][i]);
+			sprintf(buf, "%s produces %d %s.", unitid(u), n,
+				itemnames[1][i]);
 		    addevent(u->faction, buf);
 		}
 
@@ -5741,9 +5624,7 @@ void processorders(void)
 		break;
 	    }
 
-	/*
-	 * Entertainment 
-	 */
+	/* Entertainment */
 
 	expandorders(r, entertainorders);
 
@@ -5765,9 +5646,7 @@ void processorders(void)
 		u->skills[SK_ENTERTAINMENT] += 10 * u->number;
 	    }
 
-	/*
-	 * Food production 
-	 */
+	/* Food production */
 
 	expandorders(r, workorders);
 
@@ -5788,9 +5667,7 @@ void processorders(void)
 		addevent(u->faction, buf);
 	    }
 
-	/*
-	 * Production of other primary commodities 
-	 */
+	/* Production of other primary commodities */
 
 	for (i = 0; i != 4; i++) {
 	    expandorders(r, produceorders[i]);
@@ -5809,16 +5686,14 @@ void processorders(void)
 			sprintf(buf, "%s produces 1 %s.", unitid(u),
 				itemnames[0][i]);
 		    else
-			sprintf(buf, "%s produces %d %s.", unitid(u),
-				u->n, itemnames[1][i]);
+			sprintf(buf, "%s produces %d %s.", unitid(u), u->n,
+				itemnames[1][i]);
 		    addevent(u->faction, buf);
 		}
 	}
     }
 
-    /*
-     * Study skills 
-     */
+    /* Study skills */
 
     puts("Processing STUDY orders...");
 
@@ -5857,9 +5732,7 @@ void processorders(void)
 		    break;
 		}
 
-    /*
-     * Ritual spells, and loss of spells where required 
-     */
+    /* Ritual spells, and loss of spells where required */
 
     puts("Processing CAST orders...");
 
@@ -6021,9 +5894,7 @@ void processorders(void)
 		}
     }
 
-    /*
-     * Population growth, dispersal and food consumption 
-     */
+    /* Population growth, dispersal and food consumption */
 
     puts("Processing demographics...");
 
@@ -6054,8 +5925,8 @@ void processorders(void)
 
 	    if (u->number > n) {
 		if (n)
-		    sprintf(buf, "%s loses %d to starvation.",
-			    unitid(u), u->number - n);
+		    sprintf(buf, "%s loses %d to starvation.", unitid(u),
+			    u->number - n);
 		else
 		    sprintf(buf, "%s starves to death.", unitid(u));
 		addevent(u->faction, buf);
@@ -6075,9 +5946,7 @@ void processorders(void)
     for (r = regions; r; r = r->next)
 	r->peasants += r->immigrants;
 
-    /*
-     * Warn players who haven't sent in orders 
-     */
+    /* Warn players who haven't sent in orders */
 
     for (f = factions; f; f = f->next)
 	if (turn - f->lastorders == ORDERGAP)
@@ -6179,9 +6048,7 @@ void readgame(void)
 
     turn = ri();
 
-    /*
-     * Read factions 
-     */
+    /* Read factions */
 
     n = ri();
     fp = &factions;
@@ -6221,9 +6088,7 @@ void readgame(void)
 
     *fp = 0;
 
-    /*
-     * Read regions 
-     */
+    /* Read regions */
 
     n = ri();
     rp = &regions;
@@ -6312,9 +6177,7 @@ void readgame(void)
 
     *rp = 0;
 
-    /*
-     * Get rid of stuff that was only relevant last turn 
-     */
+    /* Get rid of stuff that was only relevant last turn */
 
     for (f = factions; f; f = f->next) {
 	memset(f->showdata, 0, sizeof f->showdata);
@@ -6330,27 +6193,21 @@ void readgame(void)
 	f->events = 0;
     }
 
-    /*
-     * Link rfaction structures 
-     */
+    /* Link rfaction structures */
 
     for (f = factions; f; f = f->next)
 	for (rf = f->allies; rf; rf = rf->next)
 	    rf->faction = findfaction(rf->factionno);
 
     for (r = regions; r; r = r->next) {
-	/*
-	 * Initialize faction seendata values 
-	 */
+	/* Initialize faction seendata values */
 
 	for (u = r->units; u; u = u->next)
 	    for (i = 0; i != MAXSPELLS; i++)
 		if (u->spells[i])
 		    u->faction->seendata[i] = true;
 
-	/*
-	 * Check for alive factions 
-	 */
+	/* Check for alive factions */
 
 	for (u = r->units; u; u = u->next)
 	    u->faction->alive = 1;
@@ -6423,9 +6280,7 @@ void writegame(void)
     wi(turn);
     wnl();
 
-    /*
-     * Write factions 
-     */
+    /* Write factions */
 
     wi(listlen(factions));
     wnl();
@@ -6460,9 +6315,7 @@ void writegame(void)
 	wstrlist(f->events);
     }
 
-    /*
-     * Write regions 
-     */
+    /* Write regions */
 
     wi(listlen(regions));
     wnl();
