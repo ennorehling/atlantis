@@ -4,7 +4,7 @@
 #include <stddef.h>
 int rtl_strcmpl(const char *a, const char *b);
 int rtl_memicmp(const char *a, const char *b, size_t size);
-char * rtl_strlwr(char * str);
+char *rtl_strlwr(char *str);
 
 #include "config.h"
 
@@ -53,10 +53,10 @@ char * rtl_strlwr(char * str);
 #endif
 
 #ifndef MIN
-# define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 #ifndef MAX
-# define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
 #endif
 
 #endif
