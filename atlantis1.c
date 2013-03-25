@@ -41,14 +41,14 @@
 #define	POPGROWTH				5
 #define	PEASANTMOVE				5
 
-enum
+typedef enum
 {
 	T_OCEAN,
 	T_PLAIN,
 	T_MOUNTAIN,
 	T_FOREST,
 	T_SWAMP,
-};
+} terrain_t;
 #define NUMTERRAINS 5
 
 typedef enum
@@ -58,7 +58,7 @@ typedef enum
 	SH_GALLEON,
 } ship_t;
 
-enum
+typedef enum
 {
 	SK_MINING,
 	SK_LUMBERJACK,
@@ -78,9 +78,9 @@ enum
 	SK_LONGBOW,
 	SK_MAGIC,
 	MAXSKILLS
-};
+} skill_t;
 
-enum
+typedef enum
 {
 	I_IRON,
 	I_WOOD,
@@ -104,9 +104,9 @@ enum
 	I_STAFF_OF_LIGHTNING,
 	I_WAND_OF_TELEPORTATION,
 	MAXITEMS
-};
+} item_t;
 
-enum
+typedef enum
 {
 	SP_BLACK_WIND,
 	SP_CAUSE_FEAR,
@@ -133,7 +133,7 @@ enum
 	SP_SUNFIRE,
 	SP_TELEPORT,
 	MAXSPELLS
-};
+} spell_t;
 
 enum
 {
@@ -227,7 +227,7 @@ typedef struct region
 	int x,y;
 	char name[NAMESIZE];
 	struct region *connect[4];
-	char terrain;
+	terrain_t terrain;
 	int peasants;
 	int money;
 	building *buildings;
@@ -289,7 +289,7 @@ struct unit
 	int combatspell;
 	int skills[MAXSKILLS];
 	int items[MAXITEMS];
-	char spells[MAXSPELLS];
+	spell_t spells[MAXSPELLS];
 	strlist *orders;
 	int alias;
 	int dead;
@@ -1648,12 +1648,12 @@ int getitem (void)
 	return finditem (getstr ());
 }
 
-int findspell (char *s)
+spell_t findspell (char *s)
 {
-	return findstr (spellnames,s,MAXSPELLS);
+	return (spell_t)findstr (spellnames,s,MAXSPELLS);
 }
 
-int getspell (void)
+spell_t getspell (void)
 {
 	return findspell (getstr ());
 }
@@ -1861,7 +1861,7 @@ void transmute (int from,int to,int n,int count)
 	while (--n);
 }
 
-void seed (int to,int n)
+void seed (terrain_t to,int n)
 {
 	int x,y;
 
