@@ -296,8 +296,8 @@ struct unit
 	int learning;
 	int n;
 	int *litems;
-	char side;
-	char isnew;
+	int side;
+	bool isnew;
 };
 
 typedef struct order
@@ -312,17 +312,17 @@ typedef struct troop
 	struct troop *next;
 	unit *unit;
 	int lmoney;
-	char status;
-	char side;
+	int status;
+	int side;
 	bool attacked;
-	char weapon;
-	char missile;
+	item_t weapon;
+	bool missile;
 	int skill;
-	char armor;
+	int armor;
 	bool behind;
-	char inside;
-	char reload;
-	char canheal;
+	int inside;
+	int reload;
+	bool canheal;
 	char runesword;
 	bool invulnerable;
 	char power;
@@ -1796,7 +1796,7 @@ void addplayers (void)
 		u->number = 1;
 		u->money = STARTMONEY;
 		u->faction = f;
-		u->isnew = 1;
+		u->isnew = true;
 	}
 }
 
@@ -2534,7 +2534,7 @@ troop **maketroops (troop **tp,unit *u,int terrain)
 		t->behind = u->behind;
 
 		if (u->combatspell >= 0)
-			t->missile = 1;
+			t->missile = true;
 		else if (items[I_RUNESWORD] && skills[SK_SWORD])
 		{
 			t->weapon = I_SWORD;
@@ -2552,14 +2552,14 @@ troop **maketroops (troop **tp,unit *u,int terrain)
 		else if (items[I_LONGBOW] && skills[SK_LONGBOW])
 		{
 			t->weapon = I_LONGBOW;
-			t->missile = 1;
+			t->missile = true;
 			t->skill = skills[SK_LONGBOW];
 			items[I_LONGBOW]--;
 		}
 		else if (items[I_CROSSBOW] && skills[SK_CROSSBOW])
 		{
 			t->weapon = I_CROSSBOW;
-			t->missile = 1;
+			t->missile = true;
 			t->skill = skills[SK_CROSSBOW];
 			items[I_CROSSBOW]--;
 		}
@@ -2578,7 +2578,7 @@ troop **maketroops (troop **tp,unit *u,int terrain)
 
 		if (u->spells[SP_HEAL] || items[I_AMULET_OF_HEALING] > 0)
 		{
-			t->canheal = 1;
+			t->canheal = true;
 			items[I_AMULET_OF_HEALING]--;
 		}
 
