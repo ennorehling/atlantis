@@ -51,12 +51,12 @@ enum
 };
 #define NUMTERRAINS 5
 
-enum
+typedef enum
 {
 	SH_LONGBOAT,
 	SH_CLIPPER,
 	SH_GALLEON,
-};
+} ship_t;
 
 enum
 {
@@ -217,7 +217,7 @@ typedef struct ship
 	int no;
 	char name[NAMESIZE];
 	char display[DISPLAYSIZE];
-	char type;
+	ship_t type;
 	int left;
 } ship;
 
@@ -5605,6 +5605,7 @@ void processorders (void)
 
 	for (r = regions; r; r = r->next)
 	{
+        ship_t stype;
 		if (r->terrain == T_OCEAN)
 			continue;
 
@@ -5704,15 +5705,15 @@ BUILDSHIP:
 							break;
 
 						case K_LONGBOAT:
-							i = SH_LONGBOAT;
+							stype = SH_LONGBOAT;
 							goto CREATESHIP;
 
 						case K_CLIPPER:
-							i = SH_CLIPPER;
+							stype = SH_CLIPPER;
 							goto CREATESHIP;
 
 						case K_GALLEON:
-							i = SH_GALLEON;
+							stype = SH_GALLEON;
 							goto CREATESHIP;
 
 CREATESHIP:
@@ -5725,7 +5726,7 @@ CREATESHIP:
 							sh = cmalloc (sizeof (ship));
 							memset (sh,0,sizeof (ship));
 
-							sh->type = i;
+							sh->type = stype;
 							sh->left = shipcost[i];
 
 							do
