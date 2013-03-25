@@ -6,25 +6,17 @@ ENABLE_TESTING()
 ADD_SUBDIRECTORY (cutest)
 ADD_SUBDIRECTORY (tests)
 
-if(MSVC)
-  # Force to always compile with W4
-  IF(CMAKE_C_FLAGS MATCHES "/W[0-4]")
-    STRING(REGEX REPLACE "/W[0-4]" "/W4" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
-  ELSE()
-    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W4")
-  ENDIF()
+IF (MSVC)
+	find_package (MSVC MODULE)
+    # Force to always compile with W4
+    MSVC_SET_WARNING_LEVEL(4)
 ELSEIF(CMAKE_COMPILER_IS_GNUCC)
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -Wno-unknown-pragmas -Wpointer-arith -Wno-char-subscripts -Wno-long-long")
     SET(CMAKE_C_FLAGS "-g")
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
-ELSE()
-IF (MSVC)
-	find_package (MSVC MODULE)
 ELSE(MSVC)
     MESSAGE(STATUS "Unknown compiler ${CMAKE_C_COMPILER_ID}")
 ENDIF(MSVC)
-ENDIF()
-
 
 FILE(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/include)
 INCLUDE (CheckIncludeFiles)
@@ -61,6 +53,4 @@ ADD_CUSTOM_TARGET(check COMMAND ${CMAKE_CTEST_COMMAND}
                   DEPENDS rtl_tests CuTestTest atlantis
                   COMMENT "Running Tests...")
 
-IF (MSVC)
-	MSVC_CRT_SECURE_NO_WARNINGS (${PROJECT_NAME} atlantis rtl_tests)
-ENDIF(MSVC)
+MSVC_CRT_SECURE_NO_WARNINGS (${PROJECT_NAME} atlantis rtl_tests)
