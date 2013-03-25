@@ -252,8 +252,8 @@ typedef struct faction
 	char name[NAMESIZE];
 	char addr[NAMESIZE];
 	int lastorders;
-	char seendata[MAXSPELLS];
-	char showdata[MAXSPELLS];
+	bool seendata[MAXSPELLS];
+	bool showdata[MAXSPELLS];
 	rfaction *accept;
 	rfaction *admit;
 	rfaction *allies;
@@ -281,9 +281,9 @@ struct unit
 	faction *faction;
 	building *building;
 	ship *ship;
-	char owner;
-	char behind;
-	char guard;
+	bool owner;
+	bool behind;
+	bool guard;
 	char thisorder[NAMESIZE];
 	char lastorder[NAMESIZE];
 	int combatspell;
@@ -319,7 +319,7 @@ typedef struct troop
 	char missile;
 	int skill;
 	char armor;
-	char behind;
+	bool behind;
 	char inside;
 	char reload;
 	char canheal;
@@ -331,7 +331,7 @@ typedef struct troop
 	char dazzled;
 } troop;
 
-unsigned rndno;
+unsigned int rndno;
 char buf[10240];
 char buf2[256];
 FILE *F;
@@ -2293,19 +2293,19 @@ void leave (region *r,unit *u)
 
 		if (u->owner)
 		{
-			u->owner = 0;
+			u->owner = false;
 
 			for (u2 = r->units; u2; u2 = u2->next)
 				if (u2->faction == u->faction && u2->building == b)
 				{
-					u2->owner = 1;
+					u2->owner = true;
 					return;
 				}
 
 			for (u2 = r->units; u2; u2 = u2->next)
 				if (u2->building == b)
 				{
-					u2->owner = 1;
+					u2->owner = true;
 					return;
 				}
 		}
@@ -2318,19 +2318,19 @@ void leave (region *r,unit *u)
 
 		if (u->owner)
 		{
-			u->owner = 0;
+			u->owner = false;
 
 			for (u2 = r->units; u2; u2 = u2->next)
 				if (u2->faction == u->faction && u2->ship == sh)
 				{
-					u2->owner = 1;
+					u2->owner = true;
 					return;
 				}
 
 			for (u2 = r->units; u2; u2 = u2->next)
 				if (u2->ship == sh)
 				{
-					u2->owner = 1;
+					u2->owner = true;
 					return;
 				}
 		}
@@ -4076,7 +4076,7 @@ void processorders (void)
 						break;
 
 					case K_BEHIND:
-						u->behind = (char)geti ();
+						u->behind = geti () != 0;
 						break;
 
 					case K_COMBAT:
@@ -4165,7 +4165,7 @@ void processorders (void)
 
 					case K_GUARD:
 						if (geti () == 0)
-							u->guard = 0;
+							u->guard = false;
 						break;
 
 					case K_NAME:
@@ -5014,8 +5014,8 @@ void processorders (void)
 
 							if (!u2->faction->seendata[i])
 							{
-								u2->faction->seendata[i] = 1;
-								u2->faction->showdata[i] = 1;
+								u2->faction->seendata[i] = true;
+								u2->faction->showdata[i] = true;
 							}
 						}
 						else
@@ -5345,7 +5345,7 @@ void processorders (void)
 				{
 					case K_GUARD:
 						if (geti ())
-							u->guard = 1;
+							u->guard = true;
 						break;
 
 					case K_RECRUIT:
@@ -5866,8 +5866,8 @@ CREATESHIP:
 
 						if (!u->faction->seendata[j])
 						{
-							u->faction->seendata[j] = 1;
-							u->faction->showdata[j] = 1;
+							u->faction->seendata[j] = true;
+							u->faction->showdata[j] = true;
 						}
 
 						if (u->spells[j] == 0)
@@ -6334,7 +6334,7 @@ void rs (char *s)
 			exit (1);
 		}
 
-		*s++ = nextc;
+		*s++ = (char)nextc;
 		rc ();
 	}
 
@@ -6362,7 +6362,7 @@ int ri (void)
 
 	while (xisdigit (nextc))
 	{
-		buf[i++] = nextc;
+		buf[i++] = (char)nextc;
 		rc ();
 	}
 
@@ -6422,7 +6422,7 @@ void readgame (void)
 		f->lastorders = ri ();
 
 		for (i = 0; i != MAXSPELLS; i++)
-			f->showdata[i] = ri ();
+			f->showdata[i] = (ri () != 0);
 
 		n2 = ri ();
 		rfp = &f->allies;
@@ -6518,9 +6518,9 @@ void readgame (void)
 			u->faction = findfaction (ri ());
 			u->building = findbuilding (ri ());
 			u->ship = findship (ri ());
-			u->owner = ri ();
-			u->behind = ri ();
-			u->guard = ri ();
+			u->owner = ri () != 0;
+			u->behind = ri () != 0;
+			u->guard = ri () != 0;
 			rs (u->lastorder);
 			u->combatspell = ri ();
 
@@ -6571,7 +6571,7 @@ void readgame (void)
 		for (u = r->units; u; u = u->next)
 			for (i = 0; i != MAXSPELLS; i++)
 				if (u->spells[i])
-					u->faction->seendata[i] = 1;
+					u->faction->seendata[i] = true;
 
 				/* Check for alive factions */
 
@@ -6907,7 +6907,7 @@ void createcontinent (void)
 int main (int argc, char ** argv)
 {
   int i;
-	rndno = time (0);
+	rndno = (unsigned int)time (0);
 
 	puts ("Atlantis v1.0  " __DATE__ "\n"
 			"Copyright 1993 by Russell Wallace.\n"
