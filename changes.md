@@ -358,5 +358,70 @@ At this point, the code is compiling wihtout warnings on two compilers. That's p
 
 And voila! the code compiles and works without any further modifications.
 
+## Let's try another architecture (and use gdb for detective work)
+
+Not all architectures are created equal, and so far, I've only tested the code on an intel x86 CPU. This is one of three popular architectures (x86, x64 and ARM) in today's world, and since I have a Raspberry Pi running Linux to play with, I'm going to compile the code there. Now is the time to publish my code on github, where I can easily access it from other computers on the internet (actually, that time was earlier, but I'll explain it now). My repository is called badgerman/atlantis1, and I'm cloning it to build it:
+
+    $ git clone git@github.com:badgerman/atlantis1
+    $ git submodule init
+    $ git submodule update
+    $ mkdir build
+    $ cd build
+    $ cmake ..
+    $ make check
+
+This works alright, until it runs the functional tests on the finished server. the atlantis_process test that I wrote never finishes, it seems stuck in an endless loop. I am installing gdb to see what's going on.
+The following is my example session with some abbreviated output. Once the program stops writing anything, I hit Ctrl-C to get back into the debugger:
+
+    $ cd tests
+    $ touch orders
+    $ gdb ../build/atlantis
+    GNU gdb (GDB) 7.4.1-debian
+    (gdb) run
+    Writing turn 0...
+    > P
+    Name of orders file? orders
+    ^C
+    Program received signal SIGINT, Interrupt.
+    0x400f42bc in read () from /lib/arm-linux-gnueabihf/libc.so.6
+    (gdb) bt 8
+    #0  0x400f42bc in read () from /lib/arm-linux-gnueabihf/libc.so.6
+    #1  0x400a35f8 in _IO_file_underflow () from /lib/arm-linux-gnueabihf/libc.so.6
+    #2  0x400a48b8 in _IO_default_uflow () from /lib/arm-linux-gnueabihf/libc.so.6
+    #3  0x400a4764 in __uflow () from /lib/arm-linux-gnueabihf/libc.so.6
+    #4  0x4009b030 in getc () from /lib/arm-linux-gnueabihf/libc.so.6
+    #5  0x0000b254 in getbuf () at /home/pi/atlantis1/atlantis1.c:1171
+    #6  0x00010d28 in readorders () at /home/pi/atlantis1/atlantis1.c:3059
+    #7  0x0001b84c in processturn () at /home/pi/atlantis1/atlantis1.c:6499
+    (More stack frames follow...)
+    (gdb) up 5
+    #5  0x0000b254 in getbuf () at /home/pi/atlantis1/atlantis1.c:1171
+    1171            c = fgetc(F);
+    (gdb) list
+    1166        int c;
+    1167
+    1168        i = 0;
+    1169
+    1170        for (;;) {
+    1171            c = fgetc(F);
+    1172
+    1173            if (c == EOF) {
+    1174                buf[0] = EOF;
+    1175                return;
+    (gdb)
+
+When the backtrace (bt) shows us that we're somewhere in the getbuf() function, which is part of atlantis1.c, it's natural to investigate that first. There is some curious handling of EOF here: When we've reached the end of the file, we are writing EOF into the start of the buffer `buf` that this function reads from the file.
+
+### global variables
+
+This code comes with a lot of global variables like `buf`. That is a bad way to write anything, mostly because it makes code harder to read - even a function that takes no arguments and returns nothing (like getbuf) can have a side-effect of modifying the global variables, and without reading and understanding the function, we don't know if it does.
+
+My impulse here is to refactor the code and remove the use of the global variable, but a quick glance show that it's used everywhere, and that this would be a huge undertaking. Also, chances are that the use of EOF here is the problem: EOF is an int, and we are assigning it to a char, `buf[0]`, and the function that calls getbuf compares that char to EOF, which is probably what's not working? Signaling that we could not read the buffer to a caller can be done in better ways.
+
+If we were not using global variables, then getbuf() would most likely return a char \* result, so let's make it do that, and return buf when reading was successful, or NULL if there was nothing to read. After removing any reference to EOF outside of getbuf() from the code, the tests are passing!
+
+View these latest changes on [github](https://github.com/badgerman/atlantis1/commit/3dc62f74d4491613be9647f7caf00c93da739f16)
+
+
 [dm_docs]: http://www.digitalmars.com/rtl/rtl.html "Digital Mars RTL documentation"
 [wp_dottedi]: https://en.wikipedia.org/wiki/Dotted_and_dotless_I "Wikipedia on dotted vs. dotless I"
