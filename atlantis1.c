@@ -9,14 +9,14 @@
 #include "rtl.h"
 #include "bool.h"
 #include	<stdio.h>
-#include	<stdlib.h>
-#include	<string.h>
-#include	<math.h>
-#include	<ctype.h>
-#include	<assert.h>
-#include	<time.h>
-#include	<stddef.h>
-#include	<limits.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <ctype.h>
+#include <assert.h>
+#include <time.h>
+#include <stddef.h>
+#include <limits.h>
 
 #define	NAMESIZE					81
 #define	DISPLAYSIZE				161
@@ -1160,7 +1160,7 @@ void cfopen(char *filename, char *mode)
     }
 }
 
-void getbuf(void)
+char * getbuf(void)
 {
     int i;
     int c;
@@ -1168,28 +1168,28 @@ void getbuf(void)
     i = 0;
 
     for (;;) {
-	c = fgetc(F);
+        c = fgetc(F);
 
-	if (c == EOF) {
-	    buf[0] = EOF;
-	    return;
-	}
+        if (c == EOF) {
+            buf[i] = 0;
+            return buf;
+        }
 
-	if (c == '\n') {
-	    buf[i] = 0;
-	    return;
-	}
+        if (c == '\n') {
+            buf[i] = 0;
+            return buf;
+        }
 
-	if (i == sizeof buf - 1) {
-	    buf[i] = 0;
-	    while (c != EOF && c != '\n')
-		c = fgetc(F);
-	    if (c == EOF)
-		buf[0] = EOF;
-	    return;
-	}
+        if (i == sizeof buf - 1) {
+            buf[i] = 0;
+            while (c != EOF && c != '\n')
+                c = fgetc(F);
+            if (c == EOF)
+                buf[i] = 0;
+            return buf;
+        }
 
-	buf[i++] = (char) c;
+        buf[i++] = (char) c;
     }
 }
 
@@ -1715,12 +1715,10 @@ void addplayers(void)
     cfopen(buf, "r");
 
     for (;;) {
-	getbuf();
-
-	if (buf[0] == 0 || buf[0] == EOF) {
-	    fclose(F);
-	    break;
-	}
+        if (!getbuf()) {
+            fclose(F);
+            break;
+        }
 
 	f = cmalloc(sizeof(faction));
 	memset(f, 0, sizeof(faction));
@@ -2915,9 +2913,8 @@ void readorders(void)
     strlist *S, **SP;
 
     cfopen(buf, "r");
-    getbuf();
 
-    while (buf[0] != EOF) {
+    while (getbuf() && buf[0]) {
 	if (!strncmp(buf, "#atlantis", 9)) {
 	  NEXTPLAYER:
 	    igetstr(buf);
@@ -2933,12 +2930,10 @@ void readorders(void)
 			}
 
 		for (;;) {
-		    getbuf();
-
-		    if (!_memicmp(buf, "#atlantis", 9))
+		    if (getbuf() && !_memicmp(buf, "#atlantis", 9))
 			goto NEXTPLAYER;
 
-		    if (buf[0] == EOF || buf[0] == '\f' || buf[0] == '#')
+		    if (buf[0] == '\f' || buf[0] == '#')
 			goto DONEPLAYER;
 
 		    if (!_strcmpl(igetstr(buf), "unit")) {
@@ -2951,7 +2946,7 @@ void readorders(void)
 			    u->faction->lastorders = turn;
 
 			    for (;;) {
-				getbuf();
+				if (getbuf()) {
 
 				if (!_strcmpl(igetstr(buf), "unit")) {
 				    *SP = 0;
@@ -2963,7 +2958,7 @@ void readorders(void)
 				    goto NEXTPLAYER;
 				}
 
-				if (buf[0] == EOF || buf[0] == '\f'
+				if (buf[0] == '\f'
 				    || buf[0] == '#') {
 				    *SP = 0;
 				    goto DONEPLAYER;
@@ -3042,7 +3037,8 @@ void readorders(void)
 				    S = makestrlist(buf2);
 				    addlist2(SP, S);
 				}
-			    }
+        }
+          }
 			} else {
 			    sprintf(buf,
 				    "Unit %d is not one of your units.",
@@ -5964,7 +5960,7 @@ void rc(void)
 void rs(char *s)
 {
     while (nextc != '"') {
-	if (nextc == EOF) {
+	if (nextc == 0) {
 	    puts("Data file is truncated.");
 	    exit(1);
 	}
@@ -5975,7 +5971,7 @@ void rs(char *s)
     rc();
 
     while (nextc != '"') {
-	if (nextc == EOF) {
+	if (nextc == 0) {
 	    puts("Data file is truncated.");
 	    exit(1);
 	}
@@ -5996,7 +5992,7 @@ int ri(void)
     i = 0;
 
     while (!xisdigit(nextc)) {
-	if (nextc == EOF) {
+	if (nextc == 0) {
 	    puts("Data file is truncated.");
 	    exit(1);
 	}
