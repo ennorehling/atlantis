@@ -6471,7 +6471,8 @@ void addunits(void)
 
 void initgame(void)
 {
-    if (turn == 0) {
+    if (turn < 0) {
+        turn = 0;
         _mkdir("data");
         makeblock(0, 0);
         writesummary();
@@ -6526,10 +6527,14 @@ int main(int argc, char **argv)
          "Copyright 1993 by Russell Wallace.\n"
          "Type ? for list of commands.");
 
+    turn = -1;
     for (i = 1; i != argc; ++i) {
         if (argv[i][0] == '-') {
             switch (argv[i][1]) {
-            case 't':                /* turn */
+            case 'p': /* process */
+                processturn();
+                break;
+            case 't': /* turn */
                 if (argv[i][2]) {
                     turn = atoi(argv[i] + 3);
                     break;
