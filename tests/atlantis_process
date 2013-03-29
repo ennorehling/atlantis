@@ -13,6 +13,8 @@ function fail {
   exit $1
 }
 
+# interactive processing:
+
 touch orders
 ( echo P ; echo orders ) | $1
 let RESULT=$?
@@ -24,3 +26,15 @@ assert_files $FILES || fail $?
 assert_directories $DIRECTORIES || fail $?
 fail 0
 
+# command-line argument -p:
+
+touch orders
+$1 -p orders
+let RESULT=$?
+if [ $RESULT -ne 0 ] ; then
+  echo "non-zero exit code from server: $RESULT"
+  fail $RESULT
+fi
+assert_files $FILES || fail $?
+assert_directories $DIRECTORIES || fail $?
+fail 0
