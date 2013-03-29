@@ -1146,7 +1146,7 @@ int rnd(void)
     return (rndno >> 16) & 0x7FFF;
 }
 
-void cfopen(char *filename, char *mode)
+void cfopen(const char *filename, const char *mode)
 {
     F = fopen(filename, mode);
 
@@ -2900,7 +2900,7 @@ int mayboard(region * r, unit * u, ship * sh)
     return u2 == 0 || admits(u2, u);
 }
 
-void readorders(void)
+void readorders(const char * filename)
 {
     int i, j;
     faction *f;
@@ -2908,7 +2908,7 @@ void readorders(void)
     unit *u;
     strlist *S, **SP;
 
-    cfopen(buf, "r");
+    cfopen(filename, "r");
 
     while (getbuf() && buf[0]) {
         if (!strncmp(buf, "#atlantis", 9)) {
@@ -6482,18 +6482,15 @@ void initgame(void)
     }
 }
 
-void processturn(void)
+int processturn(const char * orders)
 {
-    printf("Name of orders file? ");
-    gets(buf);
-    if (!buf[0])
-        return;
     turn++;
-    readorders();
+    readorders(orders);
     processorders();
     reports();
     writesummary();
     writegame();
+    return 0;
 }
 
 void createcontinent(void)
@@ -6504,6 +6501,7 @@ void createcontinent(void)
     gets(buf);
     if (buf[0] == 0)
         return;
+
     x = atoi(buf);
 
     printf("Y? ");
@@ -6521,6 +6519,7 @@ void createcontinent(void)
 int main(int argc, char **argv)
 {
     int i;
+    const char * arg;
     rndno = (unsigned int) time(0);
 
     puts("Atlantis v1.0 " __DATE__ "\n"
@@ -6532,16 +6531,13 @@ int main(int argc, char **argv)
         if (argv[i][0] == '-') {
             switch (argv[i][1]) {
             case 'p': /* process */
-                processturn();
+                arg = (argv[i][2]) ? (argv[i] + 3) : argv[++i];
+                processturn(arg);
                 break;
             case 't': /* turn */
-                if (argv[i][2]) {
-                    turn = atoi(argv[i] + 3);
-                    break;
-                } else if (i + 1 < argc) {
-                    turn = atoi(argv[++i]);
-                    break;
-                }
+                arg = (argv[i][2]) ? (argv[i] + 3) : argv[++i];
+                turn = atoi(arg);
+                break;
             default:
                 fprintf(stderr, "invalid argument %d: '%s'\n", i, argv[i]);
                 return -1;
@@ -6569,8 +6565,10 @@ int main(int argc, char **argv)
             break;
 
         case 'p':
-            processturn();
-            return 0;
+            printf("Name of orders file? ");
+            gets(buf);
+            if (!buf[0]) return -1;
+            return processturn(buf);
 
         case 'q':
             return 0;
