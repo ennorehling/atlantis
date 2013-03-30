@@ -1671,13 +1671,13 @@ region *inputregion(void)
 
     while (!r) {
         printf("X? ");
-        gets(buf);
+        fgets(buf, sizeof(buf), stdin);
         if (buf[0] == 0)
             return 0;
         x = atoi(buf);
 
         printf("Y? ");
-        gets(buf);
+        fgets(buf, sizeof(buf), stdin);
         if (buf[0] == 0)
             return 0;
         y = atoi(buf);
@@ -1703,7 +1703,7 @@ void addplayers(void)
         return;
 
     printf("Name of players file? ");
-    gets(buf);
+    fgets(buf, sizeof(buf), stdin);
 
     if (!buf[0])
         return;
@@ -6426,7 +6426,7 @@ void addunits(void)
         return;
 
     printf("Name of units file? ");
-    gets(buf);
+    fgets(buf, sizeof(buf), stdin);
 
     if (!buf[0])
         return;
@@ -6498,14 +6498,14 @@ void createcontinent(void)
     int x, y;
 
     printf("X? ");
-    gets(buf);
+    fgets(buf, sizeof(buf), stdin);
     if (buf[0] == 0)
         return;
 
     x = atoi(buf);
 
     printf("Y? ");
-    gets(buf);
+    fgets(buf, sizeof(buf), stdin);
     if (buf[0] == 0)
         return;
     y = atoi(buf);
@@ -6549,7 +6549,7 @@ int main(int argc, char **argv)
 
     for (;;) {
         printf("> ");
-        gets(buf);
+        fgets(buf, sizeof(buf), stdin);
 
         switch (tolower(buf[0])) {
         case 'c':
@@ -6566,7 +6566,7 @@ int main(int argc, char **argv)
 
         case 'p':
             printf("Name of orders file? ");
-            gets(buf);
+            fgets(buf, sizeof(buf), stdin);
             if (!buf[0]) return -1;
             return processturn(buf);
 
