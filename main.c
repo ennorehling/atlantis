@@ -16,6 +16,8 @@ int main(int argc, char **argv)
 {
     int i;
     char buf[12];
+    const char * arg, * orders = 0;
+
     rnd_seed((unsigned int) time(0));
 
     puts("Atlantis v1.0 " __DATE__ "\n"
@@ -27,16 +29,12 @@ int main(int argc, char **argv)
         if (argv[i][0] == '-') {
             switch (argv[i][1]) {
             case 'p': /* process */
-                processturn();
+                orders = (argv[i][2]) ? (argv[i] + 3) : argv[++i];
                 break;
             case 't': /* turn */
-                if (argv[i][2]) {
-                    turn = atoi(argv[i] + 3);
-                    break;
-                } else if (i + 1 < argc) {
-                    turn = atoi(argv[++i]);
-                    break;
-                }
+                arg = (argv[i][2]) ? (argv[i] + 3) : argv[++i];
+                turn = atoi(arg);
+                break;
             default:
                 fprintf(stderr, "invalid argument %d: '%s'\n", i, argv[i]);
                 return -1;
@@ -45,6 +43,9 @@ int main(int argc, char **argv)
     }
 
     initgame();
+    if (orders) {
+        return processturn(orders);
+    }
 
     for (;;) {
         printf("> ");
@@ -64,8 +65,10 @@ int main(int argc, char **argv)
             break;
 
         case 'p':
-            processturn();
-            return 0;
+            printf("Name of orders file? ");
+            fgets(buf, sizeof(buf), stdin);
+            if (!buf[0]) return -1;
+            return processturn(buf);
 
         case 'q':
             return 0;
@@ -78,3 +81,4 @@ int main(int argc, char **argv)
         }
     }
 }
+

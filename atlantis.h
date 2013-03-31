@@ -13,7 +13,7 @@ int turn;
 
 int rnd_seed(unsigned int x);
 void initgame(void);
-void processturn(void);
+int processturn(const char *orders);
 void createcontinent(void);
 void addplayers(void);
 void addunits(void);

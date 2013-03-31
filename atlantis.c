@@ -1153,7 +1153,7 @@ int rnd(void)
     return rnd_seed(0);
 }
 
-void cfopen(char *filename, char *mode)
+void cfopen(const char *filename, const char *mode)
 {
     F = fopen(filename, mode);
 
@@ -1678,13 +1678,13 @@ region *inputregion(void)
 
     while (!r) {
         printf("X? ");
-        gets(buf);
+        fgets(buf, sizeof(buf), stdin);
         if (buf[0] == 0)
             return 0;
         x = atoi(buf);
 
         printf("Y? ");
-        gets(buf);
+        fgets(buf, sizeof(buf), stdin);
         if (buf[0] == 0)
             return 0;
         y = atoi(buf);
@@ -1710,7 +1710,7 @@ void addplayers(void)
         return;
 
     printf("Name of players file? ");
-    gets(buf);
+    fgets(buf, sizeof(buf), stdin);
 
     if (!buf[0])
         return;
@@ -2907,7 +2907,7 @@ int mayboard(region * r, unit * u, ship * sh)
     return u2 == 0 || admits(u2, u);
 }
 
-void readorders(void)
+void readorders(const char * filename)
 {
     int i, j;
     faction *f;
@@ -2915,7 +2915,7 @@ void readorders(void)
     unit *u;
     strlist *S, **SP;
 
-    cfopen(buf, "r");
+    cfopen(filename, "r");
 
     while (getbuf() && buf[0]) {
         if (!strncmp(buf, "#atlantis", 9)) {
@@ -6433,7 +6433,7 @@ void addunits(void)
         return;
 
     printf("Name of units file? ");
-    gets(buf);
+    fgets(buf, sizeof(buf), stdin);
 
     if (!buf[0])
         return;
@@ -6489,18 +6489,15 @@ void initgame(void)
     }
 }
 
-void processturn(void)
+int processturn(const char *orders)
 {
-    printf("Name of orders file? ");
-    gets(buf);
-    if (!buf[0])
-        return;
     turn++;
-    readorders();
+    readorders(orders);
     processorders();
     reports();
     writesummary();
     writegame();
+    return 0;
 }
 
 void createcontinent(void)
@@ -6508,13 +6505,14 @@ void createcontinent(void)
     int x, y;
 
     printf("X? ");
-    gets(buf);
+    fgets(buf, sizeof(buf), stdin);
     if (buf[0] == 0)
         return;
+
     x = atoi(buf);
 
     printf("Y? ");
-    gets(buf);
+    fgets(buf, sizeof(buf), stdin);
     if (buf[0] == 0)
         return;
     y = atoi(buf);
