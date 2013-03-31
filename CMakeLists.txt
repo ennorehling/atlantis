@@ -57,5 +57,5 @@ ADD_CUSTOM_TARGET(check COMMAND ${CMAKE_CTEST_COMMAND}
                   COMMENT "Running Tests...")
 
 IF (MSVC)
-    MSVC_CRT_SECURE_NO_WARNINGS (${PROJECT_NAME} atlantis rtl_tests)
+    MSVC_CRT_SECURE_NO_WARNINGS (${PROJECT_NAME} atlantis atlantis_tests rtl_tests)
 ENDIF (MSVC)
