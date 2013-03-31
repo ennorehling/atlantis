@@ -6519,7 +6519,7 @@ void createcontinent(void)
 int main(int argc, char **argv)
 {
     int i;
-    const char * arg;
+    const char * arg, * orders = 0;
     rndno = (unsigned int) time(0);
 
     puts("Atlantis v1.0 " __DATE__ "\n"
@@ -6531,8 +6531,7 @@ int main(int argc, char **argv)
         if (argv[i][0] == '-') {
             switch (argv[i][1]) {
             case 'p': /* process */
-                arg = (argv[i][2]) ? (argv[i] + 3) : argv[++i];
-                processturn(arg);
+                orders = (argv[i][2]) ? (argv[i] + 3) : argv[++i];
                 break;
             case 't': /* turn */
                 arg = (argv[i][2]) ? (argv[i] + 3) : argv[++i];
@@ -6546,6 +6545,9 @@ int main(int argc, char **argv)
     }
 
     initgame();
+    if (orders) {
+        return processturn(orders);
+    }
 
     for (;;) {
         printf("> ");
