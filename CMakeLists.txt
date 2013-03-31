@@ -40,7 +40,7 @@ CONFIGURE_FILE (
   ${CMAKE_BINARY_DIR}/include/config.h)
 INCLUDE_DIRECTORIES (${CMAKE_BINARY_DIR}/include)
 
-ADD_EXECUTABLE(atlantis rtl.c rtl.h atlantis1.c)
+ADD_EXECUTABLE(atlantis main.c atlantis.c atlantis.h rtl.c rtl.h)
 
 INCLUDE_DIRECTORIES (${CUTEST_INCLUDE_DIR})
 

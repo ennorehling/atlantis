@@ -6,6 +6,7 @@
  * sold or used commercially without prior written permission from the author.
  */
 
+#include "atlantis.h"
 #include "rtl.h"
 #include "bool.h"
 #include <stdio.h>
@@ -315,7 +316,6 @@ typedef struct troop {
     char dazzled;
 } troop;
 
-unsigned int rndno;
 char buf[10240];
 char buf2[256];
 FILE *F;
@@ -1140,10 +1140,17 @@ void *cmalloc(int n)
     return p;
 }
 
-int rnd(void)
+int rnd_seed(unsigned int x)
 {
+    static unsigned int rndno;
+    if (x) rndno = x;
     rndno = rndno * 1103515245 + 12345;
     return (rndno >> 16) & 0x7FFF;
+}
+
+int rnd(void)
+{
+    return rnd_seed(0);
 }
 
 void cfopen(char *filename, char *mode)
@@ -6516,70 +6523,4 @@ void createcontinent(void)
 
     F = stdout;
     writemap();
-}
-
-int main(int argc, char **argv)
-{
-    int i;
-    rndno = (unsigned int) time(0);
-
-    puts("Atlantis v1.0 " __DATE__ "\n"
-         "Copyright 1993 by Russell Wallace.\n"
-         "Type ? for list of commands.");
-
-    turn = -1;
-    for (i = 1; i != argc; ++i) {
-        if (argv[i][0] == '-') {
-            switch (argv[i][1]) {
-            case 'p': /* process */
-                processturn();
-                break;
-            case 't': /* turn */
-                if (argv[i][2]) {
-                    turn = atoi(argv[i] + 3);
-                    break;
-                } else if (i + 1 < argc) {
-                    turn = atoi(argv[++i]);
-                    break;
-                }
-            default:
-                fprintf(stderr, "invalid argument %d: '%s'\n", i, argv[i]);
-                return -1;
-            }
-        }
-    }
-
-    initgame();
-
-    for (;;) {
-        printf("> ");
-        gets(buf);
-
-        switch (tolower(buf[0])) {
-        case 'c':
-            createcontinent();
-            break;
-
-        case 'a':
-            addplayers();
-            break;
-
-        case 'u':
-            addunits();
-            break;
-
-        case 'p':
-            processturn();
-            return 0;
-
-        case 'q':
-            return 0;
-
-        default:
-            puts("C - Create New Continent.\n"
-                 "A - Add New Players.\n"
-                 "U - Add New Units.\n"
-                 "P - Process Game Turn.\n" "Q - Quit.");
-        }
-    }
 }
