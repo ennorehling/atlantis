@@ -11,6 +11,7 @@
 
 int turn;
 
+int transform(int *x, int *y, int kwd);
 int rnd_seed(unsigned int x);
 void initgame(void);
 int processturn(const char *orders);

@@ -1,7 +1,7 @@
+#include "rtl.h"
 #include <CuTest.h>
 #include <stdio.h>
 #include <string.h>
-#include "rtl.h"
 
 static void test_strcmpl(CuTest * tc)
 {

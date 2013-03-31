@@ -40,17 +40,20 @@ CONFIGURE_FILE (
   ${CMAKE_BINARY_DIR}/include/config.h)
 INCLUDE_DIRECTORIES (${CMAKE_BINARY_DIR}/include)
 
-ADD_EXECUTABLE(atlantis main.c atlantis.c atlantis.h rtl.c rtl.h)
+ADD_EXECUTABLE(atlantis main.c atlantis.c atlantis.h keywords.h rtl.c rtl.h)
 
 INCLUDE_DIRECTORIES (${CUTEST_INCLUDE_DIR})
 
+ADD_EXECUTABLE(atlantis_tests atlantis.test.c atlantis.c atlantis.h keywords.h rtl.c rtl.h)
+TARGET_LINK_LIBRARIES (atlantis_tests cutest)
+ADD_TEST (atlantis atlantis_tests)
+
 ADD_EXECUTABLE(rtl_tests rtl.c rtl.h rtl.test.c)
 TARGET_LINK_LIBRARIES (rtl_tests cutest)
-
 ADD_TEST (rtl rtl_tests)
 
 ADD_CUSTOM_TARGET(check COMMAND ${CMAKE_CTEST_COMMAND}
-                  DEPENDS rtl_tests CuTestTest atlantis
+                  DEPENDS rtl_tests atlantis_tests CuTestTest atlantis
                   COMMENT "Running Tests...")
 
 IF (MSVC)
