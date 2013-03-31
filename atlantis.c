@@ -1213,7 +1213,24 @@ int listlen(void *l)
 
 int transform(int *x, int *y, int kwd)
 {
-    return EINVAL;
+    assert(x || !"invalid reference to X coordinate");
+    assert(y || !"invalid reference to Y coordinate");
+    
+    if (kwd==K_NORTH) {
+        --*y;
+    }
+    else if (kwd==K_SOUTH) {
+        ++*y;
+    }
+    else if (kwd==K_WEST) {
+        --*x;
+    }
+    else if (kwd==K_EAST) {
+        ++*x;
+    } else {
+        return EINVAL;
+    }
+    return 0;
 }
 
 int effskill(unit * u, int i)
