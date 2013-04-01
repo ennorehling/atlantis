@@ -8,8 +8,12 @@
 
 #include "atlantis.h"
 #include "keywords.h"
+#include "region.h"
+#include "settings.h"
+
 #include "rtl.h"
 #include "bool.h"
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,28 +25,9 @@
 #include <stddef.h>
 #include <limits.h>
 
-#define NAMESIZE 81
-#define DISPLAYSIZE 161
 #define addlist2(l,p) (*l = p, l = &p->next)
 #define xisdigit(c) ((c) == '-' || ((c) >= '0' && (c) <= '9'))
 #define addptr(p,i) ((void *)(((char *)p) + i))
-
-#define ORDERGAP 4
-#define BLOCKSIZE 7
-#define BLOCKBORDER 1
-#define MAINTENANCE 10
-#define STARTMONEY 5000
-#define RECRUITCOST 50
-#define RECRUITFRACTION 4
-#define ENTERTAININCOME 20
-#define ENTERTAINFRACTION 20
-#define TAXINCOME 200
-#define COMBATEXP 10
-#define PRODUCEEXP 10
-#define TEACHNUMBER 10
-#define STUDYCOST 200
-#define POPGROWTH 5
-#define PEASANTMOVE 5
 
 typedef enum {
     T_OCEAN,
@@ -163,22 +148,6 @@ typedef struct ship {
     int left;
 } ship;
 
-typedef struct region {
-    struct region *next;
-    int x, y;
-    char name[NAMESIZE];
-    struct region *connect[4];
-    terrain_t terrain;
-    int peasants;
-    int money;
-    building *buildings;
-    ship *ships;
-    unit *units;
-    int immigrants;
-} region;
-
-struct faction;
-
 typedef struct rfaction {
     struct rfaction *next;
     struct faction *faction;
@@ -275,7 +244,7 @@ int turn;
 region *regions;
 faction *factions;
 
-char *keywords[] = {
+const char *keywords[] = {
     "accept",
     "address",
     "admit",
@@ -1041,7 +1010,7 @@ char *spelldata[] = {
     "to cast.",
 };
 
-int atoip(char *s)
+int atoip(const char *s)
 {
     int n;
 
@@ -1049,7 +1018,7 @@ int atoip(char *s)
     return (n < 0) ? 0 : n;
 }
 
-void nstrcpy(char *to, char *from, int n)
+void nstrcpy(char *to, const char *from, size_t n)
 {
     n--;
 
@@ -1297,10 +1266,10 @@ int cansee(faction * f, region * r, unit * u)
     return cansee;
 }
 
-char *igetstr(char *s1)
+char *igetstr(const char *s1)
 {
     int i;
-    static char *s;
+    static const char *s;
     static char buf[256];
 
     if (s1)
@@ -1444,7 +1413,7 @@ unit *getnewunit(region * r, unit * u)
 
 unit *getunitg(region * r, unit * u)
 {
-    char *s;
+    const char *s;
 
     s = getstr();
 
@@ -1460,7 +1429,7 @@ int getunitpeasants;
 unit *getunit(region * r, unit * u)
 {
     int n;
-    char *s;
+    const char *s;
     unit *u2;
 
     getunit0 = 0;
@@ -1495,7 +1464,7 @@ int strpcmp(const void *s1, const void *s2)
     return _strcmpl(*(char **) s1, *(char **) s2);
 }
 
-int findkeyword(char *s)
+int findkeyword(const char *s)
 {
     char **sp;
 
@@ -1516,7 +1485,7 @@ int findkeyword(char *s)
     return sp - keywords;
 }
 
-int igetkeyword(char *s)
+int igetkeyword(const char *s)
 {
     return findkeyword(igetstr(s));
 }
@@ -1526,7 +1495,7 @@ int getkeyword(void)
     return findkeyword(getstr());
 }
 
-int findstr(char **v, char *s, int n)
+int findstr(const char **v, const char *s, int n)
 {
     int i;
 
@@ -1537,7 +1506,7 @@ int findstr(char **v, char *s, int n)
     return -1;
 }
 
-int findskill(char *s)
+int findskill(const char *s)
 {
     if (!_strcmpl(s, "horse"))
         return SK_HORSE_TRAINING;
@@ -1552,7 +1521,7 @@ int getskill(void)
     return findskill(getstr());
 }
 
-int finditem(char *s)
+int finditem(const char *s)
 {
     int i;
 
@@ -1573,7 +1542,7 @@ int getitem(void)
     return finditem(getstr());
 }
 
-spell_t findspell(char *s)
+spell_t findspell(const char *s)
 {
     return (spell_t) findstr(spellnames, s, MAXSPELLS);
 }
@@ -3733,7 +3702,8 @@ void processorders(void)
     int lmoney;
     int dh;
     static int litems[MAXITEMS];
-    char *s, *s2;
+    const char *s, *s2;
+    char *sx, *sn;
     faction *f, *f2, **fa;
     rfaction *rf;
     region *r, *r2;
@@ -3811,9 +3781,9 @@ void processorders(void)
                     }
 
                     nstrcpy(u->faction->addr, s, NAMESIZE);
-                    for (s = u->faction->addr; *s; s++)
-                        if (*s == ' ')
-                            *s = '_';
+                    for (sx = u->faction->addr; *sx; sx++)
+                        if (*sx == ' ')
+                            *sx = '_';
 
                     printf("%s is changing address to %s.\n",
                            u->faction->name, u->faction->addr);
@@ -3881,7 +3851,7 @@ void processorders(void)
                     break;
 
                 case K_DISPLAY:
-                    s = 0;
+                    sn = 0;
 
                     switch (getkeyword()) {
                     case K_BUILDING:
@@ -3895,7 +3865,7 @@ void processorders(void)
                             break;
                         }
 
-                        s = u->building->display;
+                        sn = u->building->display;
                         break;
 
                     case K_SHIP:
@@ -3909,11 +3879,11 @@ void processorders(void)
                             break;
                         }
 
-                        s = u->ship->display;
+                        sn = u->ship->display;
                         break;
 
                     case K_UNIT:
-                        s = u->display;
+                        sn = u->display;
                         break;
 
                     default:
@@ -3921,16 +3891,16 @@ void processorders(void)
                         break;
                     }
 
-                    if (!s)
+                    if (!sn)
                         break;
 
-                    s2 = getstr();
+                    sx = getstr();
 
-                    i = strlen(s2);
-                    if (i && s2[i - 1] == '.')
-                        s2[i - 1] = 0;
+                    i = strlen(sx);
+                    if (i && sx[i - 1] == '.')
+                        sx[i - 1] = 0;
 
-                    nstrcpy(s, s2, DISPLAYSIZE);
+                    nstrcpy(sn, sx, DISPLAYSIZE);
                     break;
 
                 case K_GUARD:
@@ -3939,7 +3909,7 @@ void processorders(void)
                     break;
 
                 case K_NAME:
-                    s = 0;
+                    sn = 0;
 
                     switch (getkeyword()) {
                     case K_BUILDING:
@@ -3953,11 +3923,11 @@ void processorders(void)
                             break;
                         }
 
-                        s = u->building->name;
+                        sn = u->building->name;
                         break;
 
                     case K_FACTION:
-                        s = u->faction->name;
+                        sn = u->faction->name;
                         break;
 
                     case K_SHIP:
@@ -3971,11 +3941,11 @@ void processorders(void)
                             break;
                         }
 
-                        s = u->ship->name;
+                        sn = u->ship->name;
                         break;
 
                     case K_UNIT:
-                        s = u->name;
+                        sn = u->name;
                         break;
 
                     default:
@@ -3983,7 +3953,7 @@ void processorders(void)
                         break;
                     }
 
-                    if (!s)
+                    if (!sn)
                         break;
 
                     s2 = getstr();
@@ -4002,7 +3972,7 @@ void processorders(void)
                         break;
                     }
 
-                    nstrcpy(s, s2, NAMESIZE);
+                    nstrcpy(sn, s2, NAMESIZE);
                     break;
 
                 case K_RESHOW:

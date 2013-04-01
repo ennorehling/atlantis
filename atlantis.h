@@ -9,7 +9,11 @@
 #ifndef ATLANTIS_H
 #define ATLANTIS_H
 
+struct region;
+
 int turn;
+const char *keywords[];
+char buf[10240];
 
 int transform(int *x, int *y, int kwd);
 int rnd_seed(unsigned int x);
@@ -18,5 +22,13 @@ int processturn(const char *orders);
 void createcontinent(void);
 void addplayers(void);
 void addunits(void);
+
+struct region *movewhere(struct region * r);
+struct region *findregion(int x, int y);
+void makeblock(int x1, int y1);
+
+int igetkeyword(const char *s);
+char *igetstr(const char *s);
+char *getstr(void);
 
 #endif

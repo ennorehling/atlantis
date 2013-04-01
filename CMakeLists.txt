@@ -40,15 +40,18 @@ CONFIGURE_FILE (
   ${CMAKE_BINARY_DIR}/include/config.h)
 INCLUDE_DIRECTORIES (${CMAKE_BINARY_DIR}/include)
 
-ADD_EXECUTABLE(atlantis main.c atlantis.c atlantis.h keywords.h rtl.c rtl.h)
+SET( ATLANTIS_SRC atlantis.c atlantis.h region.h keywords.h settings.h )
+SET( RTL_SRC rtl.c rtl.h )
+ADD_EXECUTABLE(atlantis main.c ${ATLANTIS_SRC} ${RTL_SRC})
 
 INCLUDE_DIRECTORIES (${CUTEST_INCLUDE_DIR})
 
-ADD_EXECUTABLE(atlantis_tests atlantis.test.c atlantis.c atlantis.h keywords.h rtl.c rtl.h)
+
+ADD_EXECUTABLE(atlantis_tests atlantis.test.c ${ATLANTIS_SRC} ${RTL_SRC})
 TARGET_LINK_LIBRARIES (atlantis_tests cutest)
 ADD_TEST (atlantis atlantis_tests)
 
-ADD_EXECUTABLE(rtl_tests rtl.c rtl.h rtl.test.c)
+ADD_EXECUTABLE(rtl_tests rtl.test.c ${RTL_SRC})
 TARGET_LINK_LIBRARIES (rtl_tests cutest)
 ADD_TEST (rtl rtl_tests)
 

@@ -1,9 +1,42 @@
 #include "atlantis.h"
 #include "keywords.h"
+#include "region.h"
+
 #include <CuTest.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+
+static void test_movewhere(CuTest * tc)
+{
+    region *r, *c;
+    makeblock(0, 0);
+    c = findregion(0, 0);
+
+    sprintf(buf, "%s %s", keywords[K_MOVE], keywords[K_NORTH]);
+    CuAssertIntEquals(tc, K_MOVE, igetkeyword(buf));
+    r = movewhere(c);
+    CuAssertPtrEquals(tc, r, c->connect[0]);
+    CuAssertPtrEquals(tc, c, r->connect[1]);
+
+    sprintf(buf, "%s %s", keywords[K_MOVE], keywords[K_SOUTH]);
+    CuAssertIntEquals(tc, K_MOVE, igetkeyword(buf));
+    r = movewhere(c);
+    CuAssertPtrEquals(tc, r, c->connect[1]);
+    CuAssertPtrEquals(tc, c, r->connect[0]);
+
+    sprintf(buf, "%s %s", keywords[K_MOVE], keywords[K_EAST]);
+    CuAssertIntEquals(tc, K_MOVE, igetkeyword(buf));
+    r = movewhere(c);
+    CuAssertPtrEquals(tc, r, c->connect[2]);
+    CuAssertPtrEquals(tc, c, r->connect[3]);
+
+    sprintf(buf, "%s %s", keywords[K_MOVE], keywords[K_WEST]);
+    CuAssertIntEquals(tc, K_MOVE, igetkeyword(buf));
+    r = movewhere(c);
+    CuAssertPtrEquals(tc, r, c->connect[3]);
+    CuAssertPtrEquals(tc, c, r->connect[2]);
+}
 
 static void test_transform(CuTest * tc)
 {
@@ -37,6 +70,7 @@ int main(void)
     CuSuite *suite = CuSuiteNew();
 
     SUITE_ADD_TEST(suite, test_transform);
+    SUITE_ADD_TEST(suite, test_movewhere);
 
     CuSuiteRun(suite);
     CuSuiteSummary(suite, output);
