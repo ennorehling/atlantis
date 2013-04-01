@@ -294,7 +294,7 @@ const char *keywords[] = {
     "work",
 };
 
-char *terrainnames[] = {
+const char *terrainnames[] = {
     "ocean",
     "plain",
     "mountain",
@@ -302,7 +302,7 @@ char *terrainnames[] = {
     "swamp",
 };
 
-char *regionnames[] = {
+const char *regionnames[] = {
     "Aberaeron",
     "Aberdaron",
     "Aberdovey",
@@ -667,7 +667,7 @@ int shipcost[] = {
     300,
 };
 
-char *skillnames[] = {
+const char *skillnames[] = {
     "mining",
     "lumberjack",
     "quarrying",
@@ -687,7 +687,7 @@ char *skillnames[] = {
     "magic",
 };
 
-char *itemnames[2][MAXITEMS] = {
+const char *itemnames[2][MAXITEMS] = {
     {
         "iron",
         "wood",
@@ -759,7 +759,7 @@ char rawmaterial[] = {
     I_IRON,
 };
 
-char *spellnames[] = {
+const char *spellnames[] = {
     "Black Wind",
     "Cause Fear",
     "Contaminate Water",
@@ -1030,7 +1030,7 @@ void nstrcpy(char *to, const char *from, size_t n)
     *to = 0;
 }
 
-void scat(char *s)
+void scat(const char *s)
 {
     strcat(buf, s);
 }
@@ -1466,7 +1466,7 @@ int strpcmp(const void *s1, const void *s2)
 
 int findkeyword(const char *s)
 {
-    char **sp;
+    const char **sp;
 
     if (!_strcmpl(s, "describe"))
         return K_DISPLAY;
@@ -1759,7 +1759,7 @@ void seed(terrain_t to, int n)
     transmute(T_PLAIN, to, n, 1);
 }
 
-int regionnameinuse(char *s)
+int regionnameinuse(const char *s)
 {
     region *r;
 
@@ -3164,13 +3164,13 @@ void rpc(int c)
     assert(outi < sizeof outbuf);
 }
 
-void rps(char *s)
+void rps(const char *s)
 {
     while (*s)
         rpc(*s++);
 }
 
-void centre(char *s)
+void centre(const char *s)
 {
     int i;
 
