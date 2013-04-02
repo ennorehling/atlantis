@@ -1195,7 +1195,16 @@ int transform(int *x, int *y, int kwd)
     }
     else if (kwd==K_EAST) {
         ++*x;
-    } else {
+    }
+    else if (kwd==K_MIR) {
+        --*x;
+        --*y;
+    }
+    else if (kwd==K_YDD) {
+        ++*x;
+        ++*y;
+    }
+    else {
         return EINVAL;
     }
     return 0;
@@ -3681,7 +3690,15 @@ region *movewhere(region * r)
     case K_WEST:
         dir = 3;
         break;
+#if MAXDIRECTIONS > 5
+    case K_MIR:
+        dir = 4;
+        break;
 
+    case K_YDD:
+        dir = 5;
+        break;
+#endif
     default:
         dir = -1;
     }

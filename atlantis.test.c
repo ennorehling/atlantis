@@ -105,26 +105,38 @@ static void test_transform(CuTest * tc)
 {
     int x, y;
   
-    x = 0, y = 0;
+    x = 0, y = 1;
     CuAssertIntEquals(tc, EINVAL, transform(&x, &y, K_ENTER));
     CuAssertIntEquals(tc, 0, transform(&x, &y, K_NORTH));
     CuAssertIntEquals(tc, x, 0);
-    CuAssertIntEquals(tc, y, -1);
+    CuAssertIntEquals(tc, y, 0);
 
-    x = 0, y = 0;
+    x = 0, y = -1;
     CuAssertIntEquals(tc, 0, transform(&x, &y, K_SOUTH));
     CuAssertIntEquals(tc, x, 0);
-    CuAssertIntEquals(tc, y, 1);
+    CuAssertIntEquals(tc, y, 0);
 
-    x = 0, y = 0;
+    x = 1, y = 0;
     CuAssertIntEquals(tc, 0, transform(&x, &y, K_WEST));
-    CuAssertIntEquals(tc, x, -1);
+    CuAssertIntEquals(tc, x, 0);
     CuAssertIntEquals(tc, y, 0);
 
-    x = 0, y = 0;
+    x = -1, y = 0;
     CuAssertIntEquals(tc, 0, transform(&x, &y, K_EAST));
-    CuAssertIntEquals(tc, x, 1);
+    CuAssertIntEquals(tc, x, 0);
     CuAssertIntEquals(tc, y, 0);
+
+#if MAXDIRECTIONS>5
+    x = 1, y = 1;
+    CuAssertIntEquals(tc, 0, transform(&x, &y, K_MIR));
+    CuAssertIntEquals(tc, x, 0);
+    CuAssertIntEquals(tc, y, 0);
+
+    x = -1, y = -1;
+    CuAssertIntEquals(tc, 0, transform(&x, &y, K_YDD));
+    CuAssertIntEquals(tc, x, 0);
+    CuAssertIntEquals(tc, y, 0);
+#endif
 }
 
 int main(void)

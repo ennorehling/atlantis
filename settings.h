@@ -11,7 +11,7 @@
 
 #define NAMESIZE 81
 #define DISPLAYSIZE 161
-#define MAXDIRECTIONS 4
+#define MAXDIRECTIONS 6
 
 #define ORDERGAP 4
 #define BLOCKSIZE 7
