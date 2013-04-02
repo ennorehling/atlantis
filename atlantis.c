@@ -267,6 +267,7 @@ const char *keywords[] = {
     "guard",
     "leave",
     "longboat",
+    "mir",
     "move",
     "name",
     "north",
@@ -288,6 +289,7 @@ const char *keywords[] = {
     "unit",
     "west",
     "work",
+    "ydd",
 };
 
 const char *terrainnames[] = {
@@ -1475,6 +1477,10 @@ int findkeyword(const char *s)
         return K_EAST;
     if (!_strcmpl(s, "w"))
         return K_WEST;
+    if (!_strcmpl(s, "m"))
+        return K_MIR;
+    if (!_strcmpl(s, "y"))
+        return K_YDD;
 
     sp = bsearch(&s, keywords, MAXKEYWORDS, sizeof s, strpcmp);
     if (sp == 0)

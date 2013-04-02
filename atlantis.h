@@ -31,6 +31,7 @@ struct region *movewhere(struct region * r);
 struct region *findregion(int x, int y);
 void makeblock(int x1, int y1);
 
+int findkeyword(const char *s);
 int igetkeyword(const char *s);
 char *igetstr(const char *s);
 char *getstr(void);

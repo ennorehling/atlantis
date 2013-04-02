@@ -18,6 +18,18 @@ static void test_fileops(CuTest * tc)
     CuAssertPtrNotNull(tc, findregion(0, 0));
 }
 
+static void test_directions(CuTest * tc)
+{
+    CuAssertIntEquals(tc, K_NORTH, findkeyword("NORTH"));
+    CuAssertIntEquals(tc, K_NORTH, findkeyword("N"));
+    CuAssertIntEquals(tc, K_SOUTH, findkeyword("SOUTH"));
+    CuAssertIntEquals(tc, K_SOUTH, findkeyword("S"));
+    CuAssertIntEquals(tc, K_EAST, findkeyword("EAST"));
+    CuAssertIntEquals(tc, K_EAST, findkeyword("E"));
+    CuAssertIntEquals(tc, K_WEST, findkeyword("WEST"));
+    CuAssertIntEquals(tc, K_WEST, findkeyword("W"));
+}
+
 static void test_movewhere(CuTest * tc)
 {
     region *r, *c;

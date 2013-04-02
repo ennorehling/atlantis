@@ -28,6 +28,7 @@ enum {
     K_GUARD,
     K_LEAVE,
     K_LONGBOAT,
+    K_MIR,
     K_MOVE,
     K_NAME,
     K_NORTH,
@@ -49,6 +50,7 @@ enum {
     K_UNIT,
     K_WEST,
     K_WORK,
+    K_YDD,
     MAXKEYWORDS
 };
 
