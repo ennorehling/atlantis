@@ -3439,7 +3439,7 @@ void reports(void)
 
     fclose(F);
 
-    cfopen("maillist", "w");
+    F = cfopen("maillist", "w");
     puts("Writing maillist file...");
 
     for (f = factions; f; f = f->next)

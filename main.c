@@ -29,10 +29,10 @@ int main(int argc, char **argv)
         if (argv[i][0] == '-') {
             switch (argv[i][1]) {
             case 'p': /* process */
-                orders = (argv[i][2]) ? (argv[i] + 3) : argv[++i];
+                orders = (argv[i][2]) ? (argv[i] + 2) : argv[++i];
                 break;
             case 't': /* turn */
-                arg = (argv[i][2]) ? (argv[i] + 3) : argv[++i];
+                arg = (argv[i][2]) ? (argv[i] + 2) : argv[++i];
                 turn = atoi(arg);
                 break;
             default:
