@@ -22,6 +22,7 @@ As we will see, hex grids are not this simple.
 ### Orientation
 
 It's possible to map a hex grid to a two-dimensional array, too, but the mapping is not as easy. first of all, there are two main ways to orient the hexes:
+
      / \            _____
     /   \          /     \
     |   |         /       \
