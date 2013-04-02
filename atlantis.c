@@ -127,9 +127,6 @@ typedef struct strlist {
     char s[1];
 } strlist;
 
-struct unit;
-typedef struct unit unit;
-
 typedef struct building {
     struct building *next;
     int no;
@@ -178,7 +175,7 @@ typedef struct faction {
     int money;
 } faction;
 
-struct unit {
+typedef struct unit {
     struct unit *next;
     int no;
     char name[NAMESIZE];
@@ -205,17 +202,17 @@ struct unit {
     int *litems;
     int side;
     bool isnew;
-};
+} unit;
 
 typedef struct order {
     struct order *next;
-    unit *unit;
+    struct unit *unit;
     int qty;
 } order;
 
 typedef struct troop {
     struct troop *next;
-    unit *unit;
+    struct unit *unit;
     int lmoney;
     int status;
     int side;
@@ -238,7 +235,6 @@ typedef struct troop {
 
 char buf[10240];
 char buf2[256];
-FILE *F;
 
 int turn;
 region *regions;
@@ -1073,17 +1069,18 @@ int rnd(void)
     return rnd_seed(0);
 }
 
-void cfopen(const char *filename, const char *mode)
+FILE * cfopen(const char *filename, const char *mode)
 {
-    F = fopen(filename, mode);
+    FILE * F = fopen(filename, mode);
 
     if (F == 0) {
         printf("Can't open file %s in mode %s.\n", filename, mode);
         exit(1);
     }
+    return F;
 }
 
-char * getbuf(void)
+char * getbuf(FILE * F)
 {
     int i;
     int c;
@@ -1642,6 +1639,7 @@ region *inputregion(void)
 
 void addplayers(void)
 {
+    FILE * F;
     region *r;
     faction *f;
     unit *u;
@@ -1657,10 +1655,10 @@ void addplayers(void)
     if (!buf[0])
         return;
 
-    cfopen(buf, "r");
+    F = cfopen(buf, "r");
 
     for (;;) {
-        if (!getbuf()) {
+        if (!getbuf(F)) {
             fclose(F);
             break;
         }
@@ -2851,15 +2849,16 @@ int mayboard(region * r, unit * u, ship * sh)
 
 void readorders(const char * filename)
 {
+    FILE * F;
     int i, j;
     faction *f;
     region *r;
     unit *u;
     strlist *S, **SP;
 
-    cfopen(filename, "r");
+    F = cfopen(filename, "r");
 
-    while (getbuf() && buf[0]) {
+    while (getbuf(F) && buf[0]) {
         if (!strncmp(buf, "#atlantis", 9)) {
           NEXTPLAYER:
             igetstr(buf);
@@ -2875,7 +2874,7 @@ void readorders(const char * filename)
                         }
 
                 for (;;) {
-                    if (getbuf() && !_memicmp(buf, "#atlantis", 9))
+                    if (getbuf(F) && !_memicmp(buf, "#atlantis", 9))
                         goto NEXTPLAYER;
 
                     if (buf[0] == '\f' || buf[0] == '#')
@@ -2891,7 +2890,7 @@ void readorders(const char * filename)
                             u->faction->lastorders = turn;
 
                             for (;;) {
-                                if (getbuf()) {
+                                if (getbuf(F)) {
 
                                 if (!_strcmpl(igetstr(buf), "unit")) {
                                     *SP = 0;
@@ -2997,13 +2996,13 @@ void readorders(const char * filename)
         }
 
       DONEPLAYER:
-        getbuf();
+        getbuf(F);
     }
 
     fclose(F);
 }
 
-void writemap(void)
+void writemap(FILE * F)
 {
     int x, y, minx, miny, maxx, maxy;
     region *r;
@@ -3039,6 +3038,7 @@ void writemap(void)
 
 void writesummary(void)
 {
+    FILE * F;
     int inhabitedregions;
     int peasants;
     int peasantmoney;
@@ -3049,7 +3049,7 @@ void writesummary(void)
     region *r;
     unit *u;
 
-    cfopen("summary", "w");
+    F = cfopen("summary", "w");
     puts("Writing summary file...");
 
     inhabitedregions = 0;
@@ -3093,7 +3093,7 @@ void writesummary(void)
     fprintf(F, "Peasant Wealth: $%d\n", peasantmoney);
     fprintf(F, "Total Wealth: $%d\n\n", playermoney + peasantmoney);
 
-    writemap();
+    writemap(F);
 
     if (factions)
         fputc('\n', F);
@@ -3108,7 +3108,7 @@ void writesummary(void)
 int outi;
 char outbuf[256];
 
-void rnl(void)
+void rnl(FILE * F)
 {
     int i;
     int rc, vc;
@@ -3170,58 +3170,59 @@ void rps(const char *s)
         rpc(*s++);
 }
 
-void centre(const char *s)
+void centre(FILE * F, const char *s)
 {
     int i;
 
     for (i = (79 - strlen(s)) / 2; i; i--)
         rpc(' ');
     rps(s);
-    rnl();
+    rnl(F);
 }
 
-void rpstrlist(strlist * S)
+void rpstrlist(FILE * F, strlist * S)
 {
     while (S) {
         rps(S->s);
-        rnl();
+        rnl(F);
         S = S->next;
     }
 }
 
-void centrestrlist(char *s, strlist * S)
+void centrestrlist(FILE * F, char *s, strlist * S)
 {
     if (S) {
-        rnl();
-        centre(s);
-        rnl();
+        rnl(F);
+        centre(F, s);
+        rnl(F);
 
-        rpstrlist(S);
+        rpstrlist(F, S);
     }
 }
 
-void rparagraph(char *s, int indent, int mark)
+void rparagraph(FILE * F, char *s, int indent, int mark)
 {
     strlist *S;
 
     S = 0;
     sparagraph(&S, s, indent, mark);
-    rpstrlist(S);
+    rpstrlist(F, S);
     freelist(S);
 }
 
-void rpunit(faction * f, region * r, unit * u, int indent, int battle)
+void rpunit(FILE * F, faction * f, region * r, unit * u, int indent, int battle)
 {
     strlist *S;
 
     S = 0;
     spunit(&S, f, r, u, indent, battle);
-    rpstrlist(S);
+    rpstrlist(F, S);
     freelist(S);
 }
 
 void report(faction * f)
 {
+    FILE * F;
     int i;
     int dh;
     int anyunits;
@@ -3236,33 +3237,33 @@ void report(faction * f)
         sprintf(buf, "reports/%d.r", f->no);
     else
         sprintf(buf, "nreports/%d.r", f->no);
-    cfopen(buf, "w");
+    F = cfopen(buf, "w");
 
     printf("Writing report for %s...\n", factionid(f));
 
-    centre("Atlantis Turn Report");
-    centre(factionid(f));
-    centre(gamedate());
+    centre(F, "Atlantis Turn Report");
+    centre(F, factionid(f));
+    centre(F, gamedate());
 
-    centrestrlist("Mistakes", f->mistakes);
-    centrestrlist("Messages", f->messages);
+    centrestrlist(F, "Mistakes", f->mistakes);
+    centrestrlist(F, "Messages", f->messages);
 
     if (f->battles || f->events) {
-        rnl();
-        centre("Events During Turn");
-        rnl();
+        rnl(F);
+        centre(F, "Events During Turn");
+        rnl(F);
 
         for (S = f->battles; S; S = S->next) {
             rps(S->s);
-            rnl();
+            rnl(F);
         }
 
         if (f->battles && f->events)
-            rnl();
+            rnl(F);
 
         for (S = f->events; S; S = S->next) {
             rps(S->s);
-            rnl();
+            rnl(F);
         }
     }
 
@@ -3271,23 +3272,23 @@ void report(faction * f)
             break;
 
     if (i != MAXSPELLS) {
-        rnl();
-        centre("Spells Acquired");
+        rnl(F);
+        centre(F, "Spells Acquired");
 
         for (i = 0; i != MAXSPELLS; i++)
             if (f->showdata[i]) {
-                rnl();
-                centre(spellnames[i]);
+                rnl(F);
+                centre(F, spellnames[i]);
                 sprintf(buf, "Level %d", spelllevel[i]);
-                centre(buf);
-                rnl();
+                centre(F, buf);
+                rnl(F);
 
-                rparagraph(spelldata[i], 0, 0);
+                rparagraph(F, spelldata[i], 0, 0);
             }
     }
 
-    rnl();
-    centre("Current Status");
+    rnl(F);
+    centre(F, "Current Status");
 
     if (f->allies) {
         dh = 0;
@@ -3301,8 +3302,8 @@ void report(faction * f)
         }
 
         scat(".");
-        rnl();
-        rparagraph(buf, 0, 0);
+        rnl(F);
+        rparagraph(F, buf, 0, 0);
     }
 
     anyunits = 0;
@@ -3329,8 +3330,8 @@ void report(faction * f)
         }
 
         scat(".");
-        rnl();
-        rparagraph(buf, 0, 0);
+        rnl(F);
+        rparagraph(F, buf, 0, 0);
 
         dh = 0;
 
@@ -3345,21 +3346,21 @@ void report(faction * f)
             scat(".");
 
             if (dh)
-                rnl();
+                rnl(F);
 
             dh = 1;
 
-            rparagraph(buf, 4, 0);
+            rparagraph(F, buf, 4, 0);
 
             for (u = r->units; u; u = u->next)
                 if (u->building == b && u->owner) {
-                    rpunit(f, r, u, 8, 0);
+                    rpunit(F, f, r, u, 8, 0);
                     break;
                 }
 
             for (u = r->units; u; u = u->next)
                 if (u->building == b && !u->owner)
-                    rpunit(f, r, u, 8, 0);
+                    rpunit(F, f, r, u, 8, 0);
         }
 
         for (sh = r->ships; sh; sh = sh->next) {
@@ -3375,21 +3376,21 @@ void report(faction * f)
             scat(".");
 
             if (dh)
-                rnl();
+                rnl(F);
 
             dh = 1;
 
-            rparagraph(buf, 4, 0);
+            rparagraph(F, buf, 4, 0);
 
             for (u = r->units; u; u = u->next)
                 if (u->ship == sh && u->owner) {
-                    rpunit(f, r, u, 8, 0);
+                    rpunit(F, f, r, u, 8, 0);
                     break;
                 }
 
             for (u = r->units; u; u = u->next)
                 if (u->ship == sh && !u->owner)
-                    rpunit(f, r, u, 8, 0);
+                    rpunit(F, f, r, u, 8, 0);
         }
 
         dh = 0;
@@ -3397,17 +3398,17 @@ void report(faction * f)
         for (u = r->units; u; u = u->next)
             if (!u->building && !u->ship && cansee(f, r, u)) {
                 if (!dh && (r->buildings || r->ships)) {
-                    rnl();
+                    rnl(F);
                     dh = 1;
                 }
 
-                rpunit(f, r, u, 4, 0);
+                rpunit(F, f, r, u, 4, 0);
             }
     }
 
     if (!anyunits) {
-        rnl();
-        rparagraph("Unfortunately your faction has been wiped out. Please "
+        rnl(F);
+        rparagraph(F, "Unfortunately your faction has been wiped out. Please "
                    "contact the moderator if you wish to play again.", 0,
                    0);
     }
@@ -3417,6 +3418,7 @@ void report(faction * f)
 
 void reports(void)
 {
+    FILE * F;
     faction *f;
 
     _mkdir("reports");
@@ -3425,7 +3427,7 @@ void reports(void)
     for (f = factions; f; f = f->next)
         report(f);
 
-    cfopen("send", "w");
+    F = cfopen("send", "w");
     puts("Writing send file...");
 
     for (f = factions; f; f = f->next)
@@ -5900,12 +5902,12 @@ void processorders(void)
 
 int nextc;
 
-void rc(void)
+void rc(FILE * F)
 {
     nextc = fgetc(F);
 }
 
-void rs(char *s)
+void rs(FILE * F, char *s)
 {
     while (nextc != '"') {
         if (nextc == 0) {
@@ -5913,10 +5915,10 @@ void rs(char *s)
             exit(1);
         }
 
-        rc();
+        rc(F);
     }
 
-    rc();
+    rc(F);
 
     while (nextc != '"') {
         if (nextc == 0) {
@@ -5925,14 +5927,14 @@ void rs(char *s)
         }
 
         *s++ = (char) nextc;
-        rc();
+        rc(F);
     }
 
-    rc();
+    rc(F);
     *s = 0;
 }
 
-int ri(void)
+int ri(FILE * F)
 {
     int i;
     char buf[20];
@@ -5945,27 +5947,27 @@ int ri(void)
             exit(1);
         }
 
-        rc();
+        rc(F);
     }
 
     while (xisdigit(nextc)) {
         buf[i++] = (char) nextc;
-        rc();
+        rc(F);
     }
 
     buf[i] = 0;
     return atoi(buf);
 }
 
-void rstrlist(strlist ** SP)
+void rstrlist(FILE * F, strlist ** SP)
 {
     int n;
     strlist *S;
 
-    n = ri();
+    n = ri(F);
 
     while (--n >= 0) {
-        rs(buf);
+        rs(F, buf);
         S = makestrlist(buf);
         addlist2(SP, S);
     }
@@ -5975,6 +5977,7 @@ void rstrlist(strlist ** SP)
 
 void readgame(void)
 {
+    FILE * F;
     int i, n, n2;
     faction *f, **fp;
     rfaction *rf, **rfp;
@@ -5984,48 +5987,48 @@ void readgame(void)
     unit *u, **up;
 
     sprintf(buf, "data/%d", turn);
-    cfopen(buf, "r");
+    F = cfopen(buf, "r");
 
     printf("Reading turn %d...\n", turn);
 
-    rc();
+    rc(F);
 
-    turn = ri();
+    turn = ri(F);
 
     /* Read factions */
 
-    n = ri();
+    n = ri(F);
     fp = &factions;
 
     while (--n >= 0) {
         f = cmalloc(sizeof(faction));
         memset(f, 0, sizeof(faction));
 
-        f->no = ri();
-        rs(f->name);
-        rs(f->addr);
-        f->lastorders = ri();
+        f->no = ri(F);
+        rs(F, f->name);
+        rs(F, f->addr);
+        f->lastorders = ri(F);
 
         for (i = 0; i != MAXSPELLS; i++)
-            f->showdata[i] = (ri() != 0);
+            f->showdata[i] = (ri(F) != 0);
 
-        n2 = ri();
+        n2 = ri(F);
         rfp = &f->allies;
 
         while (--n2 >= 0) {
             rf = cmalloc(sizeof(rfaction));
 
-            rf->factionno = ri();
+            rf->factionno = ri(F);
 
             addlist2(rfp, rf);
         }
 
         *rfp = 0;
 
-        rstrlist(&f->mistakes);
-        rstrlist(&f->messages);
-        rstrlist(&f->battles);
-        rstrlist(&f->events);
+        rstrlist(F, &f->mistakes);
+        rstrlist(F, &f->messages);
+        rstrlist(F, &f->battles);
+        rstrlist(F, &f->events);
 
         addlist2(fp, f);
     }
@@ -6034,54 +6037,54 @@ void readgame(void)
 
     /* Read regions */
 
-    n = ri();
+    n = ri(F);
     rp = &regions;
 
     while (--n >= 0) {
         r = cmalloc(sizeof(region));
         memset(r, 0, sizeof(region));
 
-        r->x = ri();
-        r->y = ri();
-        rs(r->name);
-        r->terrain = ri();
-        r->peasants = ri();
-        r->money = ri();
+        r->x = ri(F);
+        r->y = ri(F);
+        rs(F, r->name);
+        r->terrain = ri(F);
+        r->peasants = ri(F);
+        r->money = ri(F);
 
-        n2 = ri();
+        n2 = ri(F);
         bp = &r->buildings;
 
         while (--n2 >= 0) {
             b = cmalloc(sizeof(building));
 
-            b->no = ri();
-            rs(b->name);
-            rs(b->display);
-            b->size = ri();
+            b->no = ri(F);
+            rs(F, b->name);
+            rs(F, b->display);
+            b->size = ri(F);
 
             addlist2(bp, b);
         }
 
         *bp = 0;
 
-        n2 = ri();
+        n2 = ri(F);
         shp = &r->ships;
 
         while (--n2 >= 0) {
             sh = cmalloc(sizeof(ship));
 
-            sh->no = ri();
-            rs(sh->name);
-            rs(sh->display);
-            sh->type = ri();
-            sh->left = ri();
+            sh->no = ri(F);
+            rs(F, sh->name);
+            rs(F, sh->display);
+            sh->type = ri(F);
+            sh->left = ri(F);
 
             addlist2(shp, sh);
         }
 
         *shp = 0;
 
-        n2 = ri();
+        n2 = ri(F);
         up = &r->units;
 
         addlist2(rp, r);
@@ -6090,28 +6093,28 @@ void readgame(void)
             u = cmalloc(sizeof(unit));
             memset(u, 0, sizeof(unit));
 
-            u->no = ri();
-            rs(u->name);
-            rs(u->display);
-            u->number = ri();
-            u->money = ri();
-            u->faction = findfaction(ri());
-            u->building = findbuilding(ri());
-            u->ship = findship(ri());
-            u->owner = ri() != 0;
-            u->behind = ri() != 0;
-            u->guard = ri() != 0;
-            rs(u->lastorder);
-            u->combatspell = ri();
+            u->no = ri(F);
+            rs(F, u->name);
+            rs(F, u->display);
+            u->number = ri(F);
+            u->money = ri(F);
+            u->faction = findfaction(ri(F));
+            u->building = findbuilding(ri(F));
+            u->ship = findship(ri(F));
+            u->owner = ri(F) != 0;
+            u->behind = ri(F) != 0;
+            u->guard = ri(F) != 0;
+            rs(F, u->lastorder);
+            u->combatspell = ri(F);
 
             for (i = 0; i != MAXSKILLS; i++)
-                u->skills[i] = ri();
+                u->skills[i] = ri(F);
 
             for (i = 0; i != MAXITEMS; i++)
-                u->items[i] = ri();
+                u->items[i] = ri(F);
 
             for (i = 0; i != MAXSPELLS; i++)
-                u->spells[i] = ri();
+                u->spells[i] = ri(F);
 
             addlist2(up, u);
         }
@@ -6161,54 +6164,115 @@ void readgame(void)
     fclose(F);
 }
 
-void wc(int c)
+void wc(FILE * F, int c)
 {
     fputc(c, F);
 }
 
-void wsn(char *s)
+void wsn(FILE * F, const char *s)
 {
     while (*s)
-        wc(*s++);
+        wc(F, *s++);
 }
 
-void wnl(void)
+void wnl(FILE * F)
 {
-    wc('\n');
+    wc(F, '\n');
 }
 
-void wspace(void)
+void wspace(FILE * F)
 {
-    wc(' ');
+    wc(F, ' ');
 }
 
-void ws(char *s)
+void ws(FILE * F, const char *s)
 {
-    wc('"');
-    wsn(s);
-    wc('"');
+    wc(F, '"');
+    wsn(F, s);
+    wc(F, '"');
 }
 
-void wi(int n)
+void wi(FILE * F, int n)
 {
     sprintf(buf, "%d", n);
-    wsn(buf);
+    wsn(F, buf);
 }
 
-void wstrlist(strlist * S)
+void wstrlist(FILE * F, strlist * S)
 {
-    wi(listlen(S));
-    wnl();
+    wi(F, listlen(S));
+    wnl(F);
 
     while (S) {
-        ws(S->s);
-        wnl();
+        ws(F, S->s);
+        wnl(F);
         S = S->next;
+    }
+}
+
+void freestrlist(strlist ** slist) {
+    while (*slist) {
+        strlist * sl = *slist;
+        *slist = sl->next;
+        free(sl);
+    }
+}
+
+void cleargame(void)
+{
+    while (regions) {
+        region * r = regions;
+        regions = r->next;
+
+        while (r->units) {
+            unit * u = r->units;
+            r->units = u->next;
+            freestrlist(&u->orders);
+            free(u);
+        }
+        while (r->ships) {
+            ship * s = r->ships;
+            r->ships = s->next;
+            free(s);
+        }
+        while (r->buildings) {
+            building * b = r->buildings;
+            r->buildings = b->next;
+            free(b);
+        }
+        free(r);
+    }
+
+    while (factions) {
+        faction * f = factions;
+        factions = f->next;
+
+        freestrlist(&f->messages);
+        freestrlist(&f->battles);
+        freestrlist(&f->events);
+        freestrlist(&f->mistakes);
+        while (f->allies) {
+            rfaction * rf = f->allies;
+            f->allies = rf->next;
+            free(rf);
+        }
+        while (f->accept) {
+            rfaction * rf = f->admit;
+            f->admit = rf->next;
+            free(rf);
+        }
+        while (f->admit) {
+            rfaction * rf = f->admit;
+            f->admit = rf->next;
+            free(rf);
+        }
+        free(f);
     }
 }
 
 void writegame(void)
 {
+    FILE * F;
     int i;
     faction *f;
     rfaction *rf;
@@ -6218,148 +6282,142 @@ void writegame(void)
     unit *u;
 
     sprintf(buf, "data/%d", turn);
-    cfopen(buf, "w");
+    F = cfopen(buf, "w");
     printf("Writing turn %d...\n", turn);
 
-    wi(turn);
-    wnl();
+    wi(F, turn);
+    wnl(F);
 
     /* Write factions */
 
-    wi(listlen(factions));
-    wnl();
+    wi(F, listlen(factions));
+    wnl(F);
 
     for (f = factions; f; f = f->next) {
-        wi(f->no);
-        wspace();
-        ws(f->name);
-        wspace();
-        ws(f->addr);
-        wspace();
-        wi(f->lastorders);
+        wi(F, f->no);
+        wspace(F);
+        ws(F, f->name);
+        wspace(F);
+        ws(F, f->addr);
+        wspace(F);
+        wi(F, f->lastorders);
 
         for (i = 0; i != MAXSPELLS; i++) {
-            wspace();
-            wi(f->showdata[i]);
+            wspace(F);
+            wi(F, f->showdata[i]);
         }
 
-        wnl();
+        wnl(F);
 
-        wi(listlen(f->allies));
-        wnl();
+        wi(F, listlen(f->allies));
+        wnl(F);
 
         for (rf = f->allies; rf; rf = rf->next) {
-            wi(rf->faction->no);
-            wnl();
+            wi(F, rf->faction->no);
+            wnl(F);
         }
 
-        wstrlist(f->mistakes);
-        wstrlist(f->messages);
-        wstrlist(f->battles);
-        wstrlist(f->events);
+        wstrlist(F, f->mistakes);
+        wstrlist(F, f->messages);
+        wstrlist(F, f->battles);
+        wstrlist(F, f->events);
     }
 
     /* Write regions */
 
-    wi(listlen(regions));
-    wnl();
+    wi(F, listlen(regions));
+    wnl(F);
 
     for (r = regions; r; r = r->next) {
-        wi(r->x);
-        wspace();
-        wi(r->y);
-        wspace();
-        ws(r->name);
-        wspace();
-        wi(r->terrain);
-        wspace();
-        wi(r->peasants);
-        wspace();
-        wi(r->money);
-        wnl();
+        wi(F, r->x);
+        wspace(F);
+        wi(F, r->y);
+        wspace(F);
+        ws(F, r->name);
+        wspace(F);
+        wi(F, r->terrain);
+        wspace(F);
+        wi(F, r->peasants);
+        wspace(F);
+        wi(F, r->money);
+        wnl(F);
 
-        wi(listlen(r->buildings));
-        wnl();
+        wi(F, listlen(r->buildings));
+        wnl(F);
 
         for (b = r->buildings; b; b = b->next) {
-            wi(b->no);
-            wspace();
-            ws(b->name);
-            wspace();
-            ws(b->display);
-            wspace();
-            wi(b->size);
-            wnl();
+            wi(F, b->no);
+            wspace(F);
+            ws(F, b->name);
+            wspace(F);
+            ws(F, b->display);
+            wspace(F);
+            wi(F, b->size);
+            wnl(F);
         }
 
-        wi(listlen(r->ships));
-        wnl();
+        wi(F, listlen(r->ships));
+        wnl(F);
 
         for (sh = r->ships; sh; sh = sh->next) {
-            wi(sh->no);
-            wspace();
-            ws(sh->name);
-            wspace();
-            ws(sh->display);
-            wspace();
-            wi(sh->type);
-            wspace();
-            wi(sh->left);
-            wnl();
+            wi(F, sh->no);
+            wspace(F);
+            ws(F, sh->name);
+            wspace(F);
+            ws(F, sh->display);
+            wspace(F);
+            wi(F, sh->type);
+            wspace(F);
+            wi(F, sh->left);
+            wnl(F);
         }
 
-        wi(listlen(r->units));
-        wnl();
+        wi(F, listlen(r->units));
+        wnl(F);
 
         for (u = r->units; u; u = u->next) {
-            wi(u->no);
-            wspace();
-            ws(u->name);
-            wspace();
-            ws(u->display);
-            wspace();
-            wi(u->number);
-            wspace();
-            wi(u->money);
-            wspace();
-            wi(u->faction->no);
-            wspace();
-            if (u->building)
-                wi(u->building->no);
-            else
-                wi(0);
-            wspace();
-            if (u->ship)
-                wi(u->ship->no);
-            else
-                wi(0);
-            wspace();
-            wi(u->owner);
-            wspace();
-            wi(u->behind);
-            wspace();
-            wi(u->guard);
-            wspace();
-            ws(u->lastorder);
-            wspace();
-            wi(u->combatspell);
+            wi(F, u->no);
+            wspace(F);
+            ws(F, u->name);
+            wspace(F);
+            ws(F, u->display);
+            wspace(F);
+            wi(F, u->number);
+            wspace(F);
+            wi(F, u->money);
+            wspace(F);
+            wi(F, u->faction->no);
+            wspace(F);
+            wi(F, u->building ? u->building->no : 0);
+            wspace(F);
+            wi(F, u->ship ? u->ship->no : 0);
+            wspace(F);
+            wi(F, u->owner);
+            wspace(F);
+            wi(F, u->behind);
+            wspace(F);
+            wi(F, u->guard);
+            wspace(F);
+            ws(F, u->lastorder);
+            wspace(F);
+            wi(F, u->combatspell);
 
             for (i = 0; i != MAXSKILLS; i++) {
-                wspace();
-                wi(u->skills[i]);
+                wspace(F);
+                wi(F, u->skills[i]);
             }
 
             for (i = 0; i != MAXITEMS; i++) {
-                wspace();
-                wi(u->items[i]);
+                wspace(F);
+                wi(F, u->items[i]);
             }
 
             for (i = 0; i != MAXSPELLS; i++) {
-                wspace();
-                wi(u->spells[i]);
+                wspace(F);
+                wi(F, u->spells[i]);
             }
 
-            wnl();
+            wnl(F);
         }
     }
 
@@ -6368,6 +6426,7 @@ void writegame(void)
 
 void addunits(void)
 {
+    FILE * F;
     int i, j;
     region *r;
     unit *u;
@@ -6383,31 +6442,31 @@ void addunits(void)
     if (!buf[0])
         return;
 
-    cfopen(buf, "r");
+    F = cfopen(buf, "r");
 
-    rc();
+    rc(F);
 
     for (;;) {
-        rs(buf);
+        rs(F, buf);
 
         if (!_strcmpl(buf, "end"))
             return;
 
         u = createunit(r);
 
-        rs(u->name);
-        rs(u->display);
-        u->number = ri();
-        u->money = ri();
-        u->faction = findfaction(ri());
+        rs(F, u->name);
+        rs(F, u->display);
+        u->number = ri(F);
+        u->money = ri(F);
+        u->faction = findfaction(ri(F));
 
         for (;;) {
-            rs(buf);
+            rs(F, buf);
 
             if (!_strcmpl(buf, "end"))
                 break;
 
-            j = ri();
+            j = ri(F);
 
             if ((i = findstr(skillnames, buf, MAXSKILLS)) >= 0)
                 u->skills[i] = j;
@@ -6464,6 +6523,5 @@ void createcontinent(void)
 
     makeblock(x, y);
 
-    F = stdout;
-    writemap();
+    writemap(stdout);
 }

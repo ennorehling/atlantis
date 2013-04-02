@@ -7,6 +7,17 @@
 #include <stdio.h>
 #include <string.h>
 
+static void test_fileops(CuTest * tc)
+{
+    turn = -1;
+    initgame();
+    CuAssertPtrNotNull(tc, findregion(0, 0));
+    cleargame();
+    CuAssertPtrEquals(tc, 0, findregion(0, 0));
+    readgame();
+    CuAssertPtrNotNull(tc, findregion(0, 0));
+}
+
 static void test_movewhere(CuTest * tc)
 {
     region *r, *c;
@@ -71,6 +82,7 @@ int main(void)
 
     SUITE_ADD_TEST(suite, test_transform);
     SUITE_ADD_TEST(suite, test_movewhere);
+    SUITE_ADD_TEST(suite, test_fileops);
 
     CuSuiteRun(suite);
     CuSuiteSummary(suite, output);
