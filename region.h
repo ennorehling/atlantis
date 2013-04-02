@@ -19,7 +19,7 @@ typedef struct region {
     struct region *next;
     int x, y;
     char name[NAMESIZE];
-    struct region *connect[4];
+    struct region *connect[MAXDIRECTIONS];
     int terrain;
     int peasants;
     int money;

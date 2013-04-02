@@ -1709,14 +1709,14 @@ void connectregions(void)
     region *r;
 
     for (r = regions; r; r = r->next) {
-        if (!r->connect[0])
-            connecttothis(r, r->x, r->y - 1, 0, 1);
-        if (!r->connect[1])
-            connecttothis(r, r->x, r->y + 1, 1, 0);
-        if (!r->connect[2])
-            connecttothis(r, r->x + 1, r->y, 2, 3);
-        if (!r->connect[3])
-            connecttothis(r, r->x - 1, r->y, 3, 2);
+        int d;
+        for (d=0;d!=MAXDIRECTIONS;++d) {
+            if (!r->connect[d]) {
+                int x = r->x, y = r->y;
+                transform(&x, &y, d);
+                connecttothis(r, x, y, d, d ^ 1);
+            }
+        }
     }
 }
 

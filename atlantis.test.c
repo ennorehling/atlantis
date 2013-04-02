@@ -7,6 +7,22 @@
 #include <stdio.h>
 #include <string.h>
 
+static void test_makeblock(CuTest * tc)
+{
+    region * r;
+    int d;
+
+    makeblock(0, 0);
+    r = findregion(1, 1);
+    for (d=0;d!=MAXDIRECTIONS;++d) {
+        int x = r->x, y = r->y;
+        transform(&x, &y, d);
+        CuAssertPtrNotNull(tc, r->connect[d]);
+        CuAssertIntEquals(tc, x, r->connect[d]->x);
+        CuAssertIntEquals(tc, y, r->connect[d]->y);
+    }
+}
+
 static void test_fileops(CuTest * tc)
 {
     turn = -1;
@@ -28,6 +44,10 @@ static void test_directions(CuTest * tc)
     CuAssertIntEquals(tc, K_EAST, findkeyword("E"));
     CuAssertIntEquals(tc, K_WEST, findkeyword("WEST"));
     CuAssertIntEquals(tc, K_WEST, findkeyword("W"));
+    CuAssertIntEquals(tc, K_MIR, findkeyword("MIR"));
+    CuAssertIntEquals(tc, K_MIR, findkeyword("M"));
+    CuAssertIntEquals(tc, K_YDD, findkeyword("YDD"));
+    CuAssertIntEquals(tc, K_YDD, findkeyword("Y"));
 }
 
 static void test_movewhere(CuTest * tc)
@@ -39,26 +59,46 @@ static void test_movewhere(CuTest * tc)
     sprintf(buf, "%s %s", keywords[K_MOVE], keywords[K_NORTH]);
     CuAssertIntEquals(tc, K_MOVE, igetkeyword(buf));
     r = movewhere(c);
+    CuAssertPtrNotNull(tc, r);
     CuAssertPtrEquals(tc, r, c->connect[0]);
     CuAssertPtrEquals(tc, c, r->connect[1]);
 
     sprintf(buf, "%s %s", keywords[K_MOVE], keywords[K_SOUTH]);
     CuAssertIntEquals(tc, K_MOVE, igetkeyword(buf));
     r = movewhere(c);
+    CuAssertPtrNotNull(tc, r);
     CuAssertPtrEquals(tc, r, c->connect[1]);
     CuAssertPtrEquals(tc, c, r->connect[0]);
 
     sprintf(buf, "%s %s", keywords[K_MOVE], keywords[K_EAST]);
     CuAssertIntEquals(tc, K_MOVE, igetkeyword(buf));
     r = movewhere(c);
+    CuAssertPtrNotNull(tc, r);
     CuAssertPtrEquals(tc, r, c->connect[2]);
     CuAssertPtrEquals(tc, c, r->connect[3]);
 
     sprintf(buf, "%s %s", keywords[K_MOVE], keywords[K_WEST]);
     CuAssertIntEquals(tc, K_MOVE, igetkeyword(buf));
     r = movewhere(c);
+    CuAssertPtrNotNull(tc, r);
     CuAssertPtrEquals(tc, r, c->connect[3]);
     CuAssertPtrEquals(tc, c, r->connect[2]);
+
+#if MAXDIRECTIONS>5
+    sprintf(buf, "%s %s", keywords[K_MOVE], keywords[K_MIR]);
+    CuAssertIntEquals(tc, K_MOVE, igetkeyword(buf));
+    r = movewhere(c);
+    CuAssertPtrNotNull(tc, r);
+    CuAssertPtrEquals(tc, r, c->connect[4]);
+    CuAssertPtrEquals(tc, c, r->connect[5]);
+
+    sprintf(buf, "%s %s", keywords[K_MOVE], keywords[K_YDD]);
+    CuAssertIntEquals(tc, K_MOVE, igetkeyword(buf));
+    r = movewhere(c);
+    CuAssertPtrNotNull(tc, r);
+    CuAssertPtrEquals(tc, r, c->connect[5]);
+    CuAssertPtrEquals(tc, c, r->connect[4]);
+#endif
 }
 
 static void test_transform(CuTest * tc)
@@ -94,6 +134,7 @@ int main(void)
 
     SUITE_ADD_TEST(suite, test_transform);
     SUITE_ADD_TEST(suite, test_movewhere);
+    SUITE_ADD_TEST(suite, test_makeblock);
     SUITE_ADD_TEST(suite, test_fileops);
 
     CuSuiteRun(suite);
