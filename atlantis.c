@@ -3653,37 +3653,39 @@ int magicians(faction * f)
 
 region *movewhere(region * r)
 {
-    region *r2;
+    int x = r->x, y = r->y;
+    int dir, kwd = getkeyword();
 
-    r2 = 0;
-
-    switch (getkeyword()) {
+    transform(&x, &y, kwd);
+    switch (kwd) {
     case K_NORTH:
-        if (!r->connect[0])
-            makeblock(r->x, r->y - 1);
-        r2 = r->connect[0];
+        dir = 0;
         break;
 
     case K_SOUTH:
-        if (!r->connect[1])
-            makeblock(r->x, r->y + 1);
-        r2 = r->connect[1];
+        dir = 1;
         break;
 
     case K_EAST:
-        if (!r->connect[2])
-            makeblock(r->x + 1, r->y);
-        r2 = r->connect[2];
+        dir = 2;
         break;
 
     case K_WEST:
-        if (!r->connect[3])
-            makeblock(r->x - 1, r->y);
-        r2 = r->connect[3];
+        dir = 3;
         break;
+
+    default:
+        dir = -1;
     }
 
-    return r2;
+    if (dir>=0) {
+        if (!r->connect[dir]) {
+            makeblock(x, y);
+            assert(r->connect[dir]);
+        }
+        return r->connect[dir];
+    }
+    return 0;
 }
 
 void processorders(void)

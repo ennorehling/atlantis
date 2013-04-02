@@ -104,4 +104,10 @@ The first example is easier because the transform function does error checking o
 
 You can see the full implementation on transform on [github](https://github.com/badgerman/atlantis1/commit/ee8a3fc067d3503d391614f726828b106689389c). It is passing the tests that we wrote earlier, so from here on, we just need to replace all hand-crafted coordinate transformations with our new code.
 
-### Working with Legacy Code
+## Working with Legacy Code
+
+When refactoring legacy code, I find that the best way to prevent myself from introducing bugs is to first write tests that cover the old behavior, then make the change and verify that the tests still pass. As an example, the function `movewhere(region * r)` in atlantis.c currently returns the adjacent region for a region `r` in the direction that corresponds to the next token in `buf`, and it does coordinate transformations to do that, which I intend to replace with the `transform` function.
+
+At least I think that's what it does, so I'm writing a test that makes sure this function behaves as I expect. The [corresponding commit](https://github.com/badgerman/atlantis1/commit/a16cb32f7ef51a6d86344ea31f1d046dc9251b33) also contains a lot of smaller refactorings that make testing easier, like introducing a [region.h](https://github.com/badgerman/atlantis1/blob/master/region.h) header and extracting global constants into [settings.h](https://github.com/badgerman/atlantis1/blob/master/settings.h), as well as changing a lot of `char *` arguments to `const char *`, because const-correctness is useful.
+
+The test passes, so I can move on to writing code, which is a fairly simple transformation. I'm cleaning up a little bit and removing duplication while I'm in that function, knowing that the test I just wrote is keeping the risk of screwing something up accidentally to a minimum. [The result](https://github.com/badgerman/atlantis1/commit/3d3bf00e7ce92584489cf0335db44de677462b6b) is much more neat and very readable.
