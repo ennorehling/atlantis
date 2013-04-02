@@ -11,9 +11,9 @@
 
 struct region;
 
-int turn;
-const char *keywords[];
-char buf[10240];
+extern int turn;
+extern const char *keywords[];
+extern char buf[];
 
 int transform(int *x, int *y, int kwd);
 int rnd_seed(unsigned int x);
