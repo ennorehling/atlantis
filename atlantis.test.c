@@ -11,6 +11,7 @@ static void test_createregion(CuTest * tc)
 {
     region * r;
 
+    cleargame();
     r = create_region(1, 2, T_OCEAN);
     CuAssertPtrNotNull(tc, r);
     CuAssertPtrNotNull(tc, r->name);
@@ -26,6 +27,7 @@ static void test_makeblock(CuTest * tc)
     region * r;
     int d, x, y;
 
+    cleargame();
     makeblock(0, 0);
     r = findregion(1, 1);
     for (d=0;d!=MAXDIRECTIONS;++d) {
@@ -52,6 +54,7 @@ static void test_makeblock(CuTest * tc)
 static void test_fileops(CuTest * tc)
 {
     turn = -1;
+    cleargame();
     initgame();
     CuAssertPtrNotNull(tc, findregion(0, 0));
     cleargame();

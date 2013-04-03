@@ -1791,24 +1791,6 @@ struct region * create_region(int x, int y, terrain_t t)
     r->y = y;
     r->terrain = t;
 
-    if (t != T_OCEAN) {
-        int i, n = 0;
-        region * r2;
-
-        for (r2 = regions; r2; r2 = r2->next)
-            if (r2->name[0])
-                n++;
-
-        i = rnd() % (sizeof regionnames / sizeof(char *));
-        if (n < sizeof regionnames / sizeof(char *))
-            while (regionnameinuse(regionnames[i]))
-                i = rnd() % (sizeof regionnames /
-                                sizeof(char *));
-
-        strcpy(r->name, regionnames[i]);
-        r->peasants = maxfoodoutput[r->terrain] / 50;
-    }
-
     addlist(&regions, r);
     return r;
 }
@@ -1848,6 +1830,23 @@ void makeblock(int x1, int y1)
                 t = newblock[x - BLOCKBORDER][y - BLOCKBORDER];
             }
             r = create_region(x1 + x, y1 + y, t);
+            if (t != T_OCEAN) {
+                int i, n = 0;
+                region * r2;
+
+                for (r2 = regions; r2; r2 = r2->next)
+                    if (r2->name[0])
+                        n++;
+
+                i = rnd() % (sizeof regionnames / sizeof(char *));
+                if (n < sizeof regionnames / sizeof(char *))
+                    while (regionnameinuse(regionnames[i]))
+                        i = rnd() % (sizeof regionnames /
+                                        sizeof(char *));
+
+                strcpy(r->name, regionnames[i]);
+                r->peasants = maxfoodoutput[r->terrain] / 50;
+            }
         }
     }
     connectregions();
@@ -5934,7 +5933,7 @@ void rc(FILE * F)
 void rs(FILE * F, char *s)
 {
     while (nextc != '"') {
-        if (nextc == 0) {
+        if (nextc == 0 || nextc==EOF) {
             puts("Data file is truncated.");
             exit(1);
         }
@@ -5945,7 +5944,7 @@ void rs(FILE * F, char *s)
     rc(F);
 
     while (nextc != '"') {
-        if (nextc == 0) {
+        if (nextc == 0 || nextc==EOF) {
             puts("Data file is truncated.");
             exit(1);
         }
@@ -5966,7 +5965,7 @@ int ri(FILE * F)
     i = 0;
 
     while (!xisdigit(nextc)) {
-        if (nextc == 0) {
+        if (nextc == 0 || nextc==EOF) {
             puts("Data file is truncated.");
             exit(1);
         }
@@ -6065,11 +6064,11 @@ void readgame(void)
     rp = &regions;
 
     while (--n >= 0) {
-        r = cmalloc(sizeof(region));
-        memset(r, 0, sizeof(region));
+        int x, y;
 
-        r->x = ri(F);
-        r->y = ri(F);
+        x = ri(F);
+        y = ri(F);
+        r = create_region(x, y, T_OCEAN);
         rs(F, r->name);
         r->terrain = ri(F);
         r->peasants = ri(F);
@@ -6204,21 +6203,16 @@ void wnl(FILE * F)
     wc(F, '\n');
 }
 
-void wspace(FILE * F)
-{
-    wc(F, ' ');
-}
-
 void ws(FILE * F, const char *s)
 {
     wc(F, '"');
     wsn(F, s);
-    wc(F, '"');
+    wsn(F, "\" ");
 }
 
 void wi(FILE * F, int n)
 {
-    sprintf(buf, "%d", n);
+    sprintf(buf, "%d ", n);
     wsn(F, buf);
 }
 
@@ -6319,15 +6313,11 @@ void writegame(void)
 
     for (f = factions; f; f = f->next) {
         wi(F, f->no);
-        wspace(F);
         ws(F, f->name);
-        wspace(F);
         ws(F, f->addr);
-        wspace(F);
         wi(F, f->lastorders);
 
         for (i = 0; i != MAXSPELLS; i++) {
-            wspace(F);
             wi(F, f->showdata[i]);
         }
 
@@ -6354,15 +6344,10 @@ void writegame(void)
 
     for (r = regions; r; r = r->next) {
         wi(F, r->x);
-        wspace(F);
         wi(F, r->y);
-        wspace(F);
         ws(F, r->name);
-        wspace(F);
         wi(F, r->terrain);
-        wspace(F);
         wi(F, r->peasants);
-        wspace(F);
         wi(F, r->money);
         wnl(F);
 
@@ -6371,11 +6356,8 @@ void writegame(void)
 
         for (b = r->buildings; b; b = b->next) {
             wi(F, b->no);
-            wspace(F);
             ws(F, b->name);
-            wspace(F);
             ws(F, b->display);
-            wspace(F);
             wi(F, b->size);
             wnl(F);
         }
@@ -6385,13 +6367,9 @@ void writegame(void)
 
         for (sh = r->ships; sh; sh = sh->next) {
             wi(F, sh->no);
-            wspace(F);
             ws(F, sh->name);
-            wspace(F);
             ws(F, sh->display);
-            wspace(F);
             wi(F, sh->type);
-            wspace(F);
             wi(F, sh->left);
             wnl(F);
         }
@@ -6401,43 +6379,28 @@ void writegame(void)
 
         for (u = r->units; u; u = u->next) {
             wi(F, u->no);
-            wspace(F);
             ws(F, u->name);
-            wspace(F);
             ws(F, u->display);
-            wspace(F);
             wi(F, u->number);
-            wspace(F);
             wi(F, u->money);
-            wspace(F);
             wi(F, u->faction->no);
-            wspace(F);
             wi(F, u->building ? u->building->no : 0);
-            wspace(F);
             wi(F, u->ship ? u->ship->no : 0);
-            wspace(F);
             wi(F, u->owner);
-            wspace(F);
             wi(F, u->behind);
-            wspace(F);
             wi(F, u->guard);
-            wspace(F);
             ws(F, u->lastorder);
-            wspace(F);
             wi(F, u->combatspell);
 
             for (i = 0; i != MAXSKILLS; i++) {
-                wspace(F);
                 wi(F, u->skills[i]);
             }
 
             for (i = 0; i != MAXITEMS; i++) {
-                wspace(F);
                 wi(F, u->items[i]);
             }
 
             for (i = 0; i != MAXSPELLS; i++) {
-                wspace(F);
                 wi(F, u->spells[i]);
             }
 
