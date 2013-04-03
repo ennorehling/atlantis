@@ -10,7 +10,7 @@
 static void test_makeblock(CuTest * tc)
 {
     region * r;
-    int d;
+    int d, x, y;
 
     makeblock(0, 0);
     r = findregion(1, 1);
@@ -21,6 +21,18 @@ static void test_makeblock(CuTest * tc)
         CuAssertIntEquals(tc, x, r->connect[d]->x);
         CuAssertIntEquals(tc, y, r->connect[d]->y);
     }
+    for (x = 0; x != BLOCKSIZE + BLOCKBORDER * 2; x++) {
+        for (y = 0; y != BLOCKSIZE + BLOCKBORDER * 2; y++) {
+            r = findregion(x, y);
+            CuAssertPtrNotNull(tc, r);
+            CuAssertIntEquals(tc, x, r->x);
+            CuAssertIntEquals(tc, y, r->y);
+        }
+    }
+    r = findregion(-1, -1);
+    CuAssertPtrEquals(tc, 0, r);
+    r = findregion(BLOCKSIZE + BLOCKBORDER * 2, BLOCKSIZE + BLOCKBORDER * 2);
+    CuAssertPtrEquals(tc, 0, r);
 }
 
 static void test_fileops(CuTest * tc)
