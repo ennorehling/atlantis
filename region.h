@@ -15,12 +15,21 @@ struct building;
 struct ship;
 struct unit;
 
+typedef enum {
+    T_OCEAN,
+    T_PLAIN,
+    T_MOUNTAIN,
+    T_FOREST,
+    T_SWAMP,
+} terrain_t;
+#define NUMTERRAINS 5
+
 typedef struct region {
     struct region *next;
     int x, y;
     char name[NAMESIZE];
     struct region *connect[MAXDIRECTIONS];
-    int terrain;
+    terrain_t terrain;
     int peasants;
     int money;
     struct building *buildings;
@@ -28,5 +37,7 @@ typedef struct region {
     struct unit *units;
     int immigrants;
 } region;
+
+struct region * create_region(int x, int y, terrain_t t);
 
 #endif

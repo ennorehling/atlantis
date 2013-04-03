@@ -30,15 +30,6 @@
 #define addptr(p,i) ((void *)(((char *)p) + i))
 
 typedef enum {
-    T_OCEAN,
-    T_PLAIN,
-    T_MOUNTAIN,
-    T_FOREST,
-    T_SWAMP,
-} terrain_t;
-#define NUMTERRAINS 5
-
-typedef enum {
     SH_LONGBOAT,
     SH_CLIPPER,
     SH_GALLEON,
@@ -1789,12 +1780,43 @@ int blockcoord(int x)
                                                   BLOCKBORDER * 2);
 }
 
+struct region * create_region(int x, int y, terrain_t t)
+{
+    region * r;
+
+    r = cmalloc(sizeof(region));
+    memset(r, 0, sizeof(region));
+
+    r->x = x;
+    r->y = y;
+    r->terrain = t;
+
+    if (t != T_OCEAN) {
+        int i, n = 0;
+        region * r2;
+
+        for (r2 = regions; r2; r2 = r2->next)
+            if (r2->name[0])
+                n++;
+
+        i = rnd() % (sizeof regionnames / sizeof(char *));
+        if (n < sizeof regionnames / sizeof(char *))
+            while (regionnameinuse(regionnames[i]))
+                i = rnd() % (sizeof regionnames /
+                                sizeof(char *));
+
+        strcpy(r->name, regionnames[i]);
+        r->peasants = maxfoodoutput[r->terrain] / 50;
+    }
+
+    addlist(&regions, r);
+    return r;
+}
+
 void makeblock(int x1, int y1)
 {
-    int i;
-    int n;
     int x, y;
-    region *r, *r2;
+    region *r;
 
     if (x1 < 0)
         while (x1 != blockcoord(x1))
@@ -1817,38 +1839,17 @@ void makeblock(int x1, int y1)
     seed(T_SWAMP, 1);
     seed(T_SWAMP, 1);
 
-    for (x = 0; x != BLOCKSIZE + BLOCKBORDER * 2; x++)
+    for (x = 0; x != BLOCKSIZE + BLOCKBORDER * 2; x++) {
         for (y = 0; y != BLOCKSIZE + BLOCKBORDER * 2; y++) {
-            r = cmalloc(sizeof(region));
-            memset(r, 0, sizeof(region));
-
-            r->x = x1 + x;
-            r->y = y1 + y;
+            terrain_t t = T_OCEAN;
 
             if (x >= BLOCKBORDER && x < BLOCKBORDER + BLOCKSIZE &&
                 y >= BLOCKBORDER && y < BLOCKBORDER + BLOCKSIZE) {
-                r->terrain = newblock[x - BLOCKBORDER][y - BLOCKBORDER];
-
-                if (r->terrain != T_OCEAN) {
-                    n = 0;
-                    for (r2 = regions; r2; r2 = r2->next)
-                        if (r2->name[0])
-                            n++;
-
-                    i = rnd() % (sizeof regionnames / sizeof(char *));
-                    if (n < sizeof regionnames / sizeof(char *))
-                        while (regionnameinuse(regionnames[i]))
-                            i = rnd() % (sizeof regionnames /
-                                         sizeof(char *));
-
-                    strcpy(r->name, regionnames[i]);
-                    r->peasants = maxfoodoutput[r->terrain] / 50;
-                }
+                t = newblock[x - BLOCKBORDER][y - BLOCKBORDER];
             }
-
-            addlist(&regions, r);
+            r = create_region(x1 + x, y1 + y, t);
         }
-
+    }
     connectregions();
 }
 

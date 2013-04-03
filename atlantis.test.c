@@ -7,6 +7,20 @@
 #include <stdio.h>
 #include <string.h>
 
+static void test_createregion(CuTest * tc)
+{
+    region * r;
+
+    r = create_region(1, 2, T_OCEAN);
+    CuAssertPtrNotNull(tc, r);
+    CuAssertPtrNotNull(tc, r->name);
+    CuAssertPtrEquals(tc, r, findregion(1, 2));
+    CuAssertIntEquals(tc, 1, r->x);
+    CuAssertIntEquals(tc, 2, r->y);
+    CuAssertIntEquals(tc, 0, r->peasants);
+    CuAssertIntEquals(tc, T_OCEAN, r->terrain);
+}
+
 static void test_makeblock(CuTest * tc)
 {
     region * r;
@@ -156,9 +170,10 @@ int main(void)
     CuString *output = CuStringNew();
     CuSuite *suite = CuSuiteNew();
 
+    SUITE_ADD_TEST(suite, test_createregion);
+    SUITE_ADD_TEST(suite, test_makeblock);
     SUITE_ADD_TEST(suite, test_transform);
     SUITE_ADD_TEST(suite, test_movewhere);
-    SUITE_ADD_TEST(suite, test_makeblock);
     SUITE_ADD_TEST(suite, test_fileops);
 
     CuSuiteRun(suite);
