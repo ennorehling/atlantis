@@ -1,0 +1,7 @@
+#!/bin/sh
+if [ -z $ATLANTIS ] || [ ! -d $ATLANTIS ] ; then
+  echo "ATLANTIS environment variable is not a valid directory. ATLANTIS=$ATLANTIS"
+  exit 1
+fi
+. $ATLANTIS/etc/atlantis.conf
+python $ATLANTIS/src/process/orders/receive-orders.py

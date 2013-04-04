@@ -1,0 +1,7 @@
+:0 c
+* ^TO_atlantis
+atlantis
+
+:0:orders.lock
+* ^Subject:.*ATLANTIS.*ORDERS
+| tr -d '' | (cd $ATLANTIS ; bin/receive-orders)
