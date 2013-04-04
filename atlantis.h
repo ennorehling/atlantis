@@ -15,6 +15,8 @@ extern int turn;
 extern const char *keywords[];
 extern char buf[];
 
+struct faction * create_faction(int no);
+
 void initgame(void);
 void cleargame(void);
 void writegame(void);
@@ -30,6 +32,7 @@ void addunits(void);
 struct region *movewhere(struct region * r);
 struct region *findregion(int x, int y);
 void makeblock(int x1, int y1);
+const char *regionid(const struct region * r);
 
 int findkeyword(const char *s);
 int igetkeyword(const char *s);

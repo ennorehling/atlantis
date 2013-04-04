@@ -1643,6 +1643,18 @@ region *inputregion(void)
     return r;
 }
 
+faction * create_faction(int no)
+{
+    faction * f = cmalloc(sizeof(faction));
+    memset(f, 0, sizeof(faction));
+    f->no = no;
+    f->alive = 1;
+    f->lastorders = turn;
+    sprintf(f->name, "Faction %d", f->no);
+    addlist(&factions, f);
+    return f;
+}
+
 void addplayers(void)
 {
     FILE * F;
@@ -1664,25 +1676,16 @@ void addplayers(void)
     F = cfopen(buf, "r");
 
     for (;;) {
+        int no = 0;
         if (!getbuf(F)) {
             fclose(F);
             break;
         }
 
-        f = cmalloc(sizeof(faction));
-        memset(f, 0, sizeof(faction));
+        do { ++no; } while (findfaction(no));
 
+        f = create_faction(no);
         nstrcpy(f->addr, buf, NAMESIZE);
-        f->lastorders = turn;
-        f->alive = 1;
-
-        do {
-            f->no++;
-            sprintf(f->name, "Faction %d", f->no);
-        }
-        while (findfaction(f->no));
-
-        addlist(&factions, f);
 
         u = createunit(r);
         u->number = 1;
@@ -1886,7 +1889,7 @@ char *factionid(faction * f)
     return buf;
 }
 
-char *regionid(region * r)
+const char *regionid(const region * r)
 {
     static char buf[NAMESIZE + 20];
 

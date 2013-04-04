@@ -7,6 +7,14 @@
 #include <stdio.h>
 #include <string.h>
 
+static void test_regionid(CuTest * tc)
+{
+    region * r;
+    r = create_region(1, 1, T_PLAIN);
+    strcpy(r->name, "foo");
+    CuAssertStrEquals(tc, "foo (1,1)", regionid(r));
+}
+
 static void test_createregion(CuTest * tc)
 {
     region * r;
@@ -178,6 +186,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_transform);
     SUITE_ADD_TEST(suite, test_movewhere);
     SUITE_ADD_TEST(suite, test_fileops);
+    SUITE_ADD_TEST(suite, test_regionid);
 
     CuSuiteRun(suite);
     CuSuiteSummary(suite, output);
