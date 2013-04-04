@@ -7,9 +7,11 @@
  */
 
 #include "atlantis.h"
+#include "faction.h"
 #include "keywords.h"
 #include "region.h"
 #include "settings.h"
+#include "spells.h"
 
 #include "rtl.h"
 #include "bool.h"
@@ -81,34 +83,6 @@ typedef enum {
     MAXITEMS
 } item_t;
 
-typedef enum {
-    SP_BLACK_WIND,
-    SP_CAUSE_FEAR,
-    SP_CONTAMINATE_WATER,
-    SP_DAZZLING_LIGHT,
-    SP_FIREBALL,
-    SP_HAND_OF_DEATH,
-    SP_HEAL,
-    SP_INSPIRE_COURAGE,
-    SP_LIGHTNING_BOLT,
-    SP_MAKE_AMULET_OF_DARKNESS,
-    SP_MAKE_AMULET_OF_DEATH,
-    SP_MAKE_AMULET_OF_HEALING,
-    SP_MAKE_AMULET_OF_TRUE_SEEING,
-    SP_MAKE_CLOAK_OF_INVULNERABILITY,
-    SP_MAKE_RING_OF_INVISIBILITY,
-    SP_MAKE_RING_OF_POWER,
-    SP_MAKE_RUNESWORD,
-    SP_MAKE_SHIELDSTONE,
-    SP_MAKE_STAFF_OF_FIRE,
-    SP_MAKE_STAFF_OF_LIGHTNING,
-    SP_MAKE_WAND_OF_TELEPORTATION,
-    SP_SHIELD,
-    SP_SUNFIRE,
-    SP_TELEPORT,
-    MAXSPELLS
-} spell_t;
-
 typedef struct list {
     struct list *next;
 } list;
@@ -135,36 +109,6 @@ typedef struct ship {
     ship_t type;
     int left;
 } ship;
-
-typedef struct rfaction {
-    struct rfaction *next;
-    struct faction *faction;
-    int factionno;
-} rfaction;
-
-typedef struct faction {
-    struct faction *next;
-    int no;
-    char name[NAMESIZE];
-    char addr[NAMESIZE];
-    int lastorders;
-    bool seendata[MAXSPELLS];
-    bool showdata[MAXSPELLS];
-    rfaction *accept;
-    rfaction *admit;
-    rfaction *allies;
-    strlist *mistakes;
-    strlist *messages;
-    strlist *battles;
-    strlist *events;
-    char alive;
-    char attacking;
-    bool seesbattle;
-    char dh;
-    int nunits;
-    int number;
-    int money;
-} faction;
 
 typedef struct unit {
     struct unit *next;
@@ -1889,10 +1833,11 @@ char *factionid(faction * f)
     return buf;
 }
 
-const char *regionid(const region * r)
+const char *regionid(const region * r, const faction * f)
 {
     static char buf[NAMESIZE + 20];
-
+    assert(f);
+    assert(r);
     if (r->terrain == T_OCEAN)
         sprintf(buf, "(%d,%d)", r->x, r->y);
     else
@@ -3335,7 +3280,7 @@ void report(faction * f)
 
         anyunits = 1;
 
-        sprintf(buf, "%s, %s", regionid(r), terrainnames[r->terrain]);
+        sprintf(buf, "%s, %s", regionid(r, f), terrainnames[r->terrain]);
 
         if (r->peasants) {
             scat(", peasants: ");
@@ -4273,9 +4218,13 @@ void processorders(void)
                                 strcpy(buf2, unitid(u2));
                             else
                                 strcpy(buf2, "the peasants");
-                            sprintf(buf, "%s attacks %s in %s!", unitid(u),
-                                    buf2, regionid(r));
-                            battlerecord(buf);
+                            for (f2 = factions; f2; f2 = f2->next) {
+                                if (f2->seesbattle) {
+                                    sprintf(buf, "%s attacks %s in %s!", unitid(u),
+                                            buf2, regionid(r, f2));
+                                    sparagraph(&f2->battles, buf, 0, 0);
+                                }
+                            }
 
                             /* List sides */
 
@@ -5185,9 +5134,9 @@ void processorders(void)
                 else
                     scat("walks");
                 scat(" from ");
-                scat(regionid(r));
+                scat(regionid(r, u->faction));
                 scat(" to ");
-                scat(regionid(r2));
+                scat(regionid(r2, u->faction));
                 scat(".");
                 addevent(u->faction, buf);
                 break;
@@ -5779,12 +5728,12 @@ void processorders(void)
                                     sprintf(buf,
                                             "%s contaminates the water supply "
                                             "in %s, causing %d peasants to die.",
-                                            unitid(u), regionid(r), n);
+                                            unitid(u), regionid(r, f), n);
                                 else
                                     sprintf(buf,
                                             "%d peasants die in %s from "
                                             "drinking contaminated water.",
-                                            n, regionid(r));
+                                            n, regionid(r, f));
                                 addevent(f, buf);
                             }
                         }

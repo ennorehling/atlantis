@@ -1,6 +1,7 @@
 #include "atlantis.h"
 #include "keywords.h"
 #include "region.h"
+#include "faction.h"
 
 #include <CuTest.h>
 #include <errno.h>
@@ -10,9 +11,12 @@
 static void test_regionid(CuTest * tc)
 {
     region * r;
+    faction * f;
+    
     r = create_region(1, 1, T_PLAIN);
+    f = create_faction(1);
     strcpy(r->name, "foo");
-    CuAssertStrEquals(tc, "foo (1,1)", regionid(r));
+    CuAssertStrEquals(tc, "foo (1,1)", regionid(r, f));
 }
 
 static void test_createregion(CuTest * tc)
