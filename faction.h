@@ -23,7 +23,7 @@ typedef struct rfaction {
 
 typedef struct faction {
     struct faction *next;
-    int no;
+    int no, origin_x, origin_y;
     char name[NAMESIZE];
     char addr[NAMESIZE];
     int lastorders;

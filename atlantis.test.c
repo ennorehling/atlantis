@@ -8,15 +8,38 @@
 #include <stdio.h>
 #include <string.h>
 
-static void test_regionid(CuTest * tc)
+static void test_addplayer(CuTest * tc)
+{
+    region * r;
+    faction * f;
+    const char * email = "enno@example.com";
+
+    cleargame();
+    r = create_region(1, 1, T_PLAIN);
+    f = addplayer(r, email);
+    CuAssertStrEquals(tc, email, f->addr);
+    CuAssertIntEquals(tc, r->x, f->origin_x);
+    CuAssertIntEquals(tc, r->y, f->origin_y);
+    CuAssertPtrNotNull(tc, r->units);
+}
+
+static void test_origin(CuTest * tc)
 {
     region * r;
     faction * f;
     
+    cleargame();
     r = create_region(1, 1, T_PLAIN);
-    f = create_faction(1);
     strcpy(r->name, "foo");
-    CuAssertStrEquals(tc, "foo (1,1)", regionid(r, f));
+    f = addplayer(r, "enno@example.com");
+    CuAssertStrEquals(tc, "foo (0,0)", regionid(r, f));
+
+    r = create_region(1, 2, T_OCEAN);
+    CuAssertStrEquals(tc, "(0,1)", regionid(r, f));
+
+    r = create_region(2, 2, T_PLAIN);
+    strcpy(r->name, "bar");
+    CuAssertStrEquals(tc, "bar (1,1)", regionid(r, f));
 }
 
 static void test_createregion(CuTest * tc)
@@ -65,14 +88,37 @@ static void test_makeblock(CuTest * tc)
 
 static void test_fileops(CuTest * tc)
 {
+    faction * f = 0;
+    region * r;
+    int x = 0, y = 0, fno;
+
     turn = -1;
     cleargame();
     initgame();
-    CuAssertPtrNotNull(tc, findregion(0, 0));
+
+    for (r=regions;r;r=r->next) {
+         if (r->terrain!=T_OCEAN) {
+             x = r->x, y = r->y;
+             f = addplayer(r, "enno@example.com");
+             break;
+         }
+    }
+    CuAssertPtrNotNull(tc, factions);
+    CuAssertPtrNotNull(tc, f);
+    fno = f->no;
+    CuAssertPtrNotNull(tc, r);
+    writegame();
     cleargame();
     CuAssertPtrEquals(tc, 0, findregion(0, 0));
+
     readgame();
+    CuAssertIntEquals(tc, 0, turn);
     CuAssertPtrNotNull(tc, findregion(0, 0));
+
+    f = findfaction(fno);
+    CuAssertPtrNotNull(tc, f);
+    CuAssertIntEquals(tc, x, f->origin_x);
+    CuAssertIntEquals(tc, y, f->origin_y);
 }
 
 static void test_directions(CuTest * tc)
@@ -190,7 +236,8 @@ int main(void)
     SUITE_ADD_TEST(suite, test_transform);
     SUITE_ADD_TEST(suite, test_movewhere);
     SUITE_ADD_TEST(suite, test_fileops);
-    SUITE_ADD_TEST(suite, test_regionid);
+    SUITE_ADD_TEST(suite, test_addplayer);
+    SUITE_ADD_TEST(suite, test_origin);
 
     CuSuiteRun(suite);
     CuSuiteSummary(suite, output);

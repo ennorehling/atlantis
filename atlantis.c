@@ -1599,12 +1599,33 @@ faction * create_faction(int no)
     return f;
 }
 
+faction * addplayer(region * r, const char * email)
+{
+    faction * f;
+    unit * u;
+    int no = 0;
+
+    do { ++no; } while (findfaction(no));
+
+    f = create_faction(no);
+    nstrcpy(f->addr, email, NAMESIZE);
+
+    u = createunit(r);
+    u->number = 1;
+    u->money = STARTMONEY;
+    u->faction = f;
+    u->isnew = true;
+
+    f->origin_x = r->x;
+    f->origin_y = r->y;
+    return f;
+}
+
 void addplayers(void)
 {
     FILE * F;
     region *r;
     faction *f;
-    unit *u;
 
     r = inputregion();
 
@@ -1620,22 +1641,12 @@ void addplayers(void)
     F = cfopen(buf, "r");
 
     for (;;) {
-        int no = 0;
         if (!getbuf(F)) {
             fclose(F);
             break;
         }
 
-        do { ++no; } while (findfaction(no));
-
-        f = create_faction(no);
-        nstrcpy(f->addr, buf, NAMESIZE);
-
-        u = createunit(r);
-        u->number = 1;
-        u->money = STARTMONEY;
-        u->faction = f;
-        u->isnew = true;
+        f = addplayer(r, buf);
     }
 }
 
@@ -1839,9 +1850,9 @@ const char *regionid(const region * r, const faction * f)
     assert(f);
     assert(r);
     if (r->terrain == T_OCEAN)
-        sprintf(buf, "(%d,%d)", r->x, r->y);
+        sprintf(buf, "(%d,%d)", r->x - f->origin_x, r->y - f->origin_y);
     else
-        sprintf(buf, "%s (%d,%d)", r->name, r->x, r->y);
+        sprintf(buf, "%s (%d,%d)", r->name, r->x - f->origin_x, r->y - f->origin_y);
     return buf;
 }
 
@@ -5983,6 +5994,8 @@ void readgame(void)
         rs(F, f->name);
         rs(F, f->addr);
         f->lastorders = ri(F);
+        f->origin_x = ri(F);
+        f->origin_y = ri(F);
 
         for (i = 0; i != MAXSPELLS; i++)
             f->showdata[i] = (ri(F) != 0);
@@ -6268,6 +6281,8 @@ void writegame(void)
         ws(F, f->name);
         ws(F, f->addr);
         wi(F, f->lastorders);
+        wi(F, f->origin_x);
+        wi(F, f->origin_y);
 
         for (i = 0; i != MAXSPELLS; i++) {
             wi(F, f->showdata[i]);
