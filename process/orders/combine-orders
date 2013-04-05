@@ -1,0 +1,11 @@
+#!/bin/sh
+if [ -z $ATLANTIS ] || [ ! -d $ATLANTIS ] ; then
+  echo "ATLANTIS environment variable is not a valid directory. ATLANTIS=$ATLANTIS"
+  exit 1
+fi
+if [ ! -d $ATLANTIS/game-$1/orders.dir ] ; then
+  echo "There are no orders for this game ($1)"
+  exit 2
+fi
+. $ATLANTIS/etc/atlantis.conf
+python $ATLANTIS/src/process/orders/receive-orders.py $1
