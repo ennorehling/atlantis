@@ -226,6 +226,22 @@ static void test_transform(CuTest * tc)
 #endif
 }
 
+static void test_region_name(CuTest * tc)
+{
+    const char * name = "Sacco & Vanzetti";
+    region * r;
+
+    cleargame();
+    r = create_region(0, 0, T_PLAIN);
+    region_setname(r, name);
+    CuAssertStrEquals(tc, name, region_getname(r));
+    writegame();
+    cleargame();
+    readgame();
+    r = findregion(0, 0);
+    CuAssertStrEquals(tc, name, region_getname(r));
+}
+
 static void test_faction_name(CuTest * tc)
 {
     const char * name = "Sacco & Vanzetti";
@@ -272,6 +288,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_fileops);
     SUITE_ADD_TEST(suite, test_addplayer);
     SUITE_ADD_TEST(suite, test_origin);
+    SUITE_ADD_TEST(suite, test_region_name);
     SUITE_ADD_TEST(suite, test_faction_name);
     SUITE_ADD_TEST(suite, test_faction_addr);
 

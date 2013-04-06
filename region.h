@@ -40,4 +40,7 @@ typedef struct region {
 
 struct region * create_region(int x, int y, terrain_t t);
 
+const char * region_getname(const struct region *r);
+void region_setname(struct region *r, const char *name);
+
 #endif

@@ -40,7 +40,7 @@ CONFIGURE_FILE (
   ${CMAKE_BINARY_DIR}/include/config.h)
 INCLUDE_DIRECTORIES (${CMAKE_BINARY_DIR}/include)
 
-SET( ATLANTIS_SRC atlantis.c atlantis.h region.h faction.h faction.c keywords.h settings.h )
+SET( ATLANTIS_SRC atlantis.c atlantis.h region.h region.c faction.h faction.c keywords.h settings.h )
 SET( RTL_SRC rtl.c rtl.h )
 ADD_EXECUTABLE(atlantis main.c ${ATLANTIS_SRC} ${RTL_SRC})
 
