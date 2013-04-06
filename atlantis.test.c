@@ -226,6 +226,22 @@ static void test_transform(CuTest * tc)
 #endif
 }
 
+static void test_faction_name(CuTest * tc)
+{
+    const char * name = "Sacco & Vanzetti";
+    faction * f;
+
+    cleargame();
+    f = create_faction(1);
+    faction_setname(f, name);
+    CuAssertStrEquals(tc, name, faction_getname(f));
+    writegame();
+    cleargame();
+    readgame();
+    f = findfaction(1);
+    CuAssertStrEquals(tc, name, faction_getname(f));
+}
+
 int main(void)
 {
     CuString *output = CuStringNew();
@@ -238,6 +254,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_fileops);
     SUITE_ADD_TEST(suite, test_addplayer);
     SUITE_ADD_TEST(suite, test_origin);
+    SUITE_ADD_TEST(suite, test_faction_name);
 
     CuSuiteRun(suite);
     CuSuiteSummary(suite, output);

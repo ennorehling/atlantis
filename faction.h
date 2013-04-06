@@ -47,4 +47,7 @@ typedef struct faction {
 
 struct faction * create_faction(int no);
 
+void faction_setname(struct faction *f, const char * name);
+const char * faction_getname(const struct faction *f);
+
 #endif
