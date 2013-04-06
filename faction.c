@@ -12,10 +12,10 @@
 #include <string.h>
 
 void faction_setname(faction * f, const char * name) {
-    strncpy(f->name, name, NAMESIZE);
-    f->name[NAMESIZE] = 0;
+    strncpy(f->name_, name, NAMESIZE);
+    f->name_[NAMESIZE] = 0;
 }
 
 const char * faction_getname(const faction * f) {
-    return f->name;
+    return f->name_;
 }

@@ -1589,12 +1589,14 @@ region *inputregion(void)
 
 faction * create_faction(int no)
 {
+    char name[NAMESIZE];
     faction * f = cmalloc(sizeof(faction));
     memset(f, 0, sizeof(faction));
     f->no = no;
     f->alive = 1;
     f->lastorders = turn;
-    sprintf(f->name, "Faction %d", f->no);
+    sprintf(name, "Faction %d", f->no);
+    faction_setname(f, name);
     addlist(&factions, f);
     return f;
 }
@@ -1840,7 +1842,7 @@ char *factionid(faction * f)
 {
     static char buf[NAMESIZE + 20];
 
-    sprintf(buf, "%s (%d)", f->name, f->no);
+    sprintf(buf, "%s (%d)", faction_getname(f), f->no);
     return buf;
 }
 
@@ -3486,7 +3488,7 @@ void removenullfactions(void)
         f2 = f->next;
 
         if (!f->alive) {
-            printf("Removing %s.\n", f->name);
+            printf("Removing %s.\n", faction_getname(f));
 
             for (f3 = factions; f3; f3 = f3->next)
                 for (rf = f3->allies; rf;) {
@@ -3772,7 +3774,7 @@ void processorders(void)
                             *sx = '_';
 
                     printf("%s is changing address to %s.\n",
-                           u->faction->name, u->faction->addr);
+                           faction_getname(u->faction), u->faction->addr);
                     break;
 
                 case K_ADMIT:
@@ -3913,7 +3915,7 @@ void processorders(void)
                         break;
 
                     case K_FACTION:
-                        sn = u->faction->name;
+                        faction_setname(u->faction, getstr());
                         break;
 
                     case K_SHIP:
@@ -5987,11 +5989,13 @@ void readgame(void)
     fp = &factions;
 
     while (--n >= 0) {
+        char name[NAMESIZE];
         f = cmalloc(sizeof(faction));
         memset(f, 0, sizeof(faction));
 
         f->no = ri(F);
-        rs(F, f->name);
+        rs(F, name);
+        faction_setname(f, name);
         rs(F, f->addr);
         f->lastorders = ri(F);
         f->origin_x = ri(F);
@@ -6278,7 +6282,7 @@ void writegame(void)
 
     for (f = factions; f; f = f->next) {
         wi(F, f->no);
-        ws(F, f->name);
+        ws(F, faction_getname(f));
         ws(F, f->addr);
         wi(F, f->lastorders);
         wi(F, f->origin_x);
