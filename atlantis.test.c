@@ -233,6 +233,7 @@ static void test_faction_name(CuTest * tc)
 
     cleargame();
     f = create_faction(1);
+    CuAssertStrEquals(tc, "Faction 1", faction_getname(f));
     faction_setname(f, name);
     CuAssertStrEquals(tc, name, faction_getname(f));
     writegame();

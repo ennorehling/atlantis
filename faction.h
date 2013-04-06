@@ -24,7 +24,7 @@ typedef struct rfaction {
 typedef struct faction {
     struct faction *next;
     int no, origin_x, origin_y;
-    char name_[NAMESIZE];
+    char * name_;
     char addr[NAMESIZE];
     int lastorders;
     bool seendata[MAXSPELLS];

@@ -9,11 +9,14 @@
 #include "atlantis.h"
 #include "faction.h"
 
+#include <assert.h>
 #include <string.h>
+#include <stdlib.h>
 
 void faction_setname(faction * f, const char * name) {
-    strncpy(f->name_, name, NAMESIZE);
-    f->name_[NAMESIZE] = 0;
+    assert(name);
+    f->name_ = (char *)realloc(f->name_, strlen(name)+1);
+    strcpy(f->name_, name);
 }
 
 const char * faction_getname(const faction * f) {

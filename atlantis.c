@@ -6234,6 +6234,7 @@ void cleargame(void)
         faction * f = factions;
         factions = f->next;
 
+        free(f->name_);
         freestrlist(&f->messages);
         freestrlist(&f->battles);
         freestrlist(&f->events);
