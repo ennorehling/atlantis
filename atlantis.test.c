@@ -17,7 +17,7 @@ static void test_addplayer(CuTest * tc)
     cleargame();
     r = create_region(1, 1, T_PLAIN);
     f = addplayer(r, email);
-    CuAssertStrEquals(tc, email, f->addr);
+    CuAssertStrEquals(tc, email, faction_getaddr(f));
     CuAssertIntEquals(tc, r->x, f->origin_x);
     CuAssertIntEquals(tc, r->y, f->origin_y);
     CuAssertPtrNotNull(tc, r->units);
@@ -243,6 +243,23 @@ static void test_faction_name(CuTest * tc)
     CuAssertStrEquals(tc, name, faction_getname(f));
 }
 
+static void test_faction_addr(CuTest * tc)
+{
+    const char * addr = "enno@example.com";
+    faction * f;
+
+    cleargame();
+    f = create_faction(1);
+    CuAssertPtrEquals(tc, 0, (void *)faction_getaddr(f));
+    faction_setaddr(f, addr);
+    CuAssertStrEquals(tc, addr, faction_getaddr(f));
+    writegame();
+    cleargame();
+    readgame();
+    f = findfaction(1);
+    CuAssertStrEquals(tc, addr, faction_getaddr(f));
+}
+
 int main(void)
 {
     CuString *output = CuStringNew();
@@ -256,6 +273,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_addplayer);
     SUITE_ADD_TEST(suite, test_origin);
     SUITE_ADD_TEST(suite, test_faction_name);
+    SUITE_ADD_TEST(suite, test_faction_addr);
 
     CuSuiteRun(suite);
     CuSuiteSummary(suite, output);

@@ -22,3 +22,18 @@ void faction_setname(faction * f, const char * name) {
 const char * faction_getname(const faction * f) {
     return f->name_;
 }
+
+
+void faction_setaddr(faction * f, const char * addr) {
+    if (addr) {
+        f->addr_ = (char *)realloc(f->addr_, strlen(addr)+1);
+        strcpy(f->addr_, addr);
+    } else {
+        free(f->addr_);
+        f->addr_ = 0;
+    }
+}
+
+const char * faction_getaddr(const faction * f) {
+    return f->addr_;
+}

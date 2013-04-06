@@ -25,7 +25,7 @@ typedef struct faction {
     struct faction *next;
     int no, origin_x, origin_y;
     char * name_;
-    char addr[NAMESIZE];
+    char * addr_;
     int lastorders;
     bool seendata[MAXSPELLS];
     bool showdata[MAXSPELLS];
@@ -49,5 +49,7 @@ struct faction * create_faction(int no);
 
 void faction_setname(struct faction *f, const char * name);
 const char * faction_getname(const struct faction *f);
+void faction_setaddr(struct faction *f, const char * addr);
+const char * faction_getaddr(const struct faction *f);
 
 #endif

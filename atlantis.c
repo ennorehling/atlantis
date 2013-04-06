@@ -1610,7 +1610,7 @@ faction * addplayer(region * r, const char * email)
     do { ++no; } while (findfaction(no));
 
     f = create_faction(no);
-    nstrcpy(f->addr, email, NAMESIZE);
+    faction_setaddr(f, email);
 
     u = createunit(r);
     u->number = 1;
@@ -3076,7 +3076,7 @@ void writesummary(void)
 
     for (f = factions; f; f = f->next)
         fprintf(F, "%s, units: %d, number: %d, $%d, address: %s\n",
-                factionid(f), f->nunits, f->number, f->money, f->addr);
+                factionid(f), f->nunits, f->number, f->money, faction_getaddr(f));
 
     fclose(F);
 }
@@ -3209,10 +3209,7 @@ void report(faction * f)
     unit *u;
     strlist *S;
 
-    if (_strcmpl(f->addr, "n/a"))
-        sprintf(buf, "reports/%d.r", f->no);
-    else
-        sprintf(buf, "nreports/%d.r", f->no);
+    sprintf(buf, "reports/%d.r", f->no);
     F = cfopen(buf, "w");
 
     printf("Writing report for %s...\n", factionid(f));
@@ -3406,21 +3403,26 @@ void reports(void)
     F = cfopen("send", "w");
     puts("Writing send file...");
 
-    for (f = factions; f; f = f->next)
-        if (_strcmpl(f->addr, "n/a")) {
+    for (f = factions; f; f = f->next) {
+        const char * addr = faction_getaddr(f);
+        if (addr) {
             fprintf(F, "mail %d.r\n", f->no);
-            fprintf(F, "in%%\"%s\"\n", f->addr);
+            fprintf(F, "in%%\"%s\"\n", addr);
             fprintf(F, "Atlantis Report for %s\n", gamedate());
         }
+    }
 
     fclose(F);
 
     F = cfopen("maillist", "w");
     puts("Writing maillist file...");
 
-    for (f = factions; f; f = f->next)
-        if (_strcmpl(f->addr, "n/a"))
-            fprintf(F, "%s\n", f->addr);
+    for (f = factions; f; f = f->next) {
+        const char * addr = faction_getaddr(f);
+        if (addr) {
+            fprintf(F, "%s\n", addr);
+        }
+    }
 
     fclose(F);
 }
@@ -3768,13 +3770,10 @@ void processorders(void)
                         break;
                     }
 
-                    nstrcpy(u->faction->addr, s, NAMESIZE);
-                    for (sx = u->faction->addr; *sx; sx++)
-                        if (*sx == ' ')
-                            *sx = '_';
+                    faction_setaddr(u->faction, s);
 
                     printf("%s is changing address to %s.\n",
-                           faction_getname(u->faction), u->faction->addr);
+                           faction_getname(u->faction), faction_getaddr(u->faction));
                     break;
 
                 case K_ADMIT:
@@ -3992,7 +3991,7 @@ void processorders(void)
                     }
 
                     sprintf(buf, "The address of %s is %s.", factionid(f),
-                            f->addr);
+                            faction_getaddr(f));
                     sparagraph(&u->faction->messages, buf, 0, 0);
                     break;
                 }
@@ -5996,7 +5995,8 @@ void readgame(void)
         f->no = ri(F);
         rs(F, name);
         faction_setname(f, name);
-        rs(F, f->addr);
+        rs(F, name);
+        faction_setaddr(f, strcmp(name, "null") ? name : 0);
         f->lastorders = ri(F);
         f->origin_x = ri(F);
         f->origin_y = ri(F);
@@ -6235,6 +6235,7 @@ void cleargame(void)
         factions = f->next;
 
         free(f->name_);
+        free(f->addr_);
         freestrlist(&f->messages);
         freestrlist(&f->battles);
         freestrlist(&f->events);
@@ -6282,9 +6283,10 @@ void writegame(void)
     wnl(F);
 
     for (f = factions; f; f = f->next) {
+        const char * addr = faction_getaddr(f);
         wi(F, f->no);
         ws(F, faction_getname(f));
-        ws(F, f->addr);
+        ws(F, addr ? addr : "null");
         wi(F, f->lastorders);
         wi(F, f->origin_x);
         wi(F, f->origin_y);
