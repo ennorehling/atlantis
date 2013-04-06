@@ -139,6 +139,14 @@ def get_sender(header):
 # the main body of the script:
 logging.basicConfig(filename=LOG_FILENAME, level=logging.INFO)
 logger = logging
+
+turn = 0
+try:
+    fo = fopen('turn', 'r')
+    line = fo.readline()
+    turn = (int)line
+except IOError:
+    logger.error("could not open 'turn' file, assuming turn=%d" % (turn, ))
 infile = sys.stdin
 if len(sys.argv)>1:
     logger.info('reading message from %s' % sys.argv[1])
@@ -174,7 +182,7 @@ if not os.path.exists(path):
 while sender is not None:
     try:
         filename = uuid.uuid4().hex
-        cur.execute("INSERT INTO orders (email, filename) VALUES (?, ?)", (sender, filename))
+        cur.execute("INSERT INTO orders (email, filename, turn) VALUES (?, ?, ?)", (sender, filename, turn))
         break
     except sqlite3.IntegrityError:
         print 'non-uniq UUID', filename

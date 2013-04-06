@@ -1,3 +1,6 @@
+#ifndef RTL_BOOL_H
+#define RTL_BOOL_H
+#include "config.h"
 #if HAVE_STDBOOL_H
 #include <stdbool.h>
 #else
@@ -12,4 +15,5 @@ typedef unsigned char _Bool;
 #define false 0
 #define true 1
 #define __bool_true_false_are_defined 1
+#endif
 #endif

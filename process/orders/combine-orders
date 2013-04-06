@@ -8,4 +8,5 @@ if [ ! -d $ATLANTIS/game-$1/orders.dir ] ; then
   exit 2
 fi
 . $ATLANTIS/etc/atlantis.conf
-python $ATLANTIS/src/process/orders/receive-orders.py $1
+cd $ATLANTIS
+python $ATLANTIS/src/process/orders/combine-orders.py $1
