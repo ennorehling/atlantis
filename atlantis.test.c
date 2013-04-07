@@ -289,7 +289,6 @@ static void test_unit_name(CuTest * tc)
     f = create_faction(1);
     u = create_unit(f, 1);
     region_addunit(r, u);
-    CuAssertStrEquals(tc, "Unit 1", unit_getname(u));
     unit_setname(u, name);
     CuAssertStrEquals(tc, name, unit_getname(u));
     writegame();
@@ -297,6 +296,27 @@ static void test_unit_name(CuTest * tc)
     readgame();
     u = findunitg(1);
     CuAssertStrEquals(tc, name, unit_getname(u));
+}
+
+static void test_unit_display(CuTest * tc)
+{
+    const char * display = "Sacco & Vanzetti";
+    unit * u;
+    faction * f;
+    region * r;
+
+    cleargame();
+    r = create_region(0, 0, T_PLAIN);
+    f = create_faction(1);
+    u = create_unit(f, 1);
+    region_addunit(r, u);
+    unit_setdisplay(u, display);
+    CuAssertStrEquals(tc, display, unit_getdisplay(u));
+    writegame();
+    cleargame();
+    readgame();
+    u = findunitg(1);
+    CuAssertStrEquals(tc, display, unit_getdisplay(u));
 }
 
 static void test_faction_addr(CuTest * tc)
@@ -331,6 +351,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_region_name);
     SUITE_ADD_TEST(suite, test_region_addunit);
     SUITE_ADD_TEST(suite, test_unit_name);
+    SUITE_ADD_TEST(suite, test_unit_display);
     SUITE_ADD_TEST(suite, test_faction_name);
     SUITE_ADD_TEST(suite, test_faction_addr);
 

@@ -1900,6 +1900,7 @@ void spskill(unit * u, int i, int *dh, int days)
 void spunit(strlist ** SP, faction * f, region * r, unit * u, int indent,
             int battle)
 {
+    const char * sc;
     int i;
     int dh;
 
@@ -1984,11 +1985,11 @@ void spunit(strlist ** SP, faction * f, region * r, unit * u, int indent,
 
     i = 0;
 
-    if (u->display[0]) {
+    sc = unit_getdisplay(u);
+    if (sc) {
         scat("; ");
-        scat(u->display);
-
-        i = u->display[strlen(u->display) - 1];
+        scat(sc);
+        i = sc[strlen(sc) - 1];
     }
 
     if (i != '!' && i != '?')
@@ -3788,7 +3789,7 @@ void processorders(void)
                         break;
 
                     case K_UNIT:
-                        sn = u->display;
+                        unit_setdisplay(u, getstr());
                         break;
 
                     default:
@@ -5839,6 +5840,12 @@ void rs(FILE * F, char *s)
     *s = 0;
 }
 
+char * rsnull(FILE * F, char * s) {
+    rs(F, s);
+    if (s[0]) return s;
+    return 0;
+}
+
 int ri(FILE * F)
 {
     int i;
@@ -5907,14 +5914,12 @@ void readgame(void)
 
     while (--n >= 0) {
         char name[NAMESIZE];
-        f = cmalloc(sizeof(faction));
-        memset(f, 0, sizeof(faction));
+        int no;
 
-        f->no = ri(F);
-        rs(F, name);
-        faction_setname(f, name[0] ? name : 0);
-        rs(F, name);
-        faction_setaddr(f, name[0] ? name : 0);
+        no = ri(F);
+        f = create_faction(no);
+        faction_setname(f, rsnull(F, name));
+        faction_setaddr(f, rsnull(F, name));
         f->lastorders = ri(F);
         f->origin_x = ri(F);
         f->origin_y = ri(F);
@@ -5957,9 +5962,8 @@ void readgame(void)
         x = ri(F);
         y = ri(F);
         r = create_region(x, y, T_OCEAN);
-        rs(F, name);
-        region_setname(r, name[0] ? name : 0);
-        r->terrain = ri(F);
+        region_setname(r, rsnull(F, name));
+        r->terrain = (terrain_t)ri(F);
         r->peasants = ri(F);
         r->money = ri(F);
 
@@ -6002,14 +6006,15 @@ void readgame(void)
         addlist2(rp, r);
 
         while (--n2 >= 0) {
-            char name[NAMESIZE];
+            char temp[DISPLAYSIZE];
             u = cmalloc(sizeof(unit));
             memset(u, 0, sizeof(unit));
 
             u->no = ri(F);
-            rs(F, name);
-            unit_setname(u, name);
-            rs(F, u->display);
+            rs(F, temp);
+            if (temp[0]) unit_setname(u, temp);
+            rs(F, temp);
+            if (temp[0]) unit_setdisplay(u, temp);
             u->number = ri(F);
             u->money = ri(F);
             u->faction = findfaction(ri(F));
@@ -6099,6 +6104,11 @@ void ws(FILE * F, const char *s)
     wc(F, '"');
     wsn(F, s);
     wsn(F, "\" ");
+}
+
+void wsnull(FILE * F, const char * s)
+{
+    ws(F, s ? s : "");
 }
 
 void wi(FILE * F, int n)
@@ -6207,11 +6217,9 @@ void writegame(void)
     wnl(F);
 
     for (f = factions; f; f = f->next) {
-        const char * addr = faction_getaddr(f);
-        const char * name = faction_getname(f);
         wi(F, f->no);
-        ws(F, name ? name : "");
-        ws(F, addr ? addr : "");
+        wsnull(F, faction_getname(f));
+        wsnull(F, faction_getaddr(f));
         wi(F, f->lastorders);
         wi(F, f->origin_x);
         wi(F, f->origin_y);
@@ -6242,10 +6250,9 @@ void writegame(void)
     wnl(F);
 
     for (r = regions; r; r = r->next) {
-        const char * rname = region_getname(r);
         wi(F, r->x);
         wi(F, r->y);
-        ws(F, rname ? rname : "");
+        wsnull(F, region_getname(r));
         wi(F, r->terrain);
         wi(F, r->peasants);
         wi(F, r->money);
@@ -6279,8 +6286,8 @@ void writegame(void)
 
         for (u = r->units; u; u = u->next) {
             wi(F, u->no);
-            ws(F, unit_getname(u));
-            ws(F, u->display);
+            wsnull(F, unit_getname(u));
+            wsnull(F, unit_getdisplay(u));
             wi(F, u->number);
             wi(F, u->money);
             wi(F, u->faction->no);
@@ -6345,7 +6352,8 @@ void addunits(void)
 
         rs(F, buf);
         unit_setname(u, buf);
-        rs(F, u->display);
+        rs(F, buf);
+        unit_setdisplay(u, buf);
         u->number = ri(F);
         u->money = ri(F);
         for (;;) {

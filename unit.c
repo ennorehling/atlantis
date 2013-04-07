@@ -17,6 +17,18 @@ void unit_setname(struct unit *self, const char *name)
     strcpy(self->name_, name);
 }
 
+const char * unit_getdisplay(const struct unit *self)
+{
+    return self->display_;
+}
+
+void unit_setdisplay(struct unit *self, const char *display)
+{
+    assert(display);
+    self->display_ = (char *)realloc(self->display_, strlen(display)+1);
+    strcpy(self->display_, display);
+}
+
 unit * create_unit(struct faction *f, int no)
 {
     char name[NAMESIZE];

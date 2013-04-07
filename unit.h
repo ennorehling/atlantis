@@ -25,7 +25,7 @@ typedef struct unit {
     struct unit *next;
     int no;
     char * name_;
-    char display[DISPLAYSIZE];
+    char * display_;
     int number;
     int money;
     struct faction *faction;
@@ -55,5 +55,7 @@ struct unit * create_unit(struct faction * f, int no);
 
 const char * unit_getname(const struct unit *u);
 void unit_setname(struct unit *u, const char *name);
+const char * unit_getdisplay(const struct unit *u);
+void unit_setdisplay(struct unit *u, const char *display);
 
 #endif
