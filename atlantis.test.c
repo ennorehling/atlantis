@@ -47,14 +47,18 @@ static void test_createregion(CuTest * tc)
     region * r;
 
     cleargame();
-    r = create_region(1, 2, T_OCEAN);
+    r = create_region(1, 1, T_OCEAN);
     CuAssertPtrNotNull(tc, r);
-    CuAssertPtrNotNull(tc, region_getname(r));
+    CuAssertPtrEquals(tc, 0, (void *)region_getname(r));
+
+    r = create_region(1, 2, T_PLAIN);
+    CuAssertPtrNotNull(tc, r);
+    CuAssertPtrEquals(tc, 0, (void *)region_getname(r));
     CuAssertPtrEquals(tc, r, findregion(1, 2));
     CuAssertIntEquals(tc, 1, r->x);
     CuAssertIntEquals(tc, 2, r->y);
     CuAssertIntEquals(tc, 0, r->peasants);
-    CuAssertIntEquals(tc, T_OCEAN, r->terrain);
+    CuAssertIntEquals(tc, T_PLAIN, r->terrain);
 }
 
 static void test_makeblock(CuTest * tc)

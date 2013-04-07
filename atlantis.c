@@ -1723,15 +1723,16 @@ void seed(terrain_t to, int n)
     transmute(T_PLAIN, to, n, 1);
 }
 
-int regionnameinuse(const char *s)
+bool regionnameinuse(const char *s)
 {
     region *r;
 
-    for (r = regions; r; r = r->next)
-        if (!strcmp(region_getname(r), s))
-            return 1;
-
-    return 0;
+    for (r = regions; r; r = r->next) {
+        const char * rname = region_getname(r);
+        if (rname && strcmp(rname, s)==0)
+            return true;
+    }
+    return false;
 }
 
 int blockcoord(int x)
@@ -1794,10 +1795,11 @@ void makeblock(int x1, int y1)
                 int i, n = 0;
                 region * r2;
 
-                for (r2 = regions; r2; r2 = r2->next)
-                    if (region_getname(r2)[0])
+                for (r2 = regions; r2; r2 = r2->next) {
+                    const char * rname = region_getname(r2);
+                    if (rname)
                         n++;
-
+                }
                 i = rnd() % (sizeof regionnames / sizeof(char *));
                 if (n < sizeof regionnames / sizeof(char *))
                     while (regionnameinuse(regionnames[i]))
@@ -6040,7 +6042,9 @@ void readgame(void)
         y = ri(F);
         r = create_region(x, y, T_OCEAN);
         rs(F, name);
-        region_setname(r, name);
+        if (name[0]) {
+            region_setname(r, name);
+        }
         r->terrain = ri(F);
         r->peasants = ri(F);
         r->money = ri(F);
@@ -6213,6 +6217,7 @@ void cleargame(void)
         region * r = regions;
         regions = r->next;
 
+        free(r->name_);
         while (r->units) {
             unit * u = r->units;
             r->units = u->next;
@@ -6319,9 +6324,10 @@ void writegame(void)
     wnl(F);
 
     for (r = regions; r; r = r->next) {
+        const char * rname = region_getname(r);
         wi(F, r->x);
         wi(F, r->y);
-        ws(F, region_getname(r));
+        ws(F, rname ? rname : "");
         wi(F, r->terrain);
         wi(F, r->peasants);
         wi(F, r->money);

@@ -6,7 +6,6 @@
  * sold or used commercially without prior written permission from the author.
  */
 
-#include "atlantis.h"
 #include "faction.h"
 
 #include <assert.h>
