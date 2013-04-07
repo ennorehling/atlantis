@@ -46,6 +46,7 @@ typedef struct faction {
 } faction;
 
 extern struct faction *factions;
+
 struct faction * create_faction(int no);
 struct faction * findfaction(int no);
 

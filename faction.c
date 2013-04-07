@@ -12,10 +12,26 @@
 #include <string.h>
 #include <stdlib.h>
 
+faction *factions;
+
+faction * create_faction(int no)
+{
+    faction * f = (faction *)calloc(1, sizeof(faction));
+    faction **iter;
+
+    f->no = no;
+    for (iter=&factions; *iter; iter=&(*iter)->next);
+    *iter = f;
+    return f;
+}
+
 void faction_setname(faction * f, const char * name) {
-    assert(name);
-    f->name_ = (char *)realloc(f->name_, strlen(name)+1);
-    strcpy(f->name_, name);
+    if (name) {
+        f->name_ = (char *)realloc(f->name_, strlen(name)+1);
+        strcpy(f->name_, name);
+    } else {
+        free(f->name_);
+    }
 }
 
 const char * faction_getname(const faction * f) {
@@ -36,3 +52,4 @@ void faction_setaddr(faction * f, const char * addr) {
 const char * faction_getaddr(const faction * f) {
     return f->addr_;
 }
+

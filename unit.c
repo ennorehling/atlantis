@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 const char * unit_getname(const struct unit *self)
 {
@@ -19,7 +20,7 @@ void unit_setname(struct unit *self, const char *name)
 unit * create_unit(struct faction *f, int no)
 {
     char name[NAMESIZE];
-    unit * self = calloc(1, sizeof(unit));
+    unit * self = (unit *)calloc(1, sizeof(unit));
 
     self->faction = f;
     self->no = no;

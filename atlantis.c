@@ -100,8 +100,6 @@ char buf[10240];
 char buf2[256];
 
 int turn;
-region *regions;
-faction *factions;
 
 const char *keywords[] = {
     "accept",
@@ -1510,17 +1508,14 @@ region *inputregion(void)
     return r;
 }
 
-faction * create_faction(int no)
+faction * createfaction(int no)
 {
     char name[NAMESIZE];
-    faction * f = cmalloc(sizeof(faction));
-    memset(f, 0, sizeof(faction));
-    f->no = no;
+    faction * f = create_faction(no);
     f->alive = 1;
     f->lastorders = turn;
     sprintf(name, "Faction %d", f->no);
     faction_setname(f, name);
-    addlist(&factions, f);
     return f;
 }
 
@@ -1532,7 +1527,7 @@ faction * addplayer(region * r, const char * email)
 
     do { ++no; } while (findfaction(no));
 
-    f = create_faction(no);
+    f = createfaction(no);
     faction_setaddr(f, email);
 
     u = createunit(r, f);
@@ -5917,9 +5912,9 @@ void readgame(void)
 
         f->no = ri(F);
         rs(F, name);
-        faction_setname(f, name);
+        faction_setname(f, name[0] ? name : 0);
         rs(F, name);
-        faction_setaddr(f, strcmp(name, "null") ? name : 0);
+        faction_setaddr(f, name[0] ? name : 0);
         f->lastorders = ri(F);
         f->origin_x = ri(F);
         f->origin_y = ri(F);
@@ -5963,9 +5958,7 @@ void readgame(void)
         y = ri(F);
         r = create_region(x, y, T_OCEAN);
         rs(F, name);
-        if (name[0]) {
-            region_setname(r, name);
-        }
+        region_setname(r, name[0] ? name : 0);
         r->terrain = ri(F);
         r->peasants = ri(F);
         r->money = ri(F);
@@ -6215,9 +6208,10 @@ void writegame(void)
 
     for (f = factions; f; f = f->next) {
         const char * addr = faction_getaddr(f);
+        const char * name = faction_getname(f);
         wi(F, f->no);
-        ws(F, faction_getname(f));
-        ws(F, addr ? addr : "null");
+        ws(F, name ? name : "");
+        ws(F, addr ? addr : "");
         wi(F, f->lastorders);
         wi(F, f->origin_x);
         wi(F, f->origin_y);
@@ -6347,15 +6341,13 @@ void addunits(void)
             return;
 
         f = findfaction(ri(F));
-        if (f) {
-            u = createunit(r, f);
+        u = createunit(r, f);
 
-            rs(F, buf);
-            unit_setname(u, buf);
-            rs(F, u->display);
-            u->number = ri(F);
-            u->money = ri(F);
-        }
+        rs(F, buf);
+        unit_setname(u, buf);
+        rs(F, u->display);
+        u->number = ri(F);
+        u->money = ri(F);
         for (;;) {
             rs(F, buf);
 

@@ -238,6 +238,7 @@ static void test_region_name(CuTest * tc)
 
     cleargame();
     r = create_region(0, 0, T_PLAIN);
+    CuAssertPtrEquals(tc, 0, (void *)region_getname(r));
     region_setname(r, name);
     CuAssertStrEquals(tc, name, region_getname(r));
     writegame();
@@ -254,7 +255,7 @@ static void test_faction_name(CuTest * tc)
 
     cleargame();
     f = create_faction(1);
-    CuAssertStrEquals(tc, "Faction 1", faction_getname(f));
+    CuAssertPtrEquals(tc, 0, (void *)faction_getname(f));
     faction_setname(f, name);
     CuAssertStrEquals(tc, name, faction_getname(f));
     writegame();
