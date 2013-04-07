@@ -6149,6 +6149,7 @@ void cleargame(void)
             r->units = u->next;
             freestrlist(&u->orders);
             free(u->name_);
+            free(u->display_);
             free(u);
         }
         while (r->ships) {
