@@ -1,26 +1,11 @@
-Return-Path: RWALLACE@vax1.tcd.ie
-Received: from cgl.ucsf.edu by celeste.mmwb.ucsf.EDU (920330.SGI/GSC4.22)
-	id AA09530; Mon, 14 Jun 93 01:07:23 -0700
-Received: from vax1.tcd.ie by cgl.ucsf.EDU (5.65/GSC4.22)
-	id AA17383 for troyer@celeste.mmwb.ucsf.EDU; Mon, 14 Jun 93 01:06:40 -0700
-Received: from vax1.tcd.ie by vax1.tcd.ie (PMDF #12050) id
- <01GZD2WD5H3S004KXE@vax1.tcd.ie>; Mon, 14 Jun 1993 09:06 GMT
-Date: Mon, 14 Jun 1993 09:06 GMT
-From: RWALLACE@vax1.tcd.ie
-Subject: Atlantis rules update
-To: troyer@cgl.ucsf.edu
-Message-Id: <01GZD2WD5H3S004KXE@vax1.tcd.ie>
-X-Envelope-To: troyer@cgl.ucsf.edu
-X-Vms-To: IN%"troyer@cgl.ucsf.edu"
-Status: O
+# Rules for Atlantis v1.0.1 "Atlas"
 
-			Rules for Atlantis v1.0
-			8 June 1993
-			Copyright 1993 by Russell Wallace
+    Last updated on 7 April 2013
+    Copyright 1993 by Russell Wallace
+    Copyright 2013 by Enno Rehling
 
 
-Introduction
-------------
+## Introduction
 
 Atlantis is an open-ended computer moderated fantasy game for any number of
 players.  Players may attempt to carve out huge empires, become master
@@ -73,8 +58,7 @@ people, or 50 units of one person each, except that the former is very much
 easier to handle.
 
 
-The World
----------
+## The World
 
 The Atlantis world is divided for game purposes into square regions, each 50
 miles on a side.  Each region can have a terrain type of Plain, Mountain,
@@ -106,12 +90,13 @@ MOVE NORTH.  All newly created units start off with WORK as the default
 command.
 
 
-Movement
---------
+## Movement
 
 In one month, it is possible to move from a region to an adjacent region.  Each
-region has four adjacent regions, these being to the north, south, east and
-west.  Thus, to travel to a region immediately northeast would take two months
+region has adjacent regions in the six cardinal directions to the north, east,
+mir, south, west, and ydd, making the map naturally suited to a hexagonal grid
+with 60 degree angles between the cardinal directions.
+Thus, to travel to a region immediately northeast would take two months
 (unless powerful magic is used).  Also, to enter an ocean region, one must be
 on board a ship.  (Ships can enter ocean regions, or coastal regions with an
 adjacent ocean region.  They are always constructed in coastal regions.)
@@ -122,12 +107,13 @@ is compared with the total weight on board.  If the weight is greater, the ship
 cannot move.  The costs and capacities of the different types of ships are as
 follows:
 
-Type		Cost		Capacity
+    Type      Cost   Capacity
 
-Longboat	100		200
-Clipper		200		800
-Galleon		300		1800
+    Longboat   100        200
+    Clipper    200        800
+    Galleon    300       1800
 
+Units of weight are approximately equivalent to one stone (1 st = 14 lb).
 People weigh 10 units each.  Money has negligible weight.  All other items
 weigh 1 unit each, except for stone and horses, which weigh 50 each.
 
@@ -154,29 +140,14 @@ listed as inside a building, but the number of characters that can gain
 protection from it in combat is limited by the building's size.
 
 
-Skills
-------
+## Skills
 
 The most important thing distinguishing one character from another in Atlantis
-is skills.  The skills available are as follows:
+is skills.  The following skills are available:
 
-Mining
-Lumberjack
-Quarrying
-Horse Training
-Weaponsmith
-Armorer
-Building
-Shipbuilding
-Entertainment
-Stealth
-Observation
-Tactics
-Riding
-Sword
-Crossbow
-Longbow
-Magic
+Mining, Lumberjack, Quarrying, Horse Training, Weaponsmith, Armorer, Building,
+Shipbuilding, Entertainment, Stealth, Observation, Tactics, Riding, Sword,
+Crossbow, Longbow, Magic
 
 Each unit can have one or more skills.  These are gained by training (using the
 STUDY command) and also by experience.  It takes 1 month of study for a unit to
@@ -236,8 +207,7 @@ always visible.  You can only see which faction a unit belongs to if you have a
 unit with Observation skill higher than that unit's Stealth skill.
 
 
-The Economy
------------
+## The Economy
 
 The unit of currency in Atlantis is the silver piece, shown using the dollar
 sign ($) for convenience.  The dollar sign is shown on reports only to make
@@ -276,35 +246,35 @@ times as much as a unit with skill 1.  Of course, the amount produced is also
 proportional to the number of people in the unit.  The skill required for each
 type of primary commodity is as follows:
 
-Commodity	Skill
-
-Iron		Mining
-Wood		Lumberjack
-Stone		Quarrying
-Horse		Horse Training
+    Commodity   Skill
+    
+    Iron        Mining
+    Wood        Lumberjack
+    Stone       Quarrying
+    Horse       Horse Training
 
 The amount produced also depends on the terrain type; different types of
 terrain are better places for different types of economic activity.  The
 productivity values (how many units of the commodity one person with skill 1
 can produce in a month) are as follows:
 
-Terrain		$	Iron	Wood	Stone	Horse
-
-Plain		15				1
-Mountain	12	1		1
-Forest		12		1
-Swamp		12		1
+    Terrain     $   Commodities
+    
+    Plain       15  1 horse
+    Mountain    12  1 iron, 1 stone
+    Forest      12  1 wood
+    Swamp       12  1 wood
 
 Too many cooks spoil the broth; there is a limit to how many people can
 profitably work at producing the same commodity in a particular region.  These
 limits are as follows:
 
-Terrain		$	Iron	Wood	Stone	Horse
-
-Plain		100000				200
-Mountain	 20000	200		200
-Forest		 20000		200
-Swamp		 10000		100
+    Terrain     $       Commodities
+    
+    Plain       100000  200 horses
+    Mountain    20000	200 iron, 200 stone
+    Forest      20000   200 wood
+    Swamp       10000   100 wood
 
 For example, if 20000 people (including peasants) were growing food in a Plain
 region, each would get on average 1/3 of the expected amount.  If the skill
@@ -319,13 +289,13 @@ plate armor, which takes a month of work by someone with Armorer skill of at
 least 3 to produce (skill at least 6 to produce 2, etc.).  The secondary
 commodities, raw materials and skills required to produce them are as follows:
 
-Commodity	Raw Material	Skill
-
-Sword		Iron		Weaponsmith
-Crossbow	Wood		Weaponsmith
-Longbow		Wood		Weaponsmith
-Chain Mail	Iron		Armorer
-Plate Armor	Iron		Armorer
+    Commodity   Raw Material    Skill
+    
+    Sword       Iron            Weaponsmith
+    Crossbow    Wood            Weaponsmith
+    Longbow     Wood            Weaponsmith
+    Chain Mail  Iron            Armorer
+    Plate Armor Iron            Armorer
 
 Anyone who spends a month producing any commodity (except food) gains the
 equivalent of 10 days of study of the appropriate skill.
@@ -361,8 +331,7 @@ peasant.  Each month also, 5% of the peasants in each region migrate to a
 randomly selected neighbouring region.
 
 
-Magic
------
+## Magic
 
 One starts off a career as a magician in Atlantis by studying the Magic skill.
 This is studied like any other skill, with the exception that no faction may
@@ -421,8 +390,7 @@ someone else, however, remember that possession of the item does not
 necessarily mean you know how to use it.
 
 
-Combat
-------
+## Combat
 
 Combat occurs when a unit issues an ATTACK command.  The computer then gathers
 together all the units on the attacking side, and all the units on the
@@ -490,11 +458,11 @@ are compared (here "attacker" and "defender" mean the individual soldiers,
 without reference to who issued the original ATTACK command).  The chance of
 hitting is determined by which skill is higher, and by how much:
 
-Skill Diff.	Chance
+  Skill Diff.	Chance
 
--1		10
- 0		25
- 1		40
+  -1            10
+   0            25
+  +1            40
 
 Example: if a soldier with a Sword skill of 3 is trying to hit one with a Sword
 skill of 2, there is a 40% chance of success.  If the attacker's skill is more
@@ -548,28 +516,28 @@ Order Format
 To enter orders for Atlantis, you should send a mail message (no particular
 subject line required), containing the following:
 
-#ATLANTIS faction-no
-
-UNIT unit-no
-...orders...
-
-UNIT unit-no
-...orders...
-
-#END
+    #ATLANTIS faction-no
+    
+    UNIT unit-no
+    ...orders...
+    
+    UNIT unit-no
+    ...orders...
+    
+    #END
 
 For example, if your faction number (shown at the top of your report) is 27,
 and you have two units numbered 5 and 17:
 
-#ATLANTIS 27
+    #ATLANTIS 27
+    
+    UNIT 5
+    ...orders...
+    
+    UNIT 17
+    ...orders...
 
-UNIT 5
-...orders...
-
-UNIT 17
-...orders...
-
-#END
+    #END
 
 Thus, orders for each unit are given separately, and indicated with the UNIT
 keyword.  (In the case of orders, such as the command to rename your faction,
@@ -604,11 +572,10 @@ faction is completely and permanently destroyed, and is NOT retrievable.
 Please contact the moderator if you have difficulty getting orders through.
 
 
-Orders
-------
+## Orders
 
 
-ACCEPT  faction-no
+### ACCEPT  faction-no
 
 If any of your units issues this command, then all of your units will accept
 gifts from any units of the target faction for that month.  The ACCEPT status
@@ -618,12 +585,12 @@ It is necessary to issue an ACCEPT command to receive things given with any of
 the following commands: GIVE, PROMOTE, TEACH, TRANSFER.
 
 
-ADDRESS  new-address
+### ADDRESS  new-address
 
 Change the email address to which your reports are sent (up to 80 characters).
 
 
-ADMIT  faction-no
+### ADMIT  faction-no
 
 If any of your units issues this command, then any unit of the target faction
 will be admitted into any building owned by you, or aboard any ship owned by
@@ -632,7 +599,7 @@ duration of the month.  The ADMIT status only lasts for a single month.  ADMIT
 status is always assumed for allies.
 
 
-ALLY  faction-no  flag
+### ALLY  faction-no  flag
 
 If you ally with a faction, then your units will fight to defend units of that
 faction when they are attacked.  ALLY faction-no 1 allies with the indicated
@@ -645,19 +612,18 @@ Note that even if you are allied to a faction, this does not necessarily mean
 that this faction is allied to you.
 
 
-ATTACK  unit-no
-ATTACK  PEASANTS
+### ATTACK  (unit-no|PEASANTS)
 
 Attack either a target unit, or the peasants in the current region.
 
 
-BEHIND  flag
+### BEHIND  flag
 
 BEHIND 1 sets the unit issuing the command to be behind other units in combat.
 BEHIND 0 cancels this.
 
 
-BOARD  ship-no
+### BOARD  ship-no
 
 The unit issuing the command will attempt to board the specified ship.  If
 issued from inside a building or aboard a ship, the unit will first
@@ -666,27 +632,29 @@ ship is unoccupied, or is owned by a unit in your faction, or is owned by a
 unit in a faction which has issued an ADMIT command for you that month.
 
 
-BUILD  BUILDING  [building-no]
-BUILD  SHIP  ship-no
-BUILD  ship-type
+### BUILD  BUILDING  [building-no]
 
-Perform building work on a building or ship.  BUILD BUILDING with a building
+Perform building work on a building.  BUILD BUILDING with a building
 number specified will perform work on that building.  BUILD BUILDING alone will
-create a new building and perform work on it.  BUILD SHIP with a ship number
-specified will perform work on that ship.  BUILD LONGBOAT, CLIPPER or GALLEON
-will create a ship of the indicated type and perform work on it.
+create a new building and perform work on it.
+
+### BUILD  SHIP  [ship-no|ship-type]
+
+BUILD SHIP with a ship number specified will perform work on that ship.
+BUILD LONGBOAT, CLIPPER or GALLEON will create a ship of the indicated
+type and perform work on it.
 
 Note that since the number of a newly created building or ship is not known
 until next month, only the creating unit can work on it in the first month.
 
 
-CAST  spell
+### CAST  spell
 
 Spend the month casting the indicated spell (must be a ritual magic spell which
 the unit knows).
 
 
-COMBAT  spell
+### COMBAT  spell
 
 Set the unit's combat spell to the indicated value (must be a combat spell
 which the unit knows).  If no spell is specified, the unit's combat spell will
@@ -694,14 +662,12 @@ be set to nothing (i.e. the magician will henceforth fight in hand-to-hand
 combat).
 
 
-DEMOLISH
+### DEMOLISH
 
 Demolish the building of which the unit is currently the owner.
 
 
-DISPLAY  UNIT  text
-DISPLAY  BUILDING  text
-DISPLAY  SHIP  text
+### DISPLAY  (UNIT|BUILDING|SHIP)  text
 
 Set the display string for the unit itself, or a building or ship (of which the
 unit must currently be the owner).  This is a text string (up to 160
@@ -709,7 +675,7 @@ characters) which will be shown after the entity's description on everyone's
 report.
 
 
-ENTER  building-no
+### ENTER  building-no
 
 The unit issuing the command will attempt to enter the specified building.  If
 issued from inside a building or aboard a ship, the unit will first leave the
@@ -718,18 +684,18 @@ unoccupied, or is owned by a unit in your faction, or is owned by a unit in a
 faction which has issued an ADMIT command for you that month.
 
 
-ENTERTAIN
+### ENTERTAIN
 
 The unit issuing the command will spent the month entertaining the locals to
 earn money.
 
 
-FIND  faction-no
+### FIND  faction-no
 
 Find the email address of the specified faction.
 
 
-FORM  alias
+### FORM  alias
 
 Forms a new unit.  The newly created unit will be in your faction, in the same
 region as the unit which formed it, with the same BEHIND and GUARD status, and
@@ -749,20 +715,20 @@ the same month, with the same alias numbers).  The new unit can then be
 referred to as NEW alias in place of the regular unit number.
 
 Example:
-
-UNIT 17
-FORM 1
-    NAME UNIT "Merlin's Guards"
-    RECRUIT 20
-    STUDY SWORD
-END
-FORM 2
-    NAME UNIT "Merlin's Workers"
-    DISPLAY UNIT "wearing dirty overalls and carrying shovels"
-    RECRUIT 50
-END
-PAY NEW 1 1200
-PAY NEW 2 3000
+    
+    UNIT 17
+    FORM 1
+        NAME UNIT "Merlin's Guards"
+        RECRUIT 20
+        STUDY SWORD
+    END
+    FORM 2
+        NAME UNIT "Merlin's Workers"
+        DISPLAY UNIT "wearing dirty overalls and carrying shovels"
+        RECRUIT 50
+    END
+    PAY NEW 1 1200
+    PAY NEW 2 3000
 
 This set of orders for unit 17 would create two new units with alias numbers 1
 and 2, name them Merlin's Guards and Merlin's Workers, set the display string
@@ -773,45 +739,42 @@ enough money (using the NEW keyword to refer to them by alias numbers) to cover
 the costs of recruitment and the month's maintenance.
 
 
-GIVE  unit-no  quantity  item
-GIVE  0  quantity  item
-GIVE  unit-no  spell
+### GIVE  unit-no  quantity  item
 
-The first form of the command gives a quantity of an item to another unit.  If
+The command gives a quantity of an item to another unit.  If
 the target unit is not a member of your faction, then its faction must have
 issued an ACCEPT command for you that month.
 
-The second form of the command discards a quantity of an item.  The items
+Giving something to unit 0 discards a quantity of an item.  The items
 discarded are permanently lost.
 
-The third form of the command gives a copy of a spell to another unit.  The
+### GIVE  unit-no  spell
+
+This form of the GIVE command gives a copy of a spell to another unit.  The
 other unit must have sufficient Magic skill to understand the spell, and its
 faction must have issued an ACCEPT command for you that month.
 
 
-GUARD  flag
+### GUARD  flag
 
 GUARD 1 sets the unit issuing the command to guard the peasants of the region
 against attack, or taxation by other factions (except those for which one has
 issued an ADMIT command).  GUARD 0 cancels this.
 
 
-LEAVE
+### LEAVE
 
 Leave whatever building the unit is in, or ship it is on board.  The command
 cannot be used at sea.
 
 
-MOVE  direction
+### MOVE  direction
 
-The unit will move in the specified direction (NORTH, SOUTH, EAST or WEST). 
+The unit will move in the specified direction (NORTH, SOUTH, YDD, MIR, EAST or WEST). 
 This command is for use on land only; use SAIL to move in a ship.
 
 
-NAME  FACTION  new-name
-NAME  UNIT  new-name
-NAME  BUILDING  new-name
-NAME  SHIP  new-name
+### NAME  (FACTION|UNIT|BUILDING|SHIP)  new-name
 
 Changes the name of your faction, or of the unit, or of a building or ship (of
 which the unit must currently be the owner).  The name can be up to 80
@@ -820,21 +783,19 @@ until they are given proper names.  Names may not contain brackets (square
 brackets can be used instead if necessary).
 
 
-PAY  unit-no  amount
-PAY  PEASANTS  amount
-PAY  0  amount
+### PAY  (unit-no|PEASANTS)  amount
 
 Pay another unit the specified amount of money (does not require the target
 unit's faction to have issued an ACCEPT command).  PAY PEASANTS will give the
 money to the peasants of the region, and PAY 0 will simply throw it away.
 
 
-PRODUCE  item
+### PRODUCE  item
 
 Spend the month producing as much as possible of the indicated item.
 
 
-PROMOTE  unit
+### PROMOTE  unit
 
 Promote the specified unit to owner of the building or ship of which the unit
 issuing the command is currently the owner.  If the specified unit is not a
@@ -842,14 +803,14 @@ member of your faction, then its faction must have issued an ACCEPT command for
 you that month.
 
 
-QUIT  faction-no
+### QUIT  faction-no
 
 Quit the game.  Your faction number must be provided as a check to prevent Quit
 orders being issued by accident.  On issuing this order, your faction will be
 completely and permanently destroyed.
 
 
-RECRUIT  number
+### RECRUIT  number
 
 Attempt to recruit the specified number of people into the unit.  Each person
 recruited costs $50 (this is either paid as compensation to their previous
@@ -865,7 +826,7 @@ Since new recruits have no skills, a trained unit which takes in recruits will
 find its skills diluted.
 
 
-RESEARCH  [level]
+### RESEARCH  [level]
 
 Spend the month researching a spell at the specified difficulty level.  For
 example, a magician with a magic skill of 4 or 5 can research spells of up to
@@ -873,7 +834,7 @@ level 2.  If the level is not specified, the research will be at the highest
 possible level.
 
 
-RESHOW  spell
+### RESHOW  spell
 
 When a unit in your faction researches, or is given a copy of, a new spell for
 the first time, your report will contain a paragraph of information on the
@@ -882,29 +843,29 @@ the report that originally showed it.  This only works if there is still at
 least one unit in your faction that knows the spell.
 
 
-SAIL  direction
+### SAIL  direction
 
 The ship of which the unit is the owner will sail in the specified direction
-(NORTH, SOUTH, EAST or WEST).
+(NORTH, SOUTH, YDD, MIR, EAST or WEST).
 
 
-SINK
+### SINK
 
 Sink the ship of which the unit is currently the owner.  This can only be done
 in a coastal region, as sinking one's ship at sea would be suicide.
 
 
-STUDY  skill
+### STUDY  skill
 
 Spend the month studying the specified skill.
 
 
-TAX
+### TAX
 
 Attempt to raise tax income from the region.
 
 
-TEACH  unit-no  ...
+### TEACH  unit-no  ...
 
 Attempt to teach the specified units whatever skill they are studying that
 month.  A list of several unit numbers may be specified.  If any of these units
@@ -912,8 +873,7 @@ is not a member of your faction, then its faction must have issued an ACCEPT
 command for you that month.
 
 
-TRANSFER  unit-no  number
-TRANSFER  PEASANTS  number
+### TRANSFER  (unit-no|PEASANTS)  number
 
 Transfer the specified number of people to another unit.  If the specified
 unit is not a member of your faction, then its faction must have issued an
@@ -922,41 +882,37 @@ the people into the peasant population (will work anywhere except in an ocean
 region).
 
 
-WORK
+### WORK
 
 Spend the month working in agriculture.
 
 
-Sequence of Events
-------------------
+## Sequence of Events
 
 Each turn, the following sequence of events occurs:
 
-FORM orders are processed.
-ACCEPT, ADDRESS, ADMIT, ALLY, BEHIND, COMBAT, DISPLAY, GUARD 0, NAME and RESHOW
-orders are processed.
-FIND orders are processed.
-BOARD, ENTER, LEAVE and PROMOTE orders are processed.
-ATTACK orders are processed.
-DEMOLISH, GIVE, PAY and SINK orders are processed.
-TRANSFER orders are processed.
-TAX orders are processed.
-GUARD 1 and RECRUIT orders are processed.
-QUIT orders are processed.
-Empty units are deleted.
-Unoccupied ships at sea are sunk.
-MOVE orders are processed.
-SAIL orders are processed.
-BUILD, ENTERTAIN, PRODUCE, RESEARCH, STUDY, TEACH and WORK orders are
-processed.
-CAST orders are processed.
-Peasant population growth occurs.
-Maintenance costs are assessed.
-Peasant migration occurs.
+10. FORM orders are processed.
+20. ACCEPT, ADDRESS, ADMIT, ALLY, BEHIND, COMBAT, DISPLAY, GUARD 0, NAME and RESHOW orders are processed.
+30. FIND orders are processed.
+40. BOARD, ENTER, LEAVE and PROMOTE orders are processed.
+50. ATTACK orders are processed.
+60. DEMOLISH, GIVE, PAY and SINK orders are processed.
+70. TRANSFER orders are processed.
+80. TAX orders are processed.
+90. GUARD 1 and RECRUIT orders are processed.
+100. QUIT orders are processed.
+110. Empty units are deleted.
+120. Unoccupied ships at sea are sunk.
+130. MOVE orders are processed.
+140. SAIL orders are processed.
+150. BUILD, ENTERTAIN, PRODUCE, RESEARCH, STUDY, TEACH and WORK orders are processed.
+160. CAST orders are processed.
+170. Peasant population growth occurs.
+180. Maintenance costs are assessed.
+190. Peasant migration occurs.
 
 
-Hints for New Players
----------------------
+## Hints for New Players
 
 Make sure to use the correct #ATLANTIS and UNIT lines in your orders.
 
@@ -973,4 +929,3 @@ opportunities for profitable trade, or get caught in a surprise attack.
 Remember, in time of war there is safety in numbers.
 
 Remember to use ACCEPT and ADMIT where necessary.
-
