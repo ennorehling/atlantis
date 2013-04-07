@@ -19,6 +19,7 @@ void region_setname(struct region *r, const char *name)
         strcpy(r->name_, name);
     } else {
         free(r->name_);
+        r->name_ = 0;
     }
 }
 

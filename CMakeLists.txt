@@ -42,12 +42,13 @@ INCLUDE_DIRECTORIES (${CMAKE_BINARY_DIR}/include)
 
 SET( ATLANTIS_SRC atlantis.c atlantis.h spells.h skills.h items.h unit.h unit.c region.h region.c faction.h faction.c keywords.h settings.h )
 SET( RTL_SRC rtl.c rtl.h )
-ADD_EXECUTABLE(atlantis main.c ${ATLANTIS_SRC} ${RTL_SRC})
+SET( STORAGE_SRC storage/storage.h storage/binarystore.h storage/binarystore.c storage/textstore.h storage/textstore.c )
+ADD_EXECUTABLE(atlantis main.c ${ATLANTIS_SRC} ${RTL_SRC} ${STORAGE_SRC})
 
 INCLUDE_DIRECTORIES (${CUTEST_INCLUDE_DIR})
 
 
-ADD_EXECUTABLE(atlantis_tests atlantis.test.c ${ATLANTIS_SRC} ${RTL_SRC})
+ADD_EXECUTABLE(atlantis_tests atlantis.test.c ${ATLANTIS_SRC} ${RTL_SRC} ${STORAGE_SRC})
 TARGET_LINK_LIBRARIES (atlantis_tests cutest)
 ADD_TEST (atlantis atlantis_tests)
 

@@ -24,9 +24,13 @@ const char * unit_getdisplay(const struct unit *self)
 
 void unit_setdisplay(struct unit *self, const char *display)
 {
-    assert(display);
-    self->display_ = (char *)realloc(self->display_, strlen(display)+1);
-    strcpy(self->display_, display);
+    if (display) {
+        self->display_ = (char *)realloc(self->display_, strlen(display)+1);
+        strcpy(self->display_, display);
+    } else {
+        free(self->display_);
+        self->display_ = 0;
+    }
 }
 
 unit * create_unit(struct faction *f, int no)

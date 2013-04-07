@@ -60,10 +60,6 @@ int main(int argc, char **argv)
             addplayers();
             break;
 
-        case 'u':
-            addunits();
-            break;
-
         case 'p':
             printf("Name of orders file? ");
             fgets(buf, sizeof(buf), stdin);
@@ -76,7 +72,6 @@ int main(int argc, char **argv)
         default:
             puts("C - Create New Continent.\n"
                  "A - Add New Players.\n"
-                 "U - Add New Units.\n"
                  "P - Process Game Turn.\n" "Q - Quit.");
         }
     }

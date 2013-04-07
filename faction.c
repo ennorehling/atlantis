@@ -31,6 +31,7 @@ void faction_setname(faction * f, const char * name) {
         strcpy(f->name_, name);
     } else {
         free(f->name_);
+        f->name_ = 0;
     }
 }
 

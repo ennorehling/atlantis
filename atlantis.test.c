@@ -91,6 +91,38 @@ static void test_makeblock(CuTest * tc)
     CuAssertPtrEquals(tc, 0, r);
 }
 
+static void test_readwrite(CuTest * tc)
+{
+    region * r;
+    faction * f;
+    unit * u;
+    int fno = 1, uno = 1, err;
+
+    cleargame();
+    f = create_faction(fno);
+    u = create_unit(f, uno);
+    r = create_region(0, 0, T_PLAIN);
+    region_addunit(r, u);
+    CuAssertPtrEquals(tc, f, findfaction(fno));
+    CuAssertPtrEquals(tc, u, findunitg(uno));
+    CuAssertPtrEquals(tc, r, findregion(0, 0));
+    err = writegame();
+    CuAssertIntEquals(tc, 0, err);
+    CuAssertIntEquals(tc, 0, errno);
+
+    cleargame();
+    CuAssertPtrEquals(tc, 0, findfaction(fno));
+    CuAssertPtrEquals(tc, 0, findunitg(uno));
+    CuAssertPtrEquals(tc, 0, findregion(0, 0));
+
+    err = readgame();
+    CuAssertIntEquals(tc, 0, err);
+    CuAssertIntEquals(tc, 0, errno);
+    CuAssertPtrNotNull(tc, findfaction(fno));
+    CuAssertPtrNotNull(tc, findunitg(uno));
+    CuAssertPtrNotNull(tc, findregion(0, 0));
+}
+
 static void test_fileops(CuTest * tc)
 {
     faction * f = 0;
@@ -295,6 +327,7 @@ static void test_unit_name(CuTest * tc)
     cleargame();
     readgame();
     u = findunitg(1);
+    CuAssertPtrNotNull(tc, u);
     CuAssertStrEquals(tc, name, unit_getname(u));
 }
 
@@ -341,6 +374,7 @@ int main(void)
     CuString *output = CuStringNew();
     CuSuite *suite = CuSuiteNew();
 
+    SUITE_ADD_TEST(suite, test_readwrite);
     SUITE_ADD_TEST(suite, test_createregion);
     SUITE_ADD_TEST(suite, test_makeblock);
     SUITE_ADD_TEST(suite, test_transform);
@@ -354,7 +388,6 @@ int main(void)
     SUITE_ADD_TEST(suite, test_unit_display);
     SUITE_ADD_TEST(suite, test_faction_name);
     SUITE_ADD_TEST(suite, test_faction_addr);
-
     CuSuiteRun(suite);
     CuSuiteSummary(suite, output);
     CuSuiteDetails(suite, output);

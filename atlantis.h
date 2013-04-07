@@ -18,8 +18,8 @@ extern char buf[];
 
 void initgame(void);
 void cleargame(void);
-void writegame(void);
-void readgame(void);
+int writegame(void);
+int readgame(void);
 
 int transform(int *x, int *y, int kwd);
 int rnd_seed(unsigned int x);

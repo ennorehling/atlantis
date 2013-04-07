@@ -19,6 +19,12 @@
 #include "rtl.h"
 #include "bool.h"
 
+#include "storage/storage.h"
+#include "storage/binarystore.h"
+#include "storage/textstore.h"
+
+const storage * store = &binary_store;
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -5806,90 +5812,27 @@ void processorders(void)
                        "Please send orders next turn if you wish to continue playing.");
 }
 
-int nextc;
-
-void rc(FILE * F)
-{
-    nextc = fgetc(F);
-}
-
-void rs(FILE * F, char *s)
-{
-    while (nextc != '"') {
-        if (nextc == 0 || nextc==EOF) {
-            puts("Data file is truncated.");
-            exit(1);
-        }
-
-        rc(F);
-    }
-
-    rc(F);
-
-    while (nextc != '"') {
-        if (nextc == 0 || nextc==EOF) {
-            puts("Data file is truncated.");
-            exit(1);
-        }
-
-        *s++ = (char) nextc;
-        rc(F);
-    }
-
-    rc(F);
-    *s = 0;
-}
-
-char * rsnull(FILE * F, char * s) {
-    rs(F, s);
-    if (s[0]) return s;
-    return 0;
-}
-
-int ri(FILE * F)
-{
-    int i;
-    char buf[20];
-
-    i = 0;
-
-    while (!xisdigit(nextc)) {
-        if (nextc == 0 || nextc==EOF) {
-            puts("Data file is truncated.");
-            exit(1);
-        }
-
-        rc(F);
-    }
-
-    while (xisdigit(nextc)) {
-        buf[i++] = (char) nextc;
-        rc(F);
-    }
-
-    buf[i] = 0;
-    return atoi(buf);
-}
-
-void rstrlist(FILE * F, strlist ** SP)
+void rstrlist(HSTORAGE H, strlist ** SP)
 {
     int n;
     strlist *S;
 
-    n = ri(F);
+    store->r_int(H, &n);
 
     while (--n >= 0) {
-        rs(F, buf);
-        S = makestrlist(buf);
-        addlist2(SP, S);
+        if (store->r_str(H, buf, sizeof(buf))==0) {
+            S = makestrlist(buf);
+            addlist2(SP, S);
+        }
     }
 
     *SP = 0;
 }
 
-void readgame(void)
+int readgame(void)
 {
     FILE * F;
+    HSTORAGE H;
     int i, n, n2;
     faction *f, **fp;
     rfaction *rf, **rfp;
@@ -5900,50 +5843,55 @@ void readgame(void)
 
     sprintf(buf, "data/%d", turn);
     F = cfopen(buf, "r");
+    H = store->begin(F, IO_READ);
 
     printf("Reading turn %d...\n", turn);
 
-    rc(F);
-
-    turn = ri(F);
+    store->r_int(H, &n);
+    if (turn!=n) return -1;
 
     /* Read factions */
 
-    n = ri(F);
+    store->r_int(H, &n);
+    if (n<0) return -2;
     fp = &factions;
 
     while (--n >= 0) {
-        char name[NAMESIZE];
         int no;
 
-        no = ri(F);
+        store->r_int(H, &no);
         f = create_faction(no);
-        faction_setname(f, rsnull(F, name));
-        faction_setaddr(f, rsnull(F, name));
-        f->lastorders = ri(F);
-        f->origin_x = ri(F);
-        f->origin_y = ri(F);
+        if (store->r_str(H, buf, sizeof(buf))==0) {
+            faction_setname(f, buf[0] ? buf : 0);
+        }
+        if (store->r_str(H, buf, sizeof(buf))==0) {
+            faction_setaddr(f, buf[0] ? buf : 0);
+        }
+        store->r_int(H, &f->lastorders);
+        store->r_int(H, &f->origin_x);
+        store->r_int(H, &f->origin_y);
 
-        for (i = 0; i != MAXSPELLS; i++)
-            f->showdata[i] = (ri(F) != 0);
+        for (i = 0; i != MAXSPELLS; i++) {
+            store->r_int(H, &no);
+            f->showdata[i] = (no != 0);
+        }
 
-        n2 = ri(F);
+        store->r_int(H, &n2);
+        if (n2<0) return -6;
         rfp = &f->allies;
 
         while (--n2 >= 0) {
             rf = cmalloc(sizeof(rfaction));
-
-            rf->factionno = ri(F);
-
+            store->r_int(H, &rf->factionno);
             addlist2(rfp, rf);
         }
 
         *rfp = 0;
 
-        rstrlist(F, &f->mistakes);
-        rstrlist(F, &f->messages);
-        rstrlist(F, &f->battles);
-        rstrlist(F, &f->events);
+        rstrlist(H, &f->mistakes);
+        rstrlist(H, &f->messages);
+        rstrlist(H, &f->battles);
+        rstrlist(H, &f->events);
 
         addlist2(fp, f);
     }
@@ -5952,88 +5900,115 @@ void readgame(void)
 
     /* Read regions */
 
-    n = ri(F);
+    store->r_int(H, &n);
+    if (n<0) return -3;
     rp = &regions;
 
     while (--n >= 0) {
-        int x, y;
+        int x, y, n;
         char name[NAMESIZE];
 
-        x = ri(F);
-        y = ri(F);
-        r = create_region(x, y, T_OCEAN);
-        region_setname(r, rsnull(F, name));
-        r->terrain = (terrain_t)ri(F);
-        r->peasants = ri(F);
-        r->money = ri(F);
+        store->r_int(H, &x);
+        store->r_int(H, &y);
+        store->r_int(H, &n);
+        r = create_region(x, y, (terrain_t)n);
+        if (store->r_str(H, name, sizeof(name))==0) {
+            region_setname(r, name[0] ? name : 0);
+        }
+        store->r_int(H, &r->peasants);
+        store->r_int(H, &r->money);
 
-        n2 = ri(F);
+        store->r_int(H, &n2);
+        if (n2<0) return -4;
         bp = &r->buildings;
 
         while (--n2 >= 0) {
             b = cmalloc(sizeof(building));
 
-            b->no = ri(F);
-            rs(F, b->name);
-            rs(F, b->display);
-            b->size = ri(F);
+            store->r_int(H, &b->no);
+            store->r_str(H, b->name, sizeof(b->name));
+            store->r_str(H, b->display, sizeof(b->display));
+            store->r_int(H, &b->size);
 
             addlist2(bp, b);
         }
 
         *bp = 0;
 
-        n2 = ri(F);
+        store->r_int(H, &n2);
+        if (n2<0) return -5;
         shp = &r->ships;
 
         while (--n2 >= 0) {
-            sh = cmalloc(sizeof(ship));
+            int no;
+            store->r_int(H, &no);
 
-            sh->no = ri(F);
-            rs(F, sh->name);
-            rs(F, sh->display);
-            sh->type = ri(F);
-            sh->left = ri(F);
+            sh = cmalloc(sizeof(ship));
+            sh->no = no;
+
+            store->r_str(H, sh->name, sizeof(sh->name));
+            store->r_str(H, sh->display, sizeof(sh->display));
+            store->r_int(H, &no);
+            sh->type = (ship_t)no;
+            store->r_int(H, &sh->left);
 
             addlist2(shp, sh);
         }
 
         *shp = 0;
 
-        n2 = ri(F);
+        store->r_int(H, &n2);
+        if (n2<0) return -7;
         up = &r->units;
 
         addlist2(rp, r);
 
         while (--n2 >= 0) {
             char temp[DISPLAYSIZE];
-            u = cmalloc(sizeof(unit));
-            memset(u, 0, sizeof(unit));
+            int no, fno;
 
-            u->no = ri(F);
-            rs(F, temp);
-            if (temp[0]) unit_setname(u, temp);
-            rs(F, temp);
-            if (temp[0]) unit_setdisplay(u, temp);
-            u->number = ri(F);
-            u->money = ri(F);
-            u->faction = findfaction(ri(F));
-            u->building = findbuilding(ri(F));
-            u->ship = findship(ri(F));
-            u->owner = ri(F) != 0;
-            u->behind = ri(F) != 0;
-            u->guard = ri(F) != 0;
-            rs(F, u->lastorder);
-            u->combatspell = ri(F);
+            store->r_int(H, &no);
+            store->r_int(H, &fno);
+            u = create_unit(findfaction(fno), no);
 
-            for (i = 0; i != MAXSKILLS; i++)
-                u->skills[i] = ri(F);
+            if (store->r_str(H, temp, sizeof(temp))==0) {
+                unit_setname(u, temp[0] ? temp : 0);
+            }
+            if (store->r_str(H, temp, sizeof(temp))==0) {
+                unit_setdisplay(u, temp[0] ? temp : 0);
+            }
+            store->r_int(H, &u->number);
+            store->r_int(H, &u->money);
 
-            for (i = 0; i != MAXITEMS; i++)
-                u->items[i] = ri(F);
+            store->r_int(H, &no);
+            u->building = findbuilding(no);
 
-            for (i = 0; i != MAXSPELLS; i++)
-                u->spells[i] = ri(F);
+            store->r_int(H, &no);
+            u->ship = findship(no);
+
+            store->r_int(H, &no);
+            u->owner = no != 0;
+            store->r_int(H, &no);
+            u->behind = no != 0;
+            store->r_int(H, &no);
+            u->guard = no != 0;
+
+            store->r_str(H, u->lastorder, sizeof(u->lastorder));
+            store->r_int(H, &u->combatspell);
+
+            for (i = 0; i != MAXSKILLS; i++) {
+                store->r_int(H, &no);
+                u->skills[i] = (skill_t)no;
+            }
+            for (i = 0; i != MAXITEMS; i++) {
+                store->r_int(H, &no);
+                u->items[i] = (item_t)no;
+            }
+
+            for (i = 0; i != MAXSPELLS; i++) {
+                store->r_int(H, &no);
+                u->spells[i] = (spell_t)no;
+            }
 
             addlist2(up, u);
         }
@@ -6081,50 +6056,15 @@ void readgame(void)
 
     connectregions();
     fclose(F);
+    return 0;
 }
 
-void wc(FILE * F, int c)
+void wstrlist(HSTORAGE H, strlist * S)
 {
-    fputc(c, F);
-}
-
-void wsn(FILE * F, const char *s)
-{
-    while (*s)
-        wc(F, *s++);
-}
-
-void wnl(FILE * F)
-{
-    wc(F, '\n');
-}
-
-void ws(FILE * F, const char *s)
-{
-    wc(F, '"');
-    wsn(F, s);
-    wsn(F, "\" ");
-}
-
-void wsnull(FILE * F, const char * s)
-{
-    ws(F, s ? s : "");
-}
-
-void wi(FILE * F, int n)
-{
-    sprintf(buf, "%d ", n);
-    wsn(F, buf);
-}
-
-void wstrlist(FILE * F, strlist * S)
-{
-    wi(F, listlen(S));
-    wnl(F);
+    store->w_int(H, listlen(S));
 
     while (S) {
-        ws(F, S->s);
-        wnl(F);
+        store->w_str(H, S->s);
         S = S->next;
     }
 }
@@ -6194,8 +6134,9 @@ void cleargame(void)
     }
 }
 
-void writegame(void)
+int writegame(void)
 {
+    HSTORAGE H;
     FILE * F;
     int i;
     faction *f;
@@ -6209,172 +6150,102 @@ void writegame(void)
     F = cfopen(buf, "w");
     printf("Writing turn %d...\n", turn);
 
-    wi(F, turn);
-    wnl(F);
+    H = store->begin(F, IO_WRITE);
+    store->w_int(H, turn);
 
     /* Write factions */
 
-    wi(F, listlen(factions));
-    wnl(F);
+    store->w_int(H, listlen(factions));
 
     for (f = factions; f; f = f->next) {
-        wi(F, f->no);
-        wsnull(F, faction_getname(f));
-        wsnull(F, faction_getaddr(f));
-        wi(F, f->lastorders);
-        wi(F, f->origin_x);
-        wi(F, f->origin_y);
+        store->w_int(H, f->no);
+        store->w_str(H, faction_getname(f));
+        store->w_str(H, faction_getaddr(f));
+        store->w_int(H, f->lastorders);
+        store->w_int(H, f->origin_x);
+        store->w_int(H, f->origin_y);
 
         for (i = 0; i != MAXSPELLS; i++) {
-            wi(F, f->showdata[i]);
+            store->w_int(H, f->showdata[i]);
         }
 
-        wnl(F);
-
-        wi(F, listlen(f->allies));
-        wnl(F);
+        store->w_int(H, listlen(f->allies));
 
         for (rf = f->allies; rf; rf = rf->next) {
-            wi(F, rf->faction->no);
-            wnl(F);
+            store->w_int(H, rf->faction->no);
         }
 
-        wstrlist(F, f->mistakes);
-        wstrlist(F, f->messages);
-        wstrlist(F, f->battles);
-        wstrlist(F, f->events);
+        wstrlist(H, f->mistakes);
+        wstrlist(H, f->messages);
+        wstrlist(H, f->battles);
+        wstrlist(H, f->events);
     }
 
     /* Write regions */
 
-    wi(F, listlen(regions));
-    wnl(F);
+    store->w_int(H, listlen(regions));
 
     for (r = regions; r; r = r->next) {
-        wi(F, r->x);
-        wi(F, r->y);
-        wsnull(F, region_getname(r));
-        wi(F, r->terrain);
-        wi(F, r->peasants);
-        wi(F, r->money);
-        wnl(F);
+        store->w_int(H, r->x);
+        store->w_int(H, r->y);
+        store->w_int(H, r->terrain);
+        store->w_str(H, region_getname(r));
+        store->w_int(H, r->peasants);
+        store->w_int(H, r->money);
 
-        wi(F, listlen(r->buildings));
-        wnl(F);
+        store->w_int(H, listlen(r->buildings));
 
         for (b = r->buildings; b; b = b->next) {
-            wi(F, b->no);
-            ws(F, b->name);
-            ws(F, b->display);
-            wi(F, b->size);
-            wnl(F);
+            store->w_int(H, b->no);
+            store->w_str(H, b->name);
+            store->w_str(H, b->display);
+            store->w_int(H, b->size);
         }
 
-        wi(F, listlen(r->ships));
-        wnl(F);
+        store->w_int(H, listlen(r->ships));
 
         for (sh = r->ships; sh; sh = sh->next) {
-            wi(F, sh->no);
-            ws(F, sh->name);
-            ws(F, sh->display);
-            wi(F, sh->type);
-            wi(F, sh->left);
-            wnl(F);
+            store->w_int(H, sh->no);
+            store->w_str(H, sh->name);
+            store->w_str(H, sh->display);
+            store->w_int(H, sh->type);
+            store->w_int(H, sh->left);
         }
 
-        wi(F, listlen(r->units));
-        wnl(F);
+        store->w_int(H, listlen(r->units));
 
         for (u = r->units; u; u = u->next) {
-            wi(F, u->no);
-            wsnull(F, unit_getname(u));
-            wsnull(F, unit_getdisplay(u));
-            wi(F, u->number);
-            wi(F, u->money);
-            wi(F, u->faction->no);
-            wi(F, u->building ? u->building->no : 0);
-            wi(F, u->ship ? u->ship->no : 0);
-            wi(F, u->owner);
-            wi(F, u->behind);
-            wi(F, u->guard);
-            ws(F, u->lastorder);
-            wi(F, u->combatspell);
+            store->w_int(H, u->no);
+            store->w_int(H, u->faction->no);
+            store->w_str(H, unit_getname(u));
+            store->w_str(H, unit_getdisplay(u));
+            store->w_int(H, u->number);
+            store->w_int(H, u->money);
+            store->w_int(H, u->building ? u->building->no : 0);
+            store->w_int(H, u->ship ? u->ship->no : 0);
+            store->w_int(H, u->owner);
+            store->w_int(H, u->behind);
+            store->w_int(H, u->guard);
+            store->w_str(H, u->lastorder);
+            store->w_int(H, u->combatspell);
 
             for (i = 0; i != MAXSKILLS; i++) {
-                wi(F, u->skills[i]);
+                store->w_int(H, u->skills[i]);
             }
 
             for (i = 0; i != MAXITEMS; i++) {
-                wi(F, u->items[i]);
+                store->w_int(H, u->items[i]);
             }
 
             for (i = 0; i != MAXSPELLS; i++) {
-                wi(F, u->spells[i]);
+                store->w_int(H, u->spells[i]);
             }
 
-            wnl(F);
         }
     }
-
+    store->end(H);
     fclose(F);
-}
-
-void addunits(void)
-{
-    FILE * F;
-    int i, j;
-    region *r;
-    unit *u;
-
-    r = inputregion();
-
-    if (!r)
-        return;
-
-    printf("Name of units file? ");
-    fgets(buf, sizeof(buf), stdin);
-
-    if (!buf[0])
-        return;
-
-    F = cfopen(buf, "r");
-
-    rc(F);
-
-    for (;;) {
-        faction * f;
-        rs(F, buf);
-
-        if (!_strcmpl(buf, "end"))
-            return;
-
-        f = findfaction(ri(F));
-        u = createunit(r, f);
-
-        rs(F, buf);
-        unit_setname(u, buf);
-        rs(F, buf);
-        unit_setdisplay(u, buf);
-        u->number = ri(F);
-        u->money = ri(F);
-        for (;;) {
-            rs(F, buf);
-
-            if (!_strcmpl(buf, "end"))
-                break;
-
-            j = ri(F);
-
-            if ((i = findstr(skillnames, buf, MAXSKILLS)) >= 0)
-                u->skills[i] = j;
-            else if ((i = findstr(itemnames[0], buf, MAXITEMS)) >= 0)
-                u->items[i] = j;
-            else if ((i = findstr(spellnames, buf, MAXSPELLS)) >= 0)
-                u->spells[i] = j;
-            else
-                printf("Attribute %s not recognized.\n", buf);
-        }
-    }
+    return 0;
 }
 
 void initgame(void)
