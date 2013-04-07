@@ -4,3 +4,6 @@
 [submodule "cmake"]
 	path = cmake
 	url = git://github.com/eressea/cmake.git
+[submodule "storage"]
+	path = storage
+	url = git://github.com/badgerman/storage.git

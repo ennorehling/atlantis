@@ -2,6 +2,7 @@
 #include "keywords.h"
 #include "region.h"
 #include "faction.h"
+#include "unit.h"
 
 #include <CuTest.h>
 #include <errno.h>
@@ -263,6 +264,40 @@ static void test_faction_name(CuTest * tc)
     CuAssertStrEquals(tc, name, faction_getname(f));
 }
 
+static void test_region_addunit(CuTest * tc)
+{
+    unit * u;
+    region * r;
+
+    cleargame();
+    r = create_region(0, 0, T_PLAIN);
+    u = create_unit(0, 1);
+    region_addunit(r, u);
+    CuAssertPtrEquals(tc, u, r->units);
+}
+
+static void test_unit_name(CuTest * tc)
+{
+    const char * name = "Sacco & Vanzetti";
+    unit * u;
+    faction * f;
+    region * r;
+
+    cleargame();
+    r = create_region(0, 0, T_PLAIN);
+    f = create_faction(1);
+    u = create_unit(f, 1);
+    region_addunit(r, u);
+    CuAssertStrEquals(tc, "Unit 1", unit_getname(u));
+    unit_setname(u, name);
+    CuAssertStrEquals(tc, name, unit_getname(u));
+    writegame();
+    cleargame();
+    readgame();
+    u = findunitg(1);
+    CuAssertStrEquals(tc, name, unit_getname(u));
+}
+
 static void test_faction_addr(CuTest * tc)
 {
     const char * addr = "enno@example.com";
@@ -293,6 +328,8 @@ int main(void)
     SUITE_ADD_TEST(suite, test_addplayer);
     SUITE_ADD_TEST(suite, test_origin);
     SUITE_ADD_TEST(suite, test_region_name);
+    SUITE_ADD_TEST(suite, test_region_addunit);
+    SUITE_ADD_TEST(suite, test_unit_name);
     SUITE_ADD_TEST(suite, test_faction_name);
     SUITE_ADD_TEST(suite, test_faction_addr);
 

@@ -10,8 +10,11 @@
 #include "faction.h"
 #include "keywords.h"
 #include "region.h"
+#include "unit.h"
 #include "settings.h"
 #include "spells.h"
+#include "skills.h"
+#include "items.h"
 
 #include "rtl.h"
 #include "bool.h"
@@ -36,52 +39,6 @@ typedef enum {
     SH_CLIPPER,
     SH_GALLEON,
 } ship_t;
-
-typedef enum {
-    SK_MINING,
-    SK_LUMBERJACK,
-    SK_QUARRYING,
-    SK_HORSE_TRAINING,
-    SK_WEAPONSMITH,
-    SK_ARMORER,
-    SK_BUILDING,
-    SK_SHIPBUILDING,
-    SK_ENTERTAINMENT,
-    SK_STEALTH,
-    SK_OBSERVATION,
-    SK_TACTICS,
-    SK_RIDING,
-    SK_SWORD,
-    SK_CROSSBOW,
-    SK_LONGBOW,
-    SK_MAGIC,
-    MAXSKILLS
-} skill_t;
-
-typedef enum {
-    I_IRON,
-    I_WOOD,
-    I_STONE,
-    I_HORSE,
-    I_SWORD,
-    I_CROSSBOW,
-    I_LONGBOW,
-    I_CHAIN_MAIL,
-    I_PLATE_ARMOR,
-    I_AMULET_OF_DARKNESS,
-    I_AMULET_OF_DEATH,
-    I_AMULET_OF_HEALING,
-    I_AMULET_OF_TRUE_SEEING,
-    I_CLOAK_OF_INVULNERABILITY,
-    I_RING_OF_INVISIBILITY,
-    I_RING_OF_POWER,
-    I_RUNESWORD,
-    I_SHIELDSTONE,
-    I_STAFF_OF_FIRE,
-    I_STAFF_OF_LIGHTNING,
-    I_WAND_OF_TELEPORTATION,
-    MAXITEMS
-} item_t;
 
 typedef struct list {
     struct list *next;
@@ -109,35 +66,6 @@ typedef struct ship {
     ship_t type;
     int left;
 } ship;
-
-typedef struct unit {
-    struct unit *next;
-    int no;
-    char name[NAMESIZE];
-    char display[DISPLAYSIZE];
-    int number;
-    int money;
-    faction *faction;
-    building *building;
-    ship *ship;
-    bool owner;
-    bool behind;
-    bool guard;
-    char thisorder[NAMESIZE];
-    char lastorder[NAMESIZE];
-    int combatspell;
-    int skills[MAXSKILLS];
-    int items[MAXITEMS];
-    spell_t spells[MAXSPELLS];
-    strlist *orders;
-    int alias;
-    int dead;
-    int learning;
-    int n;
-    int *litems;
-    int side;
-    bool isnew;
-} unit;
 
 typedef struct order {
     struct order *next;
@@ -1499,18 +1427,12 @@ spell_t getspell(void)
     return findspell(getstr());
 }
 
-unit *createunit(region * r1)
+unit *createunit(region * r1, faction * f)
 {
     int i, n;
     region *r;
-    unit *u, *u2;
+    unit *u2;
     char v[1000];
-
-    u = cmalloc(sizeof(unit));
-    memset(u, 0, sizeof(unit));
-
-    strcpy(u->lastorder, "work");
-    u->combatspell = -1;
 
     for (n = 0;; n += 1000) {
         memset(v, 0, sizeof v);
@@ -1525,8 +1447,9 @@ unit *createunit(region * r1)
 
         for (i = 0; i != 1000; i++)
             if (!v[i]) {
-                u->no = n + i;
-                sprintf(u->name, "Unit %d", u->no);
+                unit * u = create_unit(f, n + i);
+                strcpy(u->lastorder, "work");
+                u->combatspell = -1;
                 addlist(&r1->units, u);
                 return u;
             }
@@ -1612,10 +1535,9 @@ faction * addplayer(region * r, const char * email)
     f = create_faction(no);
     faction_setaddr(f, email);
 
-    u = createunit(r);
+    u = createunit(r, f);
     u->number = 1;
     u->money = STARTMONEY;
-    u->faction = f;
     u->isnew = true;
 
     f->origin_x = r->x;
@@ -1880,7 +1802,7 @@ char *unitid(unit * u)
 {
     static char buf[NAMESIZE + 20];
 
-    sprintf(buf, "%s (%d)", u->name, u->no);
+    sprintf(buf, "%s (%d)", unit_getname(u), u->no);
     return buf;
 }
 
@@ -3717,13 +3639,12 @@ void processorders(void)
             for (S = u->orders; S;)
                 switch (igetkeyword(S->s)) {
                 case K_FORM:
-                    u2 = createunit(r);
+                    u2 = createunit(r, u->faction);
 
                     u2->alias = geti();
                     if (u2->alias == 0)
                         u2->alias = geti();
 
-                    u2->faction = u->faction;
                     u2->building = u->building;
                     u2->ship = u->ship;
                     u2->behind = u->behind;
@@ -3934,7 +3855,7 @@ void processorders(void)
                         break;
 
                     case K_UNIT:
-                        sn = u->name;
+                        unit_setname(u, getstr());
                         break;
 
                     default:
@@ -4927,7 +4848,7 @@ void processorders(void)
 
                     for (u2 = r->units; u2; u2 = u2->next)
                         if (u2->guard && u2->number && !admits(u2, u)) {
-                            sprintf(buf, "%s is on guard", u2->name);
+                            sprintf(buf, "%s is on guard", unit_getname(u2));
                             mistake2(u, S, buf);
                             break;
                         }
@@ -6088,11 +6009,13 @@ void readgame(void)
         addlist2(rp, r);
 
         while (--n2 >= 0) {
+            char name[NAMESIZE];
             u = cmalloc(sizeof(unit));
             memset(u, 0, sizeof(unit));
 
             u->no = ri(F);
-            rs(F, u->name);
+            rs(F, name);
+            unit_setname(u, name);
             rs(F, u->display);
             u->number = ri(F);
             u->money = ri(F);
@@ -6222,6 +6145,7 @@ void cleargame(void)
             unit * u = r->units;
             r->units = u->next;
             freestrlist(&u->orders);
+            free(u->name_);
             free(u);
         }
         while (r->ships) {
@@ -6361,7 +6285,7 @@ void writegame(void)
 
         for (u = r->units; u; u = u->next) {
             wi(F, u->no);
-            ws(F, u->name);
+            ws(F, unit_getname(u));
             ws(F, u->display);
             wi(F, u->number);
             wi(F, u->money);
@@ -6416,19 +6340,22 @@ void addunits(void)
     rc(F);
 
     for (;;) {
+        faction * f;
         rs(F, buf);
 
         if (!_strcmpl(buf, "end"))
             return;
 
-        u = createunit(r);
+        f = findfaction(ri(F));
+        if (f) {
+            u = createunit(r, f);
 
-        rs(F, u->name);
-        rs(F, u->display);
-        u->number = ri(F);
-        u->money = ri(F);
-        u->faction = findfaction(ri(F));
-
+            rs(F, buf);
+            unit_setname(u, buf);
+            rs(F, u->display);
+            u->number = ri(F);
+            u->money = ri(F);
+        }
         for (;;) {
             rs(F, buf);
 

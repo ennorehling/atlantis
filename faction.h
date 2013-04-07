@@ -45,7 +45,9 @@ typedef struct faction {
     int money;
 } faction;
 
+extern struct faction *factions;
 struct faction * create_faction(int no);
+struct faction * findfaction(int no);
 
 void faction_setname(struct faction *f, const char * name);
 const char * faction_getname(const struct faction *f);
