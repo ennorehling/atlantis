@@ -458,11 +458,11 @@ are compared (here "attacker" and "defender" mean the individual soldiers,
 without reference to who issued the original ATTACK command).  The chance of
 hitting is determined by which skill is higher, and by how much:
 
-  Skill Diff.	Chance
+    Skill Diff.	  Chance
 
-  -1            10
-   0            25
-  +1            40
+    -1            10
+     0            25
+    +1            40
 
 Example: if a soldier with a Sword skill of 3 is trying to hit one with a Sword
 skill of 2, there is a 40% chance of success.  If the attacker's skill is more
