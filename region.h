@@ -27,7 +27,7 @@ typedef enum {
 typedef struct region {
     struct region *next;
     int x, y;
-    char name[NAMESIZE];
+    char name_[NAMESIZE];
     struct region *connect[MAXDIRECTIONS];
     terrain_t terrain;
     int peasants;

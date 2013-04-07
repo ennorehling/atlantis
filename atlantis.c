@@ -1728,7 +1728,7 @@ int regionnameinuse(const char *s)
     region *r;
 
     for (r = regions; r; r = r->next)
-        if (!strcmp(r->name, s))
+        if (!strcmp(region_getname(r), s))
             return 1;
 
     return 0;
@@ -1795,7 +1795,7 @@ void makeblock(int x1, int y1)
                 region * r2;
 
                 for (r2 = regions; r2; r2 = r2->next)
-                    if (r2->name[0])
+                    if (region_getname(r2)[0])
                         n++;
 
                 i = rnd() % (sizeof regionnames / sizeof(char *));
@@ -1804,7 +1804,7 @@ void makeblock(int x1, int y1)
                         i = rnd() % (sizeof regionnames /
                                         sizeof(char *));
 
-                strcpy(r->name, regionnames[i]);
+                region_setname(r, regionnames[i]);
                 r->peasants = maxfoodoutput[r->terrain] / 50;
             }
         }
@@ -1854,7 +1854,7 @@ const char *regionid(const region * r, const faction * f)
     if (r->terrain == T_OCEAN)
         sprintf(buf, "(%d,%d)", r->x - f->origin_x, r->y - f->origin_y);
     else
-        sprintf(buf, "%s (%d,%d)", r->name, r->x - f->origin_x, r->y - f->origin_y);
+        sprintf(buf, "%s (%d,%d)", region_getname(r), r->x - f->origin_x, r->y - f->origin_y);
     return buf;
 }
 
@@ -6034,11 +6034,13 @@ void readgame(void)
 
     while (--n >= 0) {
         int x, y;
+        char name[NAMESIZE];
 
         x = ri(F);
         y = ri(F);
         r = create_region(x, y, T_OCEAN);
-        rs(F, r->name);
+        rs(F, name);
+        region_setname(r, name);
         r->terrain = ri(F);
         r->peasants = ri(F);
         r->money = ri(F);
@@ -6319,7 +6321,7 @@ void writegame(void)
     for (r = regions; r; r = r->next) {
         wi(F, r->x);
         wi(F, r->y);
-        ws(F, r->name);
+        ws(F, region_getname(r));
         wi(F, r->terrain);
         wi(F, r->peasants);
         wi(F, r->money);

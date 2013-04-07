@@ -30,7 +30,7 @@ static void test_origin(CuTest * tc)
     
     cleargame();
     r = create_region(1, 1, T_PLAIN);
-    strcpy(r->name, "foo");
+    region_setname(r, "foo");
     f = addplayer(r, "enno@example.com");
     CuAssertStrEquals(tc, "foo (0,0)", regionid(r, f));
 
@@ -38,7 +38,7 @@ static void test_origin(CuTest * tc)
     CuAssertStrEquals(tc, "(0,1)", regionid(r, f));
 
     r = create_region(2, 2, T_PLAIN);
-    strcpy(r->name, "bar");
+    region_setname(r, "bar");
     CuAssertStrEquals(tc, "bar (1,1)", regionid(r, f));
 }
 
@@ -49,7 +49,7 @@ static void test_createregion(CuTest * tc)
     cleargame();
     r = create_region(1, 2, T_OCEAN);
     CuAssertPtrNotNull(tc, r);
-    CuAssertPtrNotNull(tc, r->name);
+    CuAssertPtrNotNull(tc, region_getname(r));
     CuAssertPtrEquals(tc, r, findregion(1, 2));
     CuAssertIntEquals(tc, 1, r->x);
     CuAssertIntEquals(tc, 2, r->y);
