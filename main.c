@@ -61,7 +61,10 @@ int main(int argc, char **argv)
             break;
             
         case 'a':
-            addplayers();
+            turn = 0;
+            cleargame();
+            autoworld("players");
+            writemap(stdout);
             break;
 
         case 'w':

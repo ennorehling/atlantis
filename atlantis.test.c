@@ -17,7 +17,7 @@ static void test_addplayer(CuTest * tc)
 
     cleargame();
     r = create_region(1, 1, T_PLAIN);
-    f = addplayer(r, email);
+    f = addplayer(r, email, 0);
     CuAssertStrEquals(tc, email, faction_getaddr(f));
     CuAssertIntEquals(tc, r->x, f->origin_x);
     CuAssertIntEquals(tc, r->y, f->origin_y);
@@ -32,7 +32,7 @@ static void test_origin(CuTest * tc)
     cleargame();
     r = create_region(1, 1, T_PLAIN);
     region_setname(r, "foo");
-    f = addplayer(r, "enno@example.com");
+    f = addplayer(r, "enno@example.com", 0);
     CuAssertStrEquals(tc, "foo (0,0)", regionid(r, f));
 
     r = create_region(1, 2, T_OCEAN);
@@ -136,7 +136,7 @@ static void test_fileops(CuTest * tc)
     for (r=regions;r;r=r->next) {
          if (r->terrain!=T_OCEAN) {
              x = r->x, y = r->y;
-             f = addplayer(r, "enno@example.com");
+             f = addplayer(r, "enno@example.com", 0);
              break;
          }
     }
@@ -177,8 +177,10 @@ static void test_directions(CuTest * tc)
 static void test_movewhere(CuTest * tc)
 {
     region *r, *c;
+
+    cleargame();
     makeblock(0, 0);
-    c = findregion(0, 0);
+    c = findregion(1, 1);
 
     sprintf(buf, "%s %s", keywords[K_MOVE], keywords[K_NORTH]);
     CuAssertIntEquals(tc, K_MOVE, igetkeyword(buf));
@@ -230,36 +232,36 @@ static void test_transform(CuTest * tc)
     int x, y;
   
     x = 0, y = 1;
-    CuAssertIntEquals(tc, EINVAL, transform(&x, &y, K_ENTER));
-    CuAssertIntEquals(tc, 0, transform(&x, &y, K_NORTH));
-    CuAssertIntEquals(tc, x, 0);
-    CuAssertIntEquals(tc, y, 0);
+    CuAssertIntEquals(tc, EINVAL, transform(&x, &y, MAXDIRECTIONS));
+    CuAssertIntEquals(tc, 0, transform(&x, &y, 0));
+    CuAssertIntEquals(tc, 0, x);
+    CuAssertIntEquals(tc, 0, y);
 
     x = 0, y = -1;
-    CuAssertIntEquals(tc, 0, transform(&x, &y, K_SOUTH));
-    CuAssertIntEquals(tc, x, 0);
-    CuAssertIntEquals(tc, y, 0);
-
-    x = 1, y = 0;
-    CuAssertIntEquals(tc, 0, transform(&x, &y, K_WEST));
-    CuAssertIntEquals(tc, x, 0);
-    CuAssertIntEquals(tc, y, 0);
+    CuAssertIntEquals(tc, 0, transform(&x, &y, 1));
+    CuAssertIntEquals(tc, 0, x);
+    CuAssertIntEquals(tc, 0, y);
 
     x = -1, y = 0;
-    CuAssertIntEquals(tc, 0, transform(&x, &y, K_EAST));
-    CuAssertIntEquals(tc, x, 0);
-    CuAssertIntEquals(tc, y, 0);
+    CuAssertIntEquals(tc, 0, transform(&x, &y, 2));
+    CuAssertIntEquals(tc, 0, x);
+    CuAssertIntEquals(tc, 0, y);
+
+    x = 1, y = 0;
+    CuAssertIntEquals(tc, 0, transform(&x, &y, 3));
+    CuAssertIntEquals(tc, 0, x);
+    CuAssertIntEquals(tc, 0, y);
 
 #if MAXDIRECTIONS>5
     x = 1, y = 1;
-    CuAssertIntEquals(tc, 0, transform(&x, &y, K_MIR));
-    CuAssertIntEquals(tc, x, 0);
-    CuAssertIntEquals(tc, y, 0);
+    CuAssertIntEquals(tc, 0, transform(&x, &y, 4));
+    CuAssertIntEquals(tc, 0, x);
+    CuAssertIntEquals(tc, 0, y);
 
     x = -1, y = -1;
-    CuAssertIntEquals(tc, 0, transform(&x, &y, K_YDD));
-    CuAssertIntEquals(tc, x, 0);
-    CuAssertIntEquals(tc, y, 0);
+    CuAssertIntEquals(tc, 0, transform(&x, &y, 5));
+    CuAssertIntEquals(tc, 0, x);
+    CuAssertIntEquals(tc, 0, y);
 #endif
 }
 
