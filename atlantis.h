@@ -24,6 +24,7 @@ int writegame(void);
 int readgame(void);
 void writemap(FILE *);
 void writesummary(void);
+void makeworld(void);
 
 int transform(int *x, int *y, int kwd);
 int rnd_seed(unsigned int x);

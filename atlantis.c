@@ -1587,19 +1587,23 @@ void connecttothis(region * r, int x, int y, int from, int to)
     }
 }
 
+void connectregion(region * r)
+{
+    int d;
+    for (d=0;d!=MAXDIRECTIONS;++d) {
+        if (!r->connect[d]) {
+            int x = r->x, y = r->y;
+            transform(&x, &y, d);
+            connecttothis(r, x, y, d, d ^ 1);
+        }
+    }
+}
 void connectregions(void)
 {
     region *r;
 
     for (r = regions; r; r = r->next) {
-        int d;
-        for (d=0;d!=MAXDIRECTIONS;++d) {
-            if (!r->connect[d]) {
-                int x = r->x, y = r->y;
-                transform(&x, &y, d);
-                connecttothis(r, x, y, d, d ^ 1);
-            }
-        }
+        connectregion(r);
     }
 }
 
@@ -2902,6 +2906,34 @@ void readorders(const char * filename)
     }
 
     fclose(F);
+}
+
+void makeworld(void)
+{
+    int x, y, minx, miny, maxx, maxy;
+    region *r;
+
+    minx = INT_MAX;
+    maxx = INT_MIN;
+    miny = INT_MAX;
+    maxy = INT_MIN;
+
+    for (r = regions; r; r = r->next) {
+        minx = MIN(minx, r->x);
+        maxx = MAX(maxx, r->x);
+        miny = MIN(miny, r->y);
+        maxy = MAX(maxy, r->y);
+    }
+
+    for (x=minx;x<=maxx;++x) {
+        for (y=miny;y<=maxy;++x) {
+            r = findregion(x, y);
+            if (!r) {
+                r = create_region(x, y, T_OCEAN);
+                connectregion(r);
+            }
+        }
+    }
 }
 
 void writemap(FILE * F)

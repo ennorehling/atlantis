@@ -65,6 +65,7 @@ int main(int argc, char **argv)
             break;
 
         case 'w':
+            makeworld();
             writesummary();
             writegame();
             break;
