@@ -67,6 +67,10 @@ int main(int argc, char **argv)
             writemap(stdout);
             break;
 
+        case 'r':
+            reports();
+            break;
+
         case 'w':
             makeworld();
             writesummary();
@@ -87,6 +91,7 @@ int main(int argc, char **argv)
                  "A - Add New Players.\n"
                  "M - Draw Map.\n"
                  "P - Process Game Turn.\n"
+                 "R - Write Reports.\n"
                  "Q - Quit.\n"
                  "W - Write Game.\n");
         }

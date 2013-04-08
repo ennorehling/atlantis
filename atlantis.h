@@ -20,6 +20,7 @@ extern const char *keywords[];
 extern char buf[];
 extern const keyword_t directions[];
 
+void reports(void);
 void initgame(void);
 void cleargame(void);
 int writegame(void);
