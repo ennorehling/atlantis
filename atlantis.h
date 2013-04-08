@@ -9,6 +9,8 @@
 #ifndef ATLANTIS_H
 #define ATLANTIS_H
 
+#include <stdio.h>
+
 struct region;
 struct faction;
 
@@ -20,6 +22,8 @@ void initgame(void);
 void cleargame(void);
 int writegame(void);
 int readgame(void);
+void writemap(FILE *);
+void writesummary(void);
 
 int transform(int *x, int *y, int kwd);
 int rnd_seed(unsigned int x);

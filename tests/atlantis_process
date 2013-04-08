@@ -20,6 +20,7 @@ function fail
 function test_interactive
 {
 touch orders
+(echo W ; echo Q ) | $1
 ( echo P ; echo orders ; echo Q) | $1
 let RESULT=$?
 if [ $RESULT -ne 0 ] ; then
@@ -34,6 +35,7 @@ fail 0
 function test_commandline
 {
 touch orders
+(echo W ; echo Q ) | $1
 $1 -p orders -t 0
 let RESULT=$?
 if [ $RESULT -ne 0 ] ; then

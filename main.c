@@ -56,8 +56,17 @@ int main(int argc, char **argv)
             createcontinent();
             break;
 
+        case 'm':
+            writemap(stdout);
+            break;
+            
         case 'a':
             addplayers();
+            break;
+
+        case 'w':
+            writesummary();
+            writegame();
             break;
 
         case 'p':
@@ -72,7 +81,10 @@ int main(int argc, char **argv)
         default:
             puts("C - Create New Continent.\n"
                  "A - Add New Players.\n"
-                 "P - Process Game Turn.\n" "Q - Quit.");
+                 "M - Draw Map.\n"
+                 "P - Process Game Turn.\n"
+                 "Q - Quit.\n"
+                 "W - Write Game.\n");
         }
     }
 }

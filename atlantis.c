@@ -6254,8 +6254,6 @@ void initgame(void)
         turn = 0;
         _mkdir("data");
         makeblock(0, 0);
-        writesummary();
-        writegame();
     } else {
         readgame();
     }
