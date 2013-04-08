@@ -1723,6 +1723,7 @@ faction * autoplayer(int bx, int by, int no, const char * email, const char * na
 
         newblock[x][y] = T_FOREST;
         r = create_region(bx + x, by + y, T_FOREST);
+        initregion(r);
         connectregion(r);
         f = addplayer(r, email, no);
         for (d=0;d!=MAXDIRECTIONS;++d) {
@@ -1732,6 +1733,8 @@ faction * autoplayer(int bx, int by, int no, const char * email, const char * na
                 terrain_t t = (terrain_t)(rnd() % NUMTERRAINS);
                 transform(&cx, &cy, d);
                 rc = create_region(cx, cy, t);
+                r->connect[d] = rc;
+                initregion(rc);
             }
         }
         if (name) {
@@ -3458,7 +3461,6 @@ void reports(void)
     faction *f;
 
     _mkdir("reports");
-    _mkdir("nreports");
 
     for (f = factions; f; f = f->next)
         report(f);
