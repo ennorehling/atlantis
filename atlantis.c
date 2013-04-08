@@ -2926,7 +2926,7 @@ void makeworld(void)
     }
 
     for (x=minx;x<=maxx;++x) {
-        for (y=miny;y<=maxy;++x) {
+        for (y=miny;y<=maxy;++y) {
             r = findregion(x, y);
             if (!r) {
                 r = create_region(x, y, T_OCEAN);
