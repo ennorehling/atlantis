@@ -3348,18 +3348,31 @@ void report(faction * f)
     anyunits = 0;
 
     for (r = regions; r; r = r->next) {
+        int d;
         for (u = r->units; u; u = u->next)
             if (u->faction == f)
                 break;
         if (!u)
             continue;
 
-        anyunits = 1;
-
+        anyunits = 0;
         sprintf(buf, "%s, %s", regionid(r, f), terrainnames[r->terrain]);
-
+        for (d=0;d!=MAXDIRECTIONS;++d) {
+            if (r->connect[d] && r->connect[d]->terrain!=T_OCEAN) {
+                if (!anyunits) {
+                    anyunits = 1;
+                    scat(", exits: ");
+                    scat(keywords[directions[d]]);
+                } else {
+                    scat(", ");
+                    scat(keywords[directions[d]]);
+                }
+            }
+        }
+        scat(".");
+        anyunits = 1;
         if (r->peasants) {
-            scat(", peasants: ");
+            scat(" peasants: ");
             icat(r->peasants);
 
             if (r->money) {
