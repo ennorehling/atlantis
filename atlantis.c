@@ -3275,7 +3275,7 @@ void report(faction * f)
     unit *u;
     strlist *S;
 
-    sprintf(buf, "reports/%d.r", f->no);
+    sprintf(buf, "reports/%d-%d.r", turn, f->no);
     F = cfopen(buf, "w");
 
     printf("Writing report for %s...\n", factionid(f));
@@ -3484,7 +3484,7 @@ void reports(void)
     for (f = factions; f; f = f->next) {
         const char * addr = faction_getaddr(f);
         if (addr) {
-            fprintf(F, "mail %d.r\n", f->no);
+            fprintf(F, "mail %d-%d.r\n", turn, f->no);
             fprintf(F, "in%%\"%s\"\n", addr);
             fprintf(F, "Atlantis Report for %s\n", gamedate());
         }
