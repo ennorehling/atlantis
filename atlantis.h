@@ -25,6 +25,7 @@ int readgame(void);
 void writemap(FILE *);
 void writesummary(void);
 void makeworld(void);
+int autoworld(const char * playerfile);
 
 int transform(int *x, int *y, int kwd);
 int rnd_seed(unsigned int x);
@@ -36,7 +37,7 @@ void addunits(void);
 struct region *movewhere(struct region * r);
 
 void makeblock(int x1, int y1);
-struct faction * addplayer(struct region * r, const char * email);
+struct faction * addplayer(struct region * r, const char * email, int no);
 const char *regionid(const struct region * r, const struct faction *f);
 
 int findkeyword(const char *s);

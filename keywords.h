@@ -1,7 +1,7 @@
 #ifndef KEYWORDS_H
 #define KEYWORDS_H
 
-enum {
+typedef enum {
     K_ACCEPT,
     K_ADDRESS,
     K_ADMIT,
@@ -52,6 +52,6 @@ enum {
     K_WORK,
     K_YDD,
     MAXKEYWORDS
-};
+} keyword_t;
 
 #endif

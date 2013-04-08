@@ -482,6 +482,8 @@ const char *regionnames[] = {
     "Zapulla",
 };
 
+const keyword_t directions[MAXDIRECTIONS] = { K_NORTH, K_SOUTH, K_EAST, K_WEST, K_MIR, K_YDD };
+
 char foodproductivity[] = {
     0,
     15,
@@ -1046,11 +1048,14 @@ int listlen(void *l)
     return i;
 }
 
-int transform(int *x, int *y, int kwd)
+int transform(int *x, int *y, int direction)
 {
+    keyword_t kwd;
+    assert(direction<MAXDIRECTIONS);
     assert(x || !"invalid reference to X coordinate");
     assert(y || !"invalid reference to Y coordinate");
-    
+
+    kwd = directions[direction];
     if (kwd==K_NORTH) {
         --*y;
     }
@@ -1525,13 +1530,13 @@ faction * createfaction(int no)
     return f;
 }
 
-faction * addplayer(region * r, const char * email)
+faction * addplayer(region * r, const char * email, int no)
 {
     faction * f;
     unit * u;
-    int no = 0;
 
-    do { ++no; } while (findfaction(no));
+    if (no==0) ++no;
+    while (findfaction(no)) ++no;
 
     f = createfaction(no);
     faction_setaddr(f, email);
@@ -1551,6 +1556,7 @@ void addplayers(void)
     FILE * F;
     region *r;
     faction *f;
+    int no = 0;
 
     r = inputregion();
 
@@ -1571,7 +1577,8 @@ void addplayers(void)
             break;
         }
 
-        f = addplayer(r, buf);
+        f = addplayer(r, buf, no);
+        no = f->no+1;
     }
 }
 
@@ -1683,6 +1690,122 @@ struct region * create_region(int x, int y, terrain_t t)
     return r;
 }
 
+void initregion(region *r) {
+    if (r->terrain != T_OCEAN) {
+        int i, n = 0;
+        region * r2;
+
+        for (r2 = regions; r2; r2 = r2->next) {
+            const char * rname = region_getname(r2);
+            if (rname)
+                n++;
+        }
+        i = rnd() % (sizeof regionnames / sizeof(char *));
+        if (n < sizeof regionnames / sizeof(char *))
+            while (regionnameinuse(regionnames[i]))
+                i = rnd() % (sizeof regionnames /
+                                sizeof(char *));
+
+        region_setname(r, regionnames[i]);
+        r->peasants = maxfoodoutput[r->terrain] / 50;
+    }
+}
+
+faction * autoplayer(int bx, int by, int no, const char * email, const char * name)
+{
+    int d, x, y, maxtries = 10;
+    do {
+        x = rnd() % BLOCKSIZE;
+        y = rnd() % BLOCKSIZE;
+    } while (--maxtries && newblock[x][y]!=T_OCEAN);
+    if (maxtries) {
+        faction * f;
+        region * r;
+
+        newblock[x][y] = T_FOREST;
+        r = create_region(bx + x, by + y, T_FOREST);
+        connectregion(r);
+        f = addplayer(r, email, no);
+        for (d=0;d!=MAXDIRECTIONS;++d) {
+            region * rc = r->connect[d];
+            if (!rc) {
+                int cx = r->x, cy = r->y;
+                terrain_t t = (terrain_t)(rnd() % NUMTERRAINS);
+                transform(&cx, &cy, d);
+                rc = create_region(cx, cy, t);
+            }
+        }
+        if (name) {
+            faction_setname(f, name);
+        }
+        return f;
+    }
+    return 0;
+}
+
+void autoblock(int bx, int by)
+{
+    int x, y;
+    for (x = 0; x != BLOCKSIZE; ++x) {
+        for (y = 0; y != BLOCKSIZE; ++y) {
+            int rx = BLOCKBORDER + bx * BLOCKSIZE + x;
+            int ry = BLOCKBORDER + by * BLOCKSIZE + y;
+            region * r = findregion(rx, ry);
+            if (!r) {
+                terrain_t t = (terrain_t)newblock[x][y];
+                r = create_region(rx, ry, t);
+                initregion(r);
+            }
+        }
+    }
+}
+
+int autoworld(const char * playerfile)
+{
+    char *name, *email;
+    FILE *F = fopen(playerfile, "r");
+    int no = 1, bx = 0, by = 0, block = 0;
+
+    if (!F) {
+        return -1;
+    }
+    memset(newblock, T_OCEAN, sizeof newblock);
+    while (!feof(F)) {
+        int perblock = MAXPERBLOCK;
+        while (fgets(buf, sizeof(buf), F)) {
+            email = strtok(buf, ";\n");
+            if (email) {
+                name = strtok(0, ";\n");
+                for (;;) {
+                    if (perblock-- && autoplayer(BLOCKBORDER + bx * BLOCKSIZE, BLOCKBORDER + by * BLOCKSIZE, no, email, name)) {
+                        ++no;
+                        ++block;
+                        break;
+                    }
+                    perblock = MAXPERBLOCK;
+                    autoblock(bx, by);
+                    memset(newblock, T_OCEAN, sizeof newblock);
+                    do {
+                        block = 0;
+                        if (bx>0) {
+                            --bx;
+                            ++by;
+                        } else {
+                            bx = by+1;
+                            by = 0;
+                        }
+                    } while (bx>=BLOCKMAX || by>=BLOCKMAX);
+                }
+            }
+        }
+    }
+    if (block) {
+        autoblock(bx, by);
+    }
+    fclose(F);
+    return 0;
+}
+
 void makeblock(int x1, int y1)
 {
     int x, y;
@@ -1718,24 +1841,7 @@ void makeblock(int x1, int y1)
                 t = newblock[x - BLOCKBORDER][y - BLOCKBORDER];
             }
             r = create_region(x1 + x, y1 + y, t);
-            if (t != T_OCEAN) {
-                int i, n = 0;
-                region * r2;
-
-                for (r2 = regions; r2; r2 = r2->next) {
-                    const char * rname = region_getname(r2);
-                    if (rname)
-                        n++;
-                }
-                i = rnd() % (sizeof regionnames / sizeof(char *));
-                if (n < sizeof regionnames / sizeof(char *))
-                    while (regionnameinuse(regionnames[i]))
-                        i = rnd() % (sizeof regionnames /
-                                        sizeof(char *));
-
-                region_setname(r, regionnames[i]);
-                r->peasants = maxfoodoutput[r->terrain] / 50;
-            }
+            initregion(r);
         }
     }
     connectregions();
@@ -2925,15 +3031,15 @@ void makeworld(void)
         maxy = MAX(maxy, r->y);
     }
 
-    for (x=minx;x<=maxx;++x) {
-        for (y=miny;y<=maxy;++x) {
+    for (x=minx-BLOCKBORDER;x<=maxx+BLOCKBORDER;++x) {
+        for (y=miny-BLOCKBORDER;y<=maxy+BLOCKBORDER;++y) {
             r = findregion(x, y);
             if (!r) {
                 r = create_region(x, y, T_OCEAN);
-                connectregion(r);
             }
         }
     }
+    connectregions();
 }
 
 void writemap(FILE * F)
@@ -3032,10 +3138,10 @@ void writesummary(void)
     if (factions)
         fputc('\n', F);
 
-    for (f = factions; f; f = f->next)
-        fprintf(F, "%s, units: %d, number: %d, $%d, address: %s\n",
-                factionid(f), f->nunits, f->number, f->money, faction_getaddr(f));
-
+    for (f = factions; f; f = f->next) {
+        fprintf(F, "%s, units: %d, number: %d, $%d, address: %s, loc: %d,%d\n",
+        factionid(f), f->nunits, f->number, f->money, faction_getaddr(f), f->origin_x, f->origin_y);
+    }
     fclose(F);
 }
 

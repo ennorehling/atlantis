@@ -14,8 +14,10 @@
 #define MAXDIRECTIONS 6
 
 #define ORDERGAP 4
+#define MAXPERBLOCK 5
 #define BLOCKSIZE 7
 #define BLOCKBORDER 1
+#define BLOCKMAX 2
 #define MAINTENANCE 10
 #define STARTMONEY 5000
 #define RECRUITCOST 50
