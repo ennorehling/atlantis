@@ -2297,15 +2297,15 @@ void togglerf(unit * u, strlist * S, rfaction ** r)
         mistake2(u, S, "Faction not found");
 }
 
-int iscoast(region * r)
+bool iscoast(region * r)
 {
     int i;
 
-    for (i = 0; i != 4; i++)
+    for (i = 0; i != MAXDIRECTIONS; i++)
         if (r->connect[i]->terrain == T_OCEAN)
-            return 1;
+            return true;
 
-    return 0;
+    return false;
 }
 
 int distribute(int old, int new, int n)
@@ -5920,7 +5920,7 @@ void processorders(void)
 
             for (n = r->peasants; n; n--)
                 if (rnd() % 100 < PEASANTMOVE) {
-                    i = rnd() % 4;
+                    i = rnd() % MAXDIRECTIONS;
 
                     if (r->connect[i]->terrain != T_OCEAN) {
                         r->peasants--;
