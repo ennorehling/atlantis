@@ -24,6 +24,7 @@
 #include "storage/textstore.h"
 
 #include "crypto/mtrand.h"
+#include "crypto/base64.h"
 
 const storage * store = &binary_store;
 
@@ -939,50 +940,6 @@ int rnd(void)
     return (int)genrand_int32();
 }
 
-FILE * cfopen(const char *filename, const char *mode)
-{
-    FILE * F = fopen(filename, mode);
-
-    if (F == 0) {
-        printf("Can't open file %s in mode %s.\n", filename, mode);
-        exit(1);
-    }
-    return F;
-}
-
-char * getbuf(FILE * F)
-{
-    int i;
-    int c;
-
-    i = 0;
-
-    for (;;) {
-        c = fgetc(F);
-
-        if (c == EOF) {
-            buf[i] = 0;
-            return buf;
-        }
-
-        if (c == '\n') {
-            buf[i] = 0;
-            return buf;
-        }
-
-        if (i == sizeof buf - 1) {
-            buf[i] = 0;
-            while (c != EOF && c != '\n')
-                c = fgetc(F);
-            if (c == EOF)
-                buf[i] = 0;
-            return buf;
-        }
-
-        buf[i++] = (char) c;
-    }
-}
-
 void addlist(void *l1, void *p1)
 {
     list **l;
@@ -1045,6 +1002,80 @@ int listlen(void *l)
 
     for (p = l, i = 0; p; p = p->next, i++);
     return i;
+}
+
+strlist *makestrlist(char *s)
+{
+    strlist *S;
+
+    S = cmalloc(sizeof(strlist) + strlen(s));
+    strcpy(S->s, s);
+    return S;
+}
+
+void addstrlist(strlist ** SP, char *s)
+{
+    addlist(SP, makestrlist(s));
+}
+
+void catstrlist(strlist ** SP, strlist * S)
+{
+    strlist *S2;
+
+    while (*SP)
+        SP = &((*SP)->next);
+
+    while (S) {
+        S2 = makestrlist(S->s);
+        addlist2(SP, S2);
+        S = S->next;
+    }
+
+    *SP = 0;
+}
+
+FILE * cfopen(const char *filename, const char *mode)
+{
+    FILE * F = fopen(filename, mode);
+
+    if (F == 0) {
+        printf("Can't open file %s in mode %s.\n", filename, mode);
+        exit(1);
+    }
+    return F;
+}
+
+char * getbuf(FILE * F)
+{
+    int i;
+    int c;
+
+    i = 0;
+
+    for (;;) {
+        c = fgetc(F);
+
+        if (c == EOF) {
+            buf[i] = 0;
+            return buf;
+        }
+
+        if (c == '\n') {
+            buf[i] = 0;
+            return buf;
+        }
+
+        if (i == sizeof buf - 1) {
+            buf[i] = 0;
+            while (c != EOF && c != '\n')
+                c = fgetc(F);
+            if (c == EOF)
+                buf[i] = 0;
+            return buf;
+        }
+
+        buf[i++] = (char) c;
+    }
 }
 
 int transform(int *x, int *y, int direction)
@@ -1532,12 +1563,21 @@ faction * addplayer(region * r, const char * email, int no)
 {
     faction * f;
     unit * u;
+    int i;
+    unsigned long pwdata[4];
 
     if (no==0) ++no;
     while (findfaction(no)) ++no;
 
     f = createfaction(no);
     faction_setaddr(f, email);
+
+    for (i=0;i!=4;++i) pwdata[i] = genrand_int32();
+    base64_encode((unsigned char *)pwdata, sizeof(pwdata), buf2, sizeof(buf2));
+    buf2[8] = 0;
+    faction_setpassword(f, buf2);
+    sprintf(buf, "Your password is '%s'.", buf2);
+    addstrlist(&f->messages, buf);
 
     u = createunit(r, f);
     u->number = 1;
@@ -1916,36 +1956,6 @@ char *unitid(unit * u)
 
     sprintf(buf, "%s (%d)", unit_getname(u), u->no);
     return buf;
-}
-
-strlist *makestrlist(char *s)
-{
-    strlist *S;
-
-    S = cmalloc(sizeof(strlist) + strlen(s));
-    strcpy(S->s, s);
-    return S;
-}
-
-void addstrlist(strlist ** SP, char *s)
-{
-    addlist(SP, makestrlist(s));
-}
-
-void catstrlist(strlist ** SP, strlist * S)
-{
-    strlist *S2;
-
-    while (*SP)
-        SP = &((*SP)->next);
-
-    while (S) {
-        S2 = makestrlist(S->s);
-        addlist2(SP, S2);
-        S = S->next;
-    }
-
-    *SP = 0;
 }
 
 void sparagraph(strlist ** SP, char *s, int indent, int mark)
@@ -5993,7 +6003,7 @@ int readgame(void)
     unit *u, **up;
 
     sprintf(buf, "data/%d", turn);
-    F = cfopen(buf, "r");
+    F = cfopen(buf, "rb");
     H = store->begin(F, IO_READ);
 
     printf("Reading turn %d...\n", turn);
@@ -6302,7 +6312,7 @@ int writegame(void)
     unit *u;
 
     sprintf(buf, "data/%d", turn);
-    F = cfopen(buf, "w");
+    F = cfopen(buf, "wb");
     printf("Writing turn %d...\n", turn);
 
     H = store->begin(F, IO_WRITE);

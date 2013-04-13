@@ -22,6 +22,7 @@ static void test_addplayer(CuTest * tc)
     CuAssertIntEquals(tc, r->x, f->origin_x);
     CuAssertIntEquals(tc, r->y, f->origin_y);
     CuAssertPtrNotNull(tc, r->units);
+    CuAssertPtrNotNull(tc, faction_getpwhash(f));
 }
 
 static void test_origin(CuTest * tc)
@@ -148,7 +149,7 @@ static void test_fileops(CuTest * tc)
     cleargame();
     CuAssertPtrEquals(tc, 0, findregion(0, 0));
 
-    readgame();
+    CuAssertIntEquals(tc, 0, readgame());
     CuAssertIntEquals(tc, 0, turn);
     CuAssertPtrNotNull(tc, findregion(0, 0));
 
@@ -397,12 +398,14 @@ int main(void)
     CuString *output = CuStringNew();
     CuSuite *suite = CuSuiteNew();
 
+    SUITE_ADD_TEST(suite, test_fileops);
+/*
+    SUITE_ADD_TEST(suite, test_faction_password);
     SUITE_ADD_TEST(suite, test_readwrite);
     SUITE_ADD_TEST(suite, test_createregion);
     SUITE_ADD_TEST(suite, test_makeblock);
     SUITE_ADD_TEST(suite, test_transform);
     SUITE_ADD_TEST(suite, test_movewhere);
-    SUITE_ADD_TEST(suite, test_fileops);
     SUITE_ADD_TEST(suite, test_addplayer);
     SUITE_ADD_TEST(suite, test_origin);
     SUITE_ADD_TEST(suite, test_region_name);
@@ -411,7 +414,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_unit_display);
     SUITE_ADD_TEST(suite, test_faction_name);
     SUITE_ADD_TEST(suite, test_faction_addr);
-    SUITE_ADD_TEST(suite, test_faction_password);
+    */
     CuSuiteRun(suite);
     CuSuiteSummary(suite, output);
     CuSuiteDetails(suite, output);
