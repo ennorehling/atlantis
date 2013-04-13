@@ -11,8 +11,8 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "crypto/mtrand.h"
-#include "crypto/base64.h"
 #include "crypto/md5.h"
 
 faction *factions;
@@ -71,22 +71,28 @@ const char * faction_getpwhash(const faction * f) {
     return f->pwhash_;
 }
 
+void hex_encode(unsigned char * in, size_t inlen, unsigned char * out) {
+    size_t i;
+    for (i=0;i!=inlen;++i, out+=2) {
+        sprintf(out, "%02x", in[i]);
+    }
+}
+
 void faction_setpassword(faction * f, const char * password) {
     if (password) {
         char pwhash[64];
-        int salt = genrand_int31() % 4096;
+        int salt = genrand_int31() % 0x10000;
         md5_state_t pms;
         md5_byte_t digest[16];
 
-        pwhash[0] = base64_encode_value(salt / 64);
-        pwhash[1] = base64_encode_value(salt % 64);
+        sprintf(pwhash, "%04x", salt);
 
         md5_init(&pms);
-        md5_append(&pms, (const md5_byte_t *)pwhash, 2);
+        md5_append(&pms, (const md5_byte_t *)pwhash, 4);
         md5_append(&pms, (const md5_byte_t *)password, strlen(password));
         md5_finish(&pms, digest);
 
-        base64_encode(digest, sizeof(digest), pwhash+2, sizeof(pwhash)-2);
+        hex_encode(digest, sizeof(digest), pwhash+4);
         faction_setpwhash(f, pwhash);
     } else {
         faction_setpwhash(f, 0);
@@ -101,12 +107,12 @@ bool faction_checkpassword(struct faction *f, const char * password)
 
     if (f->pwhash_) {
         md5_init(&pms);
-        md5_append(&pms, (const md5_byte_t *)f->pwhash_, 2);
+        md5_append(&pms, (const md5_byte_t *)f->pwhash_, 4);
         md5_append(&pms, (const md5_byte_t *)password, strlen(password));
         md5_finish(&pms, digest);
 
-        base64_encode(digest, sizeof(digest), buffer, sizeof(buffer));
-        return strcmp(buffer, f->pwhash_+2)==0;
+        hex_encode(digest, sizeof(digest), buffer);
+        return strcmp(buffer, f->pwhash_+4)==0;
     }
     return false;
 }
