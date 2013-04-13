@@ -23,6 +23,8 @@
 #include "storage/binarystore.h"
 #include "storage/textstore.h"
 
+#include "crypto/mtrand.h"
+
 const storage * store = &binary_store;
 
 #include <errno.h>
@@ -927,17 +929,14 @@ void *cmalloc(int n)
     return p;
 }
 
-int rnd_seed(unsigned int x)
+void rnd_seed(unsigned long x)
 {
-    static unsigned int rndno;
-    if (x) rndno = x;
-    rndno = rndno * 1103515245 + 12345;
-    return (rndno >> 16) & 0x7FFF;
+    init_genrand(x);
 }
 
 int rnd(void)
 {
-    return rnd_seed(0);
+    return (int)genrand_int32();
 }
 
 FILE * cfopen(const char *filename, const char *mode)

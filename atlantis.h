@@ -31,7 +31,7 @@ void makeworld(void);
 int autoworld(const char * playerfile);
 
 int transform(int *x, int *y, int kwd);
-int rnd_seed(unsigned int x);
+void rnd_seed(unsigned long x);
 int processturn(const char *orders);
 void createcontinent(void);
 void addplayers(void);
