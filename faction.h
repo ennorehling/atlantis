@@ -26,6 +26,7 @@ typedef struct faction {
     int no, origin_x, origin_y;
     char * name_;
     char * addr_;
+    char * pwhash_;
     int lastorders;
     bool seendata[MAXSPELLS];
     bool showdata[MAXSPELLS];
@@ -55,4 +56,8 @@ const char * faction_getname(const struct faction *f);
 void faction_setaddr(struct faction *f, const char * addr);
 const char * faction_getaddr(const struct faction *f);
 
+void faction_setpassword(struct faction *f, const char * password);
+bool faction_checkpassword(struct faction *f, const char * password);
+void faction_setpwhash(struct faction *f, const char * pwhash);
+const char * faction_getpwhash(const struct faction *f);
 #endif

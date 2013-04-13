@@ -4,6 +4,7 @@ PROJECT (atlantis C)
 ENABLE_TESTING()
 
 ADD_SUBDIRECTORY (cutest)
+ADD_SUBDIRECTORY (crypto)
 ADD_SUBDIRECTORY (tests)
 
 IF (MSVC)
@@ -44,16 +45,18 @@ SET( ATLANTIS_SRC atlantis.c atlantis.h spells.h skills.h items.h unit.h unit.c 
 SET( RTL_SRC rtl.c rtl.h )
 SET( STORAGE_SRC storage/storage.h storage/binarystore.h storage/binarystore.c storage/textstore.h storage/textstore.c )
 ADD_EXECUTABLE(atlantis main.c ${ATLANTIS_SRC} ${RTL_SRC} ${STORAGE_SRC})
+TARGET_LINK_LIBRARIES (atlantis ${CRYPTO_LIBRARIES} )
 
 INCLUDE_DIRECTORIES (${CUTEST_INCLUDE_DIR})
+INCLUDE_DIRECTORIES (${CRYPTO_INCLUDE_DIR})
 
 
 ADD_EXECUTABLE(atlantis_tests atlantis.test.c ${ATLANTIS_SRC} ${RTL_SRC} ${STORAGE_SRC})
-TARGET_LINK_LIBRARIES (atlantis_tests cutest)
+TARGET_LINK_LIBRARIES (atlantis_tests ${CUTEST_LIBRARIES} ${CRYPTO_LIBRARIES} )
 ADD_TEST (atlantis atlantis_tests)
 
 ADD_EXECUTABLE(rtl_tests rtl.test.c ${RTL_SRC})
-TARGET_LINK_LIBRARIES (rtl_tests cutest)
+TARGET_LINK_LIBRARIES (rtl_tests ${CUTEST_LIBRARIES} ${CRYPTO_LIBRARIES} )
 ADD_TEST (rtl rtl_tests)
 
 ADD_CUSTOM_TARGET(check COMMAND ${CMAKE_CTEST_COMMAND}

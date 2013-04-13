@@ -2888,7 +2888,7 @@ void readorders(const char * filename)
                         }
 
                 for (;;) {
-                    if (getbuf(F) && !_memicmp(buf, "#atlantis", 9))
+                    if (getbuf(F) && !strncmp(buf, "#atlantis", 9))
                         goto NEXTPLAYER;
 
                     if (buf[0] == '\f' || buf[0] == '#')
@@ -2911,7 +2911,7 @@ void readorders(const char * filename)
                                     goto NEXTUNIT;
                                 }
 
-                                if (!_memicmp(buf, "#atlantis", 9)) {
+                                if (!strncmp(buf, "#atlantis", 9)) {
                                     *SP = 0;
                                     goto NEXTPLAYER;
                                 }
@@ -6019,6 +6019,9 @@ int readgame(void)
         if (store->r_str(H, buf, sizeof(buf))==0) {
             faction_setaddr(f, buf[0] ? buf : 0);
         }
+        if (store->r_str(H, buf, sizeof(buf))==0) {
+            faction_setpwhash(f, buf[0] ? buf : 0);
+        }
         store->r_int(H, &f->lastorders);
         store->r_int(H, &f->origin_x);
         store->r_int(H, &f->origin_y);
@@ -6263,6 +6266,7 @@ void cleargame(void)
 
         free(f->name_);
         free(f->addr_);
+        free(f->pwhash_);
         freestrlist(&f->messages);
         freestrlist(&f->battles);
         freestrlist(&f->events);
@@ -6313,6 +6317,7 @@ int writegame(void)
         store->w_int(H, f->no);
         store->w_str(H, faction_getname(f));
         store->w_str(H, faction_getaddr(f));
+        store->w_str(H, faction_getpwhash(f));
         store->w_int(H, f->lastorders);
         store->w_int(H, f->origin_x);
         store->w_int(H, f->origin_y);
