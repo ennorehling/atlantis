@@ -937,7 +937,7 @@ void rnd_seed(unsigned long x)
 
 int rnd(void)
 {
-    return (int)genrand_int32();
+    return (int)genrand_int31();
 }
 
 void addlist(void *l1, void *p1)

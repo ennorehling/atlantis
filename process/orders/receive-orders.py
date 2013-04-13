@@ -144,8 +144,9 @@ turn = 0
 try:
     fo = fopen('turn', 'r')
     line = fo.readline()
-    turn = (int)line
-except IOError:
+    turn = int(line)
+except:
+    turn = 0
     logger.error("could not open 'turn' file, assuming turn=%d" % (turn, ))
 infile = sys.stdin
 if len(sys.argv)>1:
