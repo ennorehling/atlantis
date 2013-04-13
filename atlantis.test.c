@@ -99,6 +99,7 @@ static void test_readwrite(CuTest * tc)
     unit * u;
     int fno = 1, uno = 1, err;
 
+    errno = 0;
     cleargame();
     f = create_faction(fno);
     u = create_unit(f, uno);
@@ -107,6 +108,7 @@ static void test_readwrite(CuTest * tc)
     CuAssertPtrEquals(tc, f, findfaction(fno));
     CuAssertPtrEquals(tc, u, findunitg(uno));
     CuAssertPtrEquals(tc, r, findregion(0, 0));
+
     err = writegame();
     CuAssertIntEquals(tc, 0, err);
     CuAssertIntEquals(tc, 0, errno);
@@ -116,6 +118,7 @@ static void test_readwrite(CuTest * tc)
     CuAssertPtrEquals(tc, 0, findunitg(uno));
     CuAssertPtrEquals(tc, 0, findregion(0, 0));
 
+    CuAssertIntEquals(tc, 0, errno);
     err = readgame();
     CuAssertIntEquals(tc, 0, err);
     CuAssertIntEquals(tc, 0, errno);
@@ -375,7 +378,7 @@ static void test_faction_addr(CuTest * tc)
 static void test_faction_password(CuTest * tc)
 {
     const char * password = "friendshipismagic";
-    const char * salted_hash = "2uQL6/kRMRXPTARSIQ3mnbdM==";
+    const char * salted_hash = "0daa920e651e3250fbd8e68980a38b554f1b";
     faction * f;
 
     cleargame();
@@ -391,6 +394,7 @@ static void test_faction_password(CuTest * tc)
     faction_setpwhash(f, salted_hash);
     CuAssertStrEquals(tc, salted_hash, faction_getpwhash(f));
     CuAssertTrue(tc, faction_checkpassword(f, password));
+
 }
 
 int main(void)
@@ -399,7 +403,6 @@ int main(void)
     CuSuite *suite = CuSuiteNew();
 
     SUITE_ADD_TEST(suite, test_fileops);
-/*
     SUITE_ADD_TEST(suite, test_faction_password);
     SUITE_ADD_TEST(suite, test_readwrite);
     SUITE_ADD_TEST(suite, test_createregion);
@@ -414,7 +417,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_unit_display);
     SUITE_ADD_TEST(suite, test_faction_name);
     SUITE_ADD_TEST(suite, test_faction_addr);
-    */
+
     CuSuiteRun(suite);
     CuSuiteSummary(suite, output);
     CuSuiteDetails(suite, output);

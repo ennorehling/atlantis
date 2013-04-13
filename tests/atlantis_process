@@ -7,7 +7,7 @@ if [ -z $1 ] || [ ! -x $1 ] ; then
 fi
 
 FILES="orders maillist send summary data/1"
-DIRECTORIES="reports nreports"
+DIRECTORIES="reports"
 function fail
 {
   if [ $1 -ne 0 ] ; then rm -rf data ; fi
