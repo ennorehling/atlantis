@@ -71,7 +71,7 @@ const char * faction_getpwhash(const faction * f) {
     return f->pwhash_;
 }
 
-void hex_encode(unsigned char * in, size_t inlen, unsigned char * out) {
+void hex_encode(unsigned char * in, size_t inlen, char * out) {
     size_t i;
     for (i=0;i!=inlen;++i, out+=2) {
         sprintf(out, "%02x", in[i]);

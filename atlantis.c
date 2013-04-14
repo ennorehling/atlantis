@@ -2884,7 +2884,7 @@ void readorders(const char * filename)
     F = cfopen(filename, "r");
 
     while (getbuf(F) && buf[0]) {
-        if (!strncmp(buf, "#atlantis", 9)) {
+        if (!strncmp(buf, keywords[K_FACTION], strlen(keywords[K_FACTION]))) {
           NEXTPLAYER:
             igetstr(buf);
             i = geti();
@@ -2899,7 +2899,7 @@ void readorders(const char * filename)
                         }
 
                 for (;;) {
-                    if (getbuf(F) && !strncmp(buf, "#atlantis", 9))
+                    if (getbuf(F) && !strncmp(buf, keywords[K_FACTION], strlen(keywords[K_FACTION])))
                         goto NEXTPLAYER;
 
                     if (buf[0] == '\f' || buf[0] == '#')
@@ -2922,7 +2922,7 @@ void readorders(const char * filename)
                                     goto NEXTUNIT;
                                 }
 
-                                if (!strncmp(buf, "#atlantis", 9)) {
+                                if (!strncmp(buf, keywords[K_FACTION], strlen(keywords[K_FACTION]))) {
                                     *SP = 0;
                                     goto NEXTPLAYER;
                                 }
