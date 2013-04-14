@@ -7,10 +7,20 @@
  */
 
 #include "atlantis.h"
+#include "region.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <ctype.h>
+
+static void fixme() {
+    region * r;
+    if (turn==0) { /* forgot to initialize regions with money */
+        for (r=regions;r;r=r->next) {
+            r->money = r->peasants * 3 / 2;
+        }
+    }
+}
 
 int main(int argc, char **argv)
 {
@@ -69,6 +79,10 @@ int main(int argc, char **argv)
 
         case 'r':
             reports();
+            break;
+
+        case 'f':
+            fixme();
             break;
 
         case 'w':

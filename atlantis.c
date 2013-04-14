@@ -1565,7 +1565,8 @@ faction * addplayer(region * r, const char * email, int no)
     unit * u;
     int i;
     unsigned long pwdata[4];
-
+    char msg[1024];
+    
     if (no==0) ++no;
     while (findfaction(no)) ++no;
 
@@ -1576,8 +1577,8 @@ faction * addplayer(region * r, const char * email, int no)
     base64_encode((unsigned char *)pwdata, sizeof(pwdata), buf2, sizeof(buf2));
     buf2[8] = 0;
     faction_setpassword(f, buf2);
-    sprintf(buf, "Your password is '%s'.", buf2);
-    addstrlist(&f->messages, buf);
+    sprintf(msg, "Your password is '%s'.", buf2);
+    addstrlist(&f->messages, msg);
 
     u = createunit(r, f);
     u->number = 1;
@@ -1746,6 +1747,7 @@ void initregion(region *r) {
 
         region_setname(r, regionnames[i]);
         r->peasants = maxfoodoutput[r->terrain] / 50;
+        r->money = r->peasants * 3 / 2;
     }
 }
 
@@ -3371,11 +3373,10 @@ void report(faction * f)
                 if (!anyunits) {
                     anyunits = 1;
                     scat(", exits: ");
-                    scat(keywords[directions[d]]);
                 } else {
                     scat(", ");
-                    scat(keywords[directions[d]]);
                 }
+                scat(keywords[directions[d]]);
             }
         }
         scat(".");
