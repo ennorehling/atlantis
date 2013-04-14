@@ -516,28 +516,24 @@ Order Format
 To enter orders for Atlantis, you should send a mail message (no particular
 subject line required), containing the following:
 
-    #ATLANTIS faction-no
+    FACTION faction-no password
     
     UNIT unit-no
     ...orders...
     
     UNIT unit-no
     ...orders...
-    
-    #END
 
 For example, if your faction number (shown at the top of your report) is 27,
 and you have two units numbered 5 and 17:
 
-    #ATLANTIS 27
+    FACTION 27 supersecret
     
     UNIT 5
-    ...orders...
+        MOVE NORTH
     
     UNIT 17
-    ...orders...
-
-    #END
+        WORK
 
 Thus, orders for each unit are given separately, and indicated with the UNIT
 keyword.  (In the case of orders, such as the command to rename your faction,
@@ -547,7 +543,7 @@ issues the command; but some particular unit must still issue it.)
 Several sets of orders may be sent for the same turn, and the last one received
 before the deadline will be used.
 
-IMPORTANT: You MUST use the correct #ATLANTIS line or else your orders will be
+IMPORTANT: You MUST use the correct FACTION line or else your orders will be
 silently ignored.
 
 Each type of order is designated by giving a keyword as the first non-blank
@@ -559,7 +555,7 @@ The parser is not case sensitive, so all commands may be given in upper case,
 low case or a mixture of the two.  However, when supplying names containing
 spaces, the name must be surrounded by double quotes, or else underscore
 characters must be used in place of spaces in the name.  (These things apply to
-the #ATLANTIS and #END lines as well as to order lines.)
+the FACTION line as well as to order lines.)
 
 Any player not sending in orders for four turns in a row is removed from the
 game, e.g. if your last set of orders was for turn 20, you will receive reports
@@ -783,6 +779,14 @@ until they are given proper names.  Names may not contain brackets (square
 brackets can be used instead if necessary).
 
 
+### PASSWORD new-password
+
+Your first turn will contain a password for your faction.  This command allows
+you to change that password.  Please don't ever forget your password.  If you
+do forget your password, please contact the moderator to have a new password
+issued to you.
+
+
 ### PAY  (unit-no|PEASANTS)  amount
 
 Pay another unit the specified amount of money (does not require the target
@@ -803,9 +807,9 @@ member of your faction, then its faction must have issued an ACCEPT command for
 you that month.
 
 
-### QUIT  faction-no
+### QUIT  password
 
-Quit the game.  Your faction number must be provided as a check to prevent Quit
+Quit the game.  Your password must be provided as a check to prevent Quit
 orders being issued by accident.  On issuing this order, your faction will be
 completely and permanently destroyed.
 
@@ -892,7 +896,7 @@ Spend the month working in agriculture.
 Each turn, the following sequence of events occurs:
 
 10. FORM orders are processed.
-20. ACCEPT, ADDRESS, ADMIT, ALLY, BEHIND, COMBAT, DISPLAY, GUARD 0, NAME and RESHOW orders are processed.
+20. ACCEPT, ADDRESS, ADMIT, ALLY, BEHIND, COMBAT, DISPLAY, GUARD 0, NAME, PASSWORD and RESHOW orders are processed.
 30. FIND orders are processed.
 40. BOARD, ENTER, LEAVE and PROMOTE orders are processed.
 50. ATTACK orders are processed.
@@ -914,7 +918,7 @@ Each turn, the following sequence of events occurs:
 
 ## Hints for New Players
 
-Make sure to use the correct #ATLANTIS and UNIT lines in your orders.
+Make sure to use the correct FACTION and UNIT lines in your orders.
 
 Be careful not to lose any people through starvation.  It is a good idea to
 store a month's supply of money in each region in which you have units, as a
