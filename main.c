@@ -29,6 +29,7 @@ region *inputregion(void)
 {
     int x, y;
     region *r = 0;
+    char buf[256];
 
     while (!r) {
         printf("X? ");
