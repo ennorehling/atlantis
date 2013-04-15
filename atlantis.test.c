@@ -4,10 +4,43 @@
 #include "faction.h"
 #include "unit.h"
 
+#include <stream.h>
+#include <memstream.h>
+
 #include <CuTest.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+
+static void test_orders(CuTest * tc)
+{
+    region * r;
+    unit * u;
+    faction * f;
+    char line[256];
+    stream strm;
+
+    cleargame();
+    r = create_region(1, 1, T_PLAIN);
+    f = addplayer(r, 0, 0);
+    u = r->units;
+    CuAssertPtrNotNull(tc, r);
+    CuAssertPtrNotNull(tc, f);
+    CuAssertPtrNotNull(tc, u);
+
+    mstream_init(&strm);
+    sprintf(line, "FACTION %d", f->no);
+    strm.api->writeln(strm.handle, line);
+    sprintf(line, "UNIT %d", u->no);
+    strm.api->writeln(strm.handle, line);
+    strm.api->writeln(strm.handle, "STUDY magic");
+    strm.api->rewind(strm.handle);
+    read_orders(&strm);
+    CuAssertPtrNotNull(tc, u->orders);
+    CuAssertIntEquals(tc, turn, f->lastorders);
+    CuAssertStrEquals(tc, "STUDY magic", u->orders->s);
+    mstream_done(&strm);
+}
 
 static void test_addplayer(CuTest * tc)
 {
@@ -402,6 +435,7 @@ int main(void)
     CuString *output = CuStringNew();
     CuSuite *suite = CuSuiteNew();
 
+    SUITE_ADD_TEST(suite, test_orders);
     SUITE_ADD_TEST(suite, test_fileops);
     SUITE_ADD_TEST(suite, test_faction_password);
     SUITE_ADD_TEST(suite, test_readwrite);

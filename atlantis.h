@@ -14,12 +14,19 @@
 
 struct region;
 struct faction;
+struct stream;
+
+typedef struct strlist {
+    struct strlist *next;
+    char s[1];
+} strlist;
 
 extern int turn;
 extern const char *keywords[];
 extern char buf[];
 extern const keyword_t directions[];
 
+void read_orders(struct stream * strm);
 void reports(void);
 void initgame(void);
 void cleargame(void);

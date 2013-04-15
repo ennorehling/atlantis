@@ -22,6 +22,8 @@
 #include "storage/storage.h"
 #include "storage/binarystore.h"
 #include "storage/textstore.h"
+#include "storage/stream.h"
+#include "storage/filestream.h"
 
 #include "crypto/mtrand.h"
 #include "crypto/base64.h"
@@ -52,11 +54,6 @@ typedef enum {
 typedef struct list {
     struct list *next;
 } list;
-
-typedef struct strlist {
-    struct strlist *next;
-    char s[1];
-} strlist;
 
 typedef struct building {
     struct building *next;
@@ -1045,7 +1042,7 @@ FILE * cfopen(const char *filename, const char *mode)
     return F;
 }
 
-char * getbuf(FILE * F)
+char * fgetbuf(FILE * F)
 {
     int i;
     int c;
@@ -1611,7 +1608,7 @@ void addplayers(void)
     F = cfopen(buf, "r");
 
     for (;;) {
-        if (!getbuf(F)) {
+        if (!fgetbuf(F)) {
             fclose(F);
             break;
         }
@@ -2872,21 +2869,23 @@ int mayboard(region * r, unit * u, ship * sh)
     return u2 == 0 || admits(u2, u);
 }
 
-void readorders(const char * filename)
+int getbuf(stream * strm)
 {
-    FILE * F;
+    return strm->api->readln(strm->handle, buf, sizeof(buf));
+}
+
+void read_orders(stream * strm)
+{
     int i, j;
     faction *f;
     region *r;
     unit *u;
     strlist *S, **SP;
 
-    F = cfopen(filename, "r");
-
-    while (getbuf(F) && buf[0]) {
-        if (!strncmp(buf, keywords[K_FACTION], strlen(keywords[K_FACTION]))) {
-          NEXTPLAYER:
-            igetstr(buf);
+    while (getbuf(strm)==0) {
+        keyword_t kwd = igetkeyword(buf);
+        if (kwd == K_FACTION) {
+NEXTPLAYER:
             i = geti();
             f = findfaction(i);
 
@@ -2899,14 +2898,16 @@ void readorders(const char * filename)
                         }
 
                 for (;;) {
-                    if (getbuf(F) && !strncmp(buf, keywords[K_FACTION], strlen(keywords[K_FACTION])))
+                    keyword_t kwd;
+                    if (getbuf(strm)!=0) {
+                        break;
+                    }
+                    kwd = igetkeyword(buf);
+                    if (kwd == K_FACTION) {
                         goto NEXTPLAYER;
-
-                    if (buf[0] == '\f' || buf[0] == '#')
-                        goto DONEPLAYER;
-
-                    if (!_strcmpl(igetstr(buf), "unit")) {
-                      NEXTUNIT:
+                    }
+                    if (kwd == K_UNIT) {
+NEXTUNIT:
                         i = geti();
                         u = findunitg(i);
 
@@ -2915,115 +2916,118 @@ void readorders(const char * filename)
                             u->faction->lastorders = turn;
 
                             for (;;) {
-                                if (getbuf(F)) {
-
-                                if (!_strcmpl(igetstr(buf), "unit")) {
-                                    *SP = 0;
-                                    goto NEXTUNIT;
-                                }
-
-                                if (!strncmp(buf, keywords[K_FACTION], strlen(keywords[K_FACTION]))) {
-                                    *SP = 0;
-                                    goto NEXTPLAYER;
-                                }
-
-                                if (buf[0] == '\f'
-                                    || buf[0] == '#') {
-                                    *SP = 0;
-                                    goto DONEPLAYER;
-                                }
-
-                                i = 0;
-                                j = 0;
-
-                                for (;;) {
-                                    while (buf[i] == ' ' || buf[i] == '\t')
-                                        i++;
-
-                                    if (buf[i] == 0 || buf[i] == ';')
-                                        break;
-
-                                    if (buf[i] == '"') {
-                                        i++;
-
-                                        for (;;) {
-                                            while (buf[i] == '_' ||
-                                                   buf[i] == ' ' ||
-                                                   buf[i] == '\t')
-                                                i++;
-
-                                            if (buf[i] == 0 ||
-                                                buf[i] == '"')
-                                                break;
-
-                                            while (buf[i] != 0 &&
-                                                   buf[i] != '"' &&
-                                                   buf[i] != '_' &&
-                                                   buf[i] != ' ' &&
-                                                   buf[i] != '\t')
-                                                buf2[j++] = buf[i++];
-
-                                            buf2[j++] = '_';
-                                        }
-
-                                        if (buf[i] != 0)
-                                            i++;
-
-                                        if (j && (buf2[j - 1] == '_'))
-                                            j--;
-                                    } else {
-                                        for (;;) {
-                                            while (buf[i] == '_')
-                                                i++;
-
-                                            if (buf[i] == 0 ||
-                                                buf[i] == ';' ||
-                                                buf[i] == '"' ||
-                                                buf[i] == ' ' ||
-                                                buf[i] == '\t')
-                                                break;
-
-                                            while (buf[i] != 0 &&
-                                                   buf[i] != ';' &&
-                                                   buf[i] != '"' &&
-                                                   buf[i] != '_' &&
-                                                   buf[i] != ' ' &&
-                                                   buf[i] != '\t')
-                                                buf2[j++] = buf[i++];
-
-                                            buf2[j++] = '_';
-                                        }
-
-                                        if (j && (buf2[j - 1] == '_'))
-                                            j--;
+                                if (getbuf(strm)!=0) {
+                                    break;
+                                } else {
+                                    kwd = igetkeyword(buf);
+                                    if (kwd == K_UNIT) {
+                                        *SP = 0;
+                                        goto NEXTUNIT;
                                     }
 
-                                    buf2[j++] = ' ';
-                                }
+                                    if (kwd == K_FACTION) {
+                                        *SP = 0;
+                                        goto NEXTPLAYER;
+                                    }
 
-                                if (j) {
-                                    buf2[j - 1] = 0;
-                                    S = makestrlist(buf2);
-                                    addlist2(SP, S);
+                                    i = 0;
+                                    j = 0;
+
+                                    for (;;) {
+                                        while (buf[i] == ' ' || buf[i] == '\t')
+                                            i++;
+
+                                        if (buf[i] == 0 || buf[i] == ';')
+                                            break;
+
+                                        if (buf[i] == '"') {
+                                            i++;
+
+                                            for (;;) {
+                                                while (buf[i] == '_' ||
+                                                       buf[i] == ' ' ||
+                                                       buf[i] == '\t')
+                                                    i++;
+
+                                                if (buf[i] == 0 ||
+                                                    buf[i] == '"')
+                                                    break;
+
+                                                while (buf[i] != 0 &&
+                                                       buf[i] != '"' &&
+                                                       buf[i] != '_' &&
+                                                       buf[i] != ' ' &&
+                                                       buf[i] != '\t')
+                                                    buf2[j++] = buf[i++];
+
+                                                buf2[j++] = '_';
+                                            }
+
+                                            if (buf[i] != 0)
+                                                i++;
+
+                                            if (j && (buf2[j - 1] == '_'))
+                                                j--;
+                                        } else {
+                                            for (;;) {
+                                                while (buf[i] == '_')
+                                                    i++;
+
+                                                if (buf[i] == 0 ||
+                                                    buf[i] == ';' ||
+                                                    buf[i] == '"' ||
+                                                    buf[i] == ' ' ||
+                                                    buf[i] == '\t')
+                                                    break;
+
+                                                while (buf[i] != 0 &&
+                                                       buf[i] != ';' &&
+                                                       buf[i] != '"' &&
+                                                       buf[i] != '_' &&
+                                                       buf[i] != ' ' &&
+                                                       buf[i] != '\t')
+                                                    buf2[j++] = buf[i++];
+
+                                                buf2[j++] = '_';
+                                            }
+
+                                            if (j && (buf2[j - 1] == '_'))
+                                                j--;
+                                        }
+
+                                        buf2[j++] = ' ';
+                                    }
+
+                                    if (j) {
+                                        buf2[j - 1] = 0;
+                                        S = makestrlist(buf2);
+                                        addlist2(SP, S);
+                                    }
                                 }
-        }
-          }
+                            }
                         } else {
-                            sprintf(buf,
-                                    "Unit %d is not one of your units.",
-                                    i);
-                            addstrlist(&f->mistakes, buf);
+                            sprintf(buf2, "Unit %d is not one of your units.", i);
+                            addstrlist(&f->mistakes, buf2);
                         }
                     }
                 }
-            } else
+            } else {
                 printf("Invalid faction number %d.\n", i);
+            }
         }
 
-      DONEPLAYER:
-        getbuf(F);
     }
 
+}
+
+void readorders(const char * filename)
+{
+    FILE * F;
+    stream strm;
+
+    F = cfopen(filename, "r");
+    fstream_init(&strm, F);
+    read_orders(&strm);
     fclose(F);
 }
 
