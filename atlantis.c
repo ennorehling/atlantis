@@ -2091,7 +2091,10 @@ void mistake(faction * f, char *s, char *comment)
 
 void mistake2(unit * u, strlist * S, char *comment)
 {
-    mistake(u->faction, S->s, comment);
+    static char buf[512];
+
+    sprintf(buf, "%s: %s - %s.", unitid(u), S->s, comment);
+    sparagraph(&u->faction->mistakes, buf, 0, 0);
 }
 
 void mistakeu(unit * u, char *comment)
