@@ -2841,12 +2841,15 @@ void read_orders(stream * strm)
 
     while (getbuf(strm)==0) {
         keyword_t kwd = igetkeyword(buf);
+        const char * passwd;
         if (kwd == K_FACTION) {
 NEXTPLAYER:
             i = geti();
             f = findfaction(i);
+            passwd = getstr();
 
-            if (f) {
+            if (f && faction_checkpassword(f, passwd)) {
+                f->lastorders = turn;
                 for (r = regions; r; r = r->next)
                     for (u = r->units; u; u = u->next)
                         if (u->faction == f) {
@@ -2870,7 +2873,6 @@ NEXTUNIT:
 
                         if (u && u->faction == f) {
                             SP = &u->orders;
-                            u->faction->lastorders = turn;
 
                             for (;;) {
                                 if (getbuf(strm)!=0) {
@@ -2969,7 +2971,7 @@ NEXTUNIT:
                     }
                 }
             } else {
-                printf("Invalid faction number %d.\n", i);
+                printf("Invalid faction number or password %d / %s.\n", i, passwd);
             }
         }
 

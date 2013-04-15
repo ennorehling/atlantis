@@ -12,6 +12,66 @@
 #include <stdio.h>
 #include <string.h>
 
+static void test_good_password(CuTest * tc)
+{
+    region * r;
+    unit * u;
+    faction * f;
+    char line[256];
+    stream strm;
+
+    cleargame();
+    turn = 0;
+    r = create_region(1, 1, T_PLAIN);
+    f = addplayer(r, 0, 0);
+    u = r->units;
+
+    faction_setpassword(f, "mypassword");
+    CuAssertIntEquals(tc, 0, f->lastorders);
+    turn = 1;
+    mstream_init(&strm);
+    sprintf(line, "FACTION %d mypassword", f->no);
+    strm.api->writeln(strm.handle, line);
+    strm.api->rewind(strm.handle);
+    read_orders(&strm);
+    CuAssertPtrEquals(tc, 0, u->orders);
+    CuAssertIntEquals(tc, 1, f->lastorders);
+
+    mstream_done(&strm);
+}
+
+static void test_bad_password(CuTest * tc)
+{
+    region * r;
+    unit * u;
+    faction * f;
+    char line[256];
+    stream strm;
+
+    cleargame();
+    turn = 0;
+    r = create_region(1, 1, T_PLAIN);
+    f = addplayer(r, 0, 0);
+    faction_setpassword(f, "mypassword");
+    u = r->units;
+    CuAssertPtrNotNull(tc, r);
+    CuAssertPtrNotNull(tc, f);
+    CuAssertPtrNotNull(tc, u);
+
+    CuAssertIntEquals(tc, 0, f->lastorders);
+    turn = 1;
+    mstream_init(&strm);
+
+    sprintf(line, "FACTION %d badpassword", f->no);
+    strm.api->writeln(strm.handle, line);
+    strm.api->rewind(strm.handle);
+    read_orders(&strm);
+    CuAssertPtrEquals(tc, 0, u->orders);
+    CuAssertIntEquals(tc, 0, f->lastorders);
+
+    mstream_done(&strm);
+}
+
 static void test_orders(CuTest * tc)
 {
     region * r;
@@ -21,15 +81,19 @@ static void test_orders(CuTest * tc)
     stream strm;
 
     cleargame();
+    turn = 0;
     r = create_region(1, 1, T_PLAIN);
     f = addplayer(r, 0, 0);
+    faction_setpassword(f, "mypassword");
     u = r->units;
     CuAssertPtrNotNull(tc, r);
     CuAssertPtrNotNull(tc, f);
     CuAssertPtrNotNull(tc, u);
 
+    CuAssertIntEquals(tc, 0, f->lastorders);
+    turn = 1;
     mstream_init(&strm);
-    sprintf(line, "FACTION %d", f->no);
+    sprintf(line, "FACTION %d mypassword", f->no);
     strm.api->writeln(strm.handle, line);
     sprintf(line, "UNIT %d", u->no);
     strm.api->writeln(strm.handle, line);
@@ -37,7 +101,7 @@ static void test_orders(CuTest * tc)
     strm.api->rewind(strm.handle);
     read_orders(&strm);
     CuAssertPtrNotNull(tc, u->orders);
-    CuAssertIntEquals(tc, turn, f->lastorders);
+    CuAssertIntEquals(tc, 1, f->lastorders);
     CuAssertStrEquals(tc, "STUDY magic", u->orders->s);
     mstream_done(&strm);
 }
@@ -74,16 +138,26 @@ static void test_addplayer(CuTest * tc)
 {
     region * r;
     faction * f;
+    unit * u;
     const char * email = "enno@example.com";
 
     cleargame();
+    turn = 1;
     r = create_region(1, 1, T_PLAIN);
     f = addplayer(r, email, 0);
+    u = r->units;
+
+    CuAssertPtrNotNull(tc, r);
+    CuAssertPtrNotNull(tc, f);
+    CuAssertPtrNotNull(tc, u);
     CuAssertStrEquals(tc, email, faction_getaddr(f));
     CuAssertIntEquals(tc, r->x, f->origin_x);
     CuAssertIntEquals(tc, r->y, f->origin_y);
     CuAssertPtrNotNull(tc, r->units);
     CuAssertPtrNotNull(tc, faction_getpwhash(f));
+    CuAssertStrEquals(tc, "", u->thisorder);
+    CuAssertStrEquals(tc, keywords[K_WORK], u->lastorder);
+    CuAssertPtrEquals(tc, 0, u->orders);
 }
 
 static void test_origin(CuTest * tc)
@@ -464,7 +538,10 @@ int main(void)
     CuString *output = CuStringNew();
     CuSuite *suite = CuSuiteNew();
 
+    SUITE_ADD_TEST(suite, test_addplayer);
     SUITE_ADD_TEST(suite, test_orders);
+    SUITE_ADD_TEST(suite, test_good_password);
+    SUITE_ADD_TEST(suite, test_bad_password);
     SUITE_ADD_TEST(suite, test_addplayers);
     SUITE_ADD_TEST(suite, test_fileops);
     SUITE_ADD_TEST(suite, test_faction_password);
@@ -473,7 +550,6 @@ int main(void)
     SUITE_ADD_TEST(suite, test_makeblock);
     SUITE_ADD_TEST(suite, test_transform);
     SUITE_ADD_TEST(suite, test_movewhere);
-    SUITE_ADD_TEST(suite, test_addplayer);
     SUITE_ADD_TEST(suite, test_origin);
     SUITE_ADD_TEST(suite, test_region_name);
     SUITE_ADD_TEST(suite, test_region_addunit);
