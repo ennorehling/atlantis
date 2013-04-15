@@ -13,6 +13,9 @@
 #include <time.h>
 #include <ctype.h>
 
+#include <stream.h>
+#include <filestream.h>
+
 static void fixme() {
     region * r;
     if (turn==0) { /* forgot to initialize regions with money */
@@ -22,6 +25,56 @@ static void fixme() {
     }
 }
 
+region *inputregion(void)
+{
+    int x, y;
+    region *r = 0;
+
+    while (!r) {
+        printf("X? ");
+        fgets(buf, sizeof(buf), stdin);
+        if (buf[0] == 0)
+            return 0;
+        x = atoi(buf);
+
+        printf("Y? ");
+        fgets(buf, sizeof(buf), stdin);
+        if (buf[0] == 0)
+            return 0;
+        y = atoi(buf);
+
+        r = findregion(x, y);
+
+        if (!r) {
+            puts("No such region.");
+        }
+    }
+    return r;
+}
+
+void addplayers_inter(void) {
+    region *r;
+    FILE * F;
+    char buf[512];
+    stream strm;
+
+    r = inputregion();
+
+    if (!r) {
+        return;
+    }
+
+    printf("Name of players file? ");
+    fgets(buf, sizeof(buf), stdin);
+
+    if (!buf[0]) {
+        return;
+    }
+    F = fopen(buf, "r");
+    fstream_init(&strm, F);
+    addplayers(r, &strm);
+    fclose(F);
+}
 int main(int argc, char **argv)
 {
     int i;
@@ -69,8 +122,11 @@ int main(int argc, char **argv)
         case 'm':
             writemap(stdout);
             break;
-            
         case 'a':
+            addplayers_inter();
+            break;
+
+        case 'g':
             turn = 0;
             cleargame();
             autoworld("players");
@@ -106,6 +162,7 @@ int main(int argc, char **argv)
                  "M - Draw Map.\n"
                  "P - Process Game Turn.\n"
                  "R - Write Reports.\n"
+                 "G - Generate New World.\n"
                  "Q - Quit.\n"
                  "W - Write Game.\n");
         }

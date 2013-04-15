@@ -1006,6 +1006,7 @@ strlist *makestrlist(char *s)
     strlist *S;
 
     S = cmalloc(sizeof(strlist) + strlen(s));
+    S->next = 0;
     strcpy(S->s, s);
     return S;
 }
@@ -1518,33 +1519,6 @@ void scramble(void *v1, int n, int width)
     free(v);
 }
 
-region *inputregion(void)
-{
-    int x, y;
-    region *r = 0;
-
-    while (!r) {
-        printf("X? ");
-        fgets(buf, sizeof(buf), stdin);
-        if (buf[0] == 0)
-            return 0;
-        x = atoi(buf);
-
-        printf("Y? ");
-        fgets(buf, sizeof(buf), stdin);
-        if (buf[0] == 0)
-            return 0;
-        y = atoi(buf);
-
-        r = findregion(x, y);
-
-        if (!r) {
-            puts("No such region.");
-        }
-    }
-    return r;
-}
-
 faction * createfaction(int no)
 {
     char name[NAMESIZE];
@@ -1587,29 +1561,12 @@ faction * addplayer(region * r, const char * email, int no)
     return f;
 }
 
-void addplayers(void)
+void addplayers(region *r, stream *strm)
 {
-    FILE * F;
-    region *r;
-    faction *f;
     int no = 0;
-
-    r = inputregion();
-
-    if (!r)
-        return;
-
-    printf("Name of players file? ");
-    fgets(buf, sizeof(buf), stdin);
-
-    if (!buf[0])
-        return;
-
-    F = cfopen(buf, "r");
-
     for (;;) {
-        if (!fgetbuf(F)) {
-            fclose(F);
+        faction *f;
+        if (strm->api->readln(strm->handle, buf, sizeof(buf))!=0) {
             break;
         }
 

@@ -42,6 +42,34 @@ static void test_orders(CuTest * tc)
     mstream_done(&strm);
 }
 
+static void test_addplayers(CuTest * tc)
+{
+    region * r;
+    unit * u;
+    stream strm;
+    faction * f;
+    int n;
+
+    cleargame();
+    r = create_region(0, 0, T_FOREST);
+    mstream_init(&strm);
+
+    strm.api->writeln(strm.handle, "enno@eressea.de");
+    strm.api->writeln(strm.handle, "atlantis@eressea.de");
+    strm.api->rewind(strm.handle);
+
+    addplayers(r, &strm);
+    CuAssertPtrNotNull(tc, factions);
+    CuAssertPtrNotNull(tc, r->units);
+    for (u=r->units,f=factions,n=0;f && u;f=f->next,u=u->next,++n) {
+        CuAssertPtrEquals(tc, u->faction, f);
+        CuAssertIntEquals(tc, 1, u->number);
+    }
+    CuAssertIntEquals(tc, 2, n);
+    CuAssertPtrEquals(tc, 0, u);
+    CuAssertPtrEquals(tc, 0, f);
+}
+
 static void test_addplayer(CuTest * tc)
 {
     region * r;
@@ -214,6 +242,7 @@ static void test_directions(CuTest * tc)
 static void test_movewhere(CuTest * tc)
 {
     region *r, *c;
+    char buf[256];
 
     cleargame();
     makeblock(0, 0);
@@ -436,6 +465,7 @@ int main(void)
     CuSuite *suite = CuSuiteNew();
 
     SUITE_ADD_TEST(suite, test_orders);
+    SUITE_ADD_TEST(suite, test_addplayers);
     SUITE_ADD_TEST(suite, test_fileops);
     SUITE_ADD_TEST(suite, test_faction_password);
     SUITE_ADD_TEST(suite, test_readwrite);
