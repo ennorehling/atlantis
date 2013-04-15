@@ -32,6 +32,7 @@ typedef enum {
     K_MOVE,
     K_NAME,
     K_NORTH,
+    K_PASSWORD,
     K_PAY,
     K_PRODUCE,
     K_PROMOTE,

@@ -19,14 +19,13 @@
 #include "rtl.h"
 #include "bool.h"
 
-#include "storage/storage.h"
-#include "storage/binarystore.h"
-#include "storage/textstore.h"
-#include "storage/stream.h"
-#include "storage/filestream.h"
-
-#include "crypto/mtrand.h"
-#include "crypto/base64.h"
+#include <storage.h>
+#include <binarystore.h>
+#include <textstore.h>
+#include <stream.h>
+#include <filestream.h>
+#include <mtrand.h>
+#include <base64.h>
 
 const storage * store = &binary_store;
 
@@ -138,6 +137,7 @@ const char *keywords[] = {
     "move",
     "name",
     "north",
+    "password",
     "pay",
     "produce",
     "promote",
@@ -3810,6 +3810,13 @@ void processorders(void)
 
                 case K_ACCEPT:
                     togglerf(u, S, &u->faction->accept);
+                    break;
+    
+                case K_PASSWORD:
+                    s = getstr();
+                    faction_setpassword(u->faction, s);
+                    sprintf(buf2, "The faction's password was changed to '%s'.", s);
+                    addstrlist(&u->faction->messages, buf2);
                     break;
 
                 case K_ADDRESS:

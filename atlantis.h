@@ -27,6 +27,7 @@ extern char buf[];
 extern const keyword_t directions[];
 
 void read_orders(struct stream * strm);
+void processorders(void);
 void reports(void);
 void initgame(void);
 void cleargame(void);

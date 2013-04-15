@@ -54,11 +54,7 @@ static void test_bad_password(CuTest * tc)
     f = addplayer(r, 0, 0);
     faction_setpassword(f, "mypassword");
     u = r->units;
-    CuAssertPtrNotNull(tc, r);
-    CuAssertPtrNotNull(tc, f);
-    CuAssertPtrNotNull(tc, u);
 
-    CuAssertIntEquals(tc, 0, f->lastorders);
     turn = 1;
     mstream_init(&strm);
 
@@ -68,6 +64,37 @@ static void test_bad_password(CuTest * tc)
     read_orders(&strm);
     CuAssertPtrEquals(tc, 0, u->orders);
     CuAssertIntEquals(tc, 0, f->lastorders);
+
+    mstream_done(&strm);
+}
+
+static void test_password_cmd(CuTest * tc)
+{
+    region * r;
+    unit * u;
+    faction * f;
+    char line[256];
+    stream strm;
+
+    cleargame();
+    turn = 0;
+    r = create_region(1, 1, T_PLAIN);
+    f = addplayer(r, 0, 0);
+    faction_setpassword(f, "mypassword");
+    u = r->units;
+
+    mstream_init(&strm);
+
+    sprintf(line, "FACTION %d mypassword", f->no);
+    strm.api->writeln(strm.handle, line);
+    sprintf(line, "UNIT %d", u->no);
+    strm.api->writeln(strm.handle, line);
+    strm.api->writeln(strm.handle, "PASSWORD newpassword");
+    strm.api->rewind(strm.handle);
+    read_orders(&strm);
+    processorders();
+    CuAssertIntEquals(tc, 1, (int)faction_checkpassword(f, "newpassword"));
+    CuAssertIntEquals(tc, 0, (int)faction_checkpassword(f, "mypassword"));
 
     mstream_done(&strm);
 }
@@ -542,6 +569,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_orders);
     SUITE_ADD_TEST(suite, test_good_password);
     SUITE_ADD_TEST(suite, test_bad_password);
+    SUITE_ADD_TEST(suite, test_password_cmd);
     SUITE_ADD_TEST(suite, test_addplayers);
     SUITE_ADD_TEST(suite, test_fileops);
     SUITE_ADD_TEST(suite, test_faction_password);
