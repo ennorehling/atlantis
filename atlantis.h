@@ -21,6 +21,11 @@ typedef struct strlist {
     char s[1];
 } strlist;
 
+typedef struct rect {
+    int left, top, width, height;
+} rect;
+
+extern rect world;
 extern int turn;
 extern const char *keywords[];
 extern char buf[];

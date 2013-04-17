@@ -877,6 +877,8 @@ char *spelldata[] = {
     "to cast.",
 };
 
+rect world = { 0, 0, 0, 0 };
+
 int atoip(const char *s)
 {
     int n;
@@ -1105,6 +1107,12 @@ int transform(int *x, int *y, int direction)
     }
     else {
         return EINVAL;
+    }
+    if (world.width && world.height) {
+        if (*x<world.left) *x+=world.width;
+        if (*y<world.top) *y+=world.height;
+        if (*x>=world.left+world.width) *x-=world.width;
+        if (*y>=world.top+world.height) *y-=world.height;
     }
     return 0;
 }
@@ -1841,7 +1849,6 @@ void makeblock(int x1, int y1)
             initregion(r);
         }
     }
-    connectregions();
 }
 
 char *gamedate(void)
@@ -2993,6 +3000,13 @@ void readorders(const char * filename)
     fclose(F);
 }
 
+void update_world(int minx, int miny, int maxx, int maxy) {
+    world.left = minx;
+    world.top = miny;
+    world.width = maxx - minx + 1;
+    world.height = maxy - miny + 1;
+}
+
 void makeworld(void)
 {
     int x, y, minx, miny, maxx, maxy;
@@ -3018,6 +3032,7 @@ void makeworld(void)
             }
         }
     }
+    update_world(minx, miny, maxx, maxy);
     connectregions();
 }
 
@@ -3721,10 +3736,6 @@ region *movewhere(region * r)
     }
 
     if (dir>=0) {
-        if (!r->connect[dir]) {
-            makeblock(x, y);
-            assert(r->connect[dir]);
-        }
         return r->connect[dir];
     }
     return 0;
@@ -5975,6 +5986,12 @@ int readgame(void)
     building *b, **bp;
     ship *sh, **shp;
     unit *u, **up;
+    int minx, miny, maxx, maxy;
+
+    minx = INT_MAX;
+    maxx = INT_MIN;
+    miny = INT_MAX;
+    maxy = INT_MIN;
 
     sprintf(buf, "data/%d", turn);
     F = cfopen(buf, "rb");
@@ -6050,6 +6067,10 @@ int readgame(void)
         store->r_int(H, &y);
         store->r_int(H, &n);
         r = create_region(x, y, (terrain_t)n);
+        minx = MIN(minx, r->x);
+        maxx = MAX(maxx, r->x);
+        miny = MIN(miny, r->y);
+        maxy = MAX(maxy, r->y);
         if (store->r_str(H, name, sizeof(name))==0) {
             region_setname(r, name[0] ? name : 0);
         }
@@ -6191,7 +6212,7 @@ int readgame(void)
         for (u = r->units; u; u = u->next)
             u->faction->alive = 1;
     }
-
+    update_world(minx, miny, maxx, maxy);
     connectregions();
     fclose(F);
     return 0;
@@ -6217,6 +6238,7 @@ void freestrlist(strlist ** slist) {
 
 void cleargame(void)
 {
+    memset(&world, 0, sizeof(world));
     while (regions) {
         region * r = regions;
         regions = r->next;

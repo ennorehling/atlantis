@@ -12,6 +12,23 @@
 #include <stdio.h>
 #include <string.h>
 
+static void test_wrapmap(CuTest * tc)
+{
+    region *r;
+
+    cleargame();
+    makeblock(0, 0);
+    makeworld();
+
+    CuAssertIntEquals(tc, 0, world.left);
+    CuAssertIntEquals(tc, 0, world.top);
+    CuAssertIntEquals(tc, BLOCKSIZE+2*BLOCKBORDER, world.width);
+    CuAssertIntEquals(tc, BLOCKSIZE+2*BLOCKBORDER, world.height);
+    r = findregion(0, 0);
+    CuAssertIntEquals(tc, world.height-world.top-1, r->connect[0]->y); /* NORTH */
+    CuAssertIntEquals(tc, world.height-world.top-1, r->connect[3]->x); /* WEST */
+}
+
 static void test_good_password(CuTest * tc)
 {
     region * r;
@@ -228,18 +245,10 @@ static void test_createregion(CuTest * tc)
 static void test_makeblock(CuTest * tc)
 {
     region * r;
-    int d, x, y;
+    int x, y;
 
     cleargame();
     makeblock(0, 0);
-    r = findregion(1, 1);
-    for (d=0;d!=MAXDIRECTIONS;++d) {
-        int x = r->x, y = r->y;
-        transform(&x, &y, d);
-        CuAssertPtrNotNull(tc, r->connect[d]);
-        CuAssertIntEquals(tc, x, r->connect[d]->x);
-        CuAssertIntEquals(tc, y, r->connect[d]->y);
-    }
     for (x = 0; x != BLOCKSIZE + BLOCKBORDER * 2; x++) {
         for (y = 0; y != BLOCKSIZE + BLOCKBORDER * 2; y++) {
             r = findregion(x, y);
@@ -347,6 +356,7 @@ static void test_movewhere(CuTest * tc)
 
     cleargame();
     makeblock(0, 0);
+    makeworld();
     c = findregion(1, 1);
 
     sprintf(buf, "%s %s", keywords[K_MOVE], keywords[K_NORTH]);
@@ -565,6 +575,7 @@ int main(void)
     CuString *output = CuStringNew();
     CuSuite *suite = CuSuiteNew();
 
+    SUITE_ADD_TEST(suite, test_wrapmap);
     SUITE_ADD_TEST(suite, test_addplayer);
     SUITE_ADD_TEST(suite, test_orders);
     SUITE_ADD_TEST(suite, test_good_password);
