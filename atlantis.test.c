@@ -206,21 +206,20 @@ static void test_addplayer(CuTest * tc)
 
 static void test_origin(CuTest * tc)
 {
-    region * r;
+    region *r1, *r2, *r3;
     faction * f;
     
     cleargame();
-    r = create_region(1, 1, T_PLAIN);
-    region_setname(r, "foo");
-    f = addplayer(r, "enno@example.com", 0);
-    CuAssertStrEquals(tc, "foo (0,0)", regionid(r, f));
-
-    r = create_region(1, 2, T_OCEAN);
-    CuAssertStrEquals(tc, "(0,1)", regionid(r, f));
-
-    r = create_region(2, 2, T_PLAIN);
-    region_setname(r, "bar");
-    CuAssertStrEquals(tc, "bar (1,1)", regionid(r, f));
+    r1 = create_region(1, 1, T_PLAIN);
+    r2 = create_region(1, 2, T_OCEAN);
+    r3 = create_region(2, 2, T_PLAIN);
+    region_setname(r1, "foo");
+    region_setname(r3, "bar");
+    makeworld();
+    f = addplayer(r1, "enno@example.com", 0);
+    CuAssertStrEquals(tc, "foo (0,0)", regionid(r1, f));
+    CuAssertStrEquals(tc, "(0,1)", regionid(r2, f));
+    CuAssertStrEquals(tc, "bar (1,1)", regionid(r3, f));
 }
 
 static void test_createregion(CuTest * tc)

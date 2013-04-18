@@ -1887,13 +1887,18 @@ char *factionid(faction * f)
 
 const char *regionid(const region * r, const faction * f)
 {
+    int x, y;
     static char buf[NAMESIZE + 20];
     assert(f);
     assert(r);
-    if (r->terrain == T_OCEAN)
-        sprintf(buf, "(%d,%d)", r->x - f->origin_x, r->y - f->origin_y);
-    else
-        sprintf(buf, "%s (%d,%d)", region_getname(r), r->x - f->origin_x, r->y - f->origin_y);
+    x = (r->x - f->origin_x + world.width) % world.width;
+    y = (r->y - f->origin_y + world.height) % world.height;
+    if (r->terrain == T_OCEAN) {
+        sprintf(buf, "(%d,%d)", x, y);
+    }
+    else {
+        sprintf(buf, "%s (%d,%d)", region_getname(r), x, y);
+    }
     return buf;
 }
 
