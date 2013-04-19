@@ -37,9 +37,9 @@ if not os.path.exists(path):
     sys.exit(-2)
 
 if turn is None:
-    cur.execute("SELECT email, filename FROM orders ORDER BY date DESC")
+    cur.execute("SELECT email, filename FROM orders ORDER BY date ASC")
 else:
-    cur.execute("SELECT email, filename FROM orders ORDER BY date DESC WHERE turn=?" % (turn, ))
+    cur.execute("SELECT email, filename FROM orders ORDER BY date ASC WHERE turn=?" % (turn, ))
 
 for row in cur.fetchall():
     email, filename = row
