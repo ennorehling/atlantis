@@ -8,6 +8,7 @@
 
 #include "atlantis.h"
 #include "region.h"
+#include "faction.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -138,6 +139,18 @@ int main(int argc, char **argv)
             reports();
             break;
 
+        case 's':
+            printf("Faction to change password for? ");
+            fgets(buf, sizeof(buf), stdin);
+            i = atoi(buf);
+            if (i>0) {
+                faction * f = findfaction(i);
+                if (f) {
+                    printf("New password? ");
+                    fgets(buf, sizeof(buf), stdin);
+                    faction_setpassword(f, buf);
+                }
+            }
         case 'f':
             fixme();
             break;
@@ -160,6 +173,7 @@ int main(int argc, char **argv)
         default:
             puts("C - Create New Continent.\n"
                  "A - Add New Players.\n"
+                 "S - Set New Password for a Faction.\n"
                  "M - Draw Map.\n"
                  "P - Process Game Turn.\n"
                  "R - Write Reports.\n"
