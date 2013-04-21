@@ -2843,7 +2843,11 @@ int mayboard(region * r, unit * u, ship * sh)
 
 int getbuf(stream * strm)
 {
-    return strm->api->readln(strm->handle, buf, sizeof(buf));
+    int err;
+    do {
+        err = strm->api->readln(strm->handle, buf, sizeof(buf));
+    } while (err==0 && buf[0]=='#');
+    return err;
 }
 
 void read_orders(stream * strm)
@@ -4050,13 +4054,14 @@ void processorders(void)
                     break;
                 }
 
+#ifdef ENABLE_FIND                  
     /* FIND orders */
 
     puts("Processing FIND orders...");
 
-    for (r = regions; r; r = r->next)
-        for (u = r->units; u; u = u->next)
-            for (S = u->orders; S; S = S->next)
+    for (r = regions; r; r = r->next) {
+        for (u = r->units; u; u = u->next) {
+            for (S = u->orders; S; S = S->next) {
                 switch (igetkeyword(S->s)) {
                 case K_FIND:
                     f = getfaction();
@@ -4071,7 +4076,10 @@ void processorders(void)
                     sparagraph(&u->faction->messages, buf, 0, 0);
                     break;
                 }
-
+            }
+        }
+    }
+#endif
     /* Leaving and entering buildings and ships */
 
     puts("Processing leaving and entering orders...");
