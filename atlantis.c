@@ -28,6 +28,7 @@
 #include <base64.h>
 
 const storage * store = &binary_store;
+int ignore_password = 0;
 
 #include <errno.h>
 #include <stdio.h>
@@ -2867,7 +2868,7 @@ NEXTPLAYER:
             f = findfaction(i);
             passwd = getstr();
 
-            if (f && faction_checkpassword(f, passwd)) {
+            if (f && (ignore_password || faction_checkpassword(f, passwd))) {
                 f->lastorders = turn;
                 for (r = regions; r; r = r->next)
                     for (u = r->units; u; u = u->next)

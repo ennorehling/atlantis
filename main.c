@@ -93,6 +93,9 @@ int main(int argc, char **argv)
     for (i = 1; i != argc; ++i) {
         if (argv[i][0] == '-') {
             switch (argv[i][1]) {
+            case 'i':
+                ignore_password = 1;
+                break;
             case 'p': /* process */
                 orders = (argv[i][2]) ? (argv[i] + 2) : argv[++i];
                 break;

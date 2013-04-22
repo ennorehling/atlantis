@@ -27,6 +27,7 @@ typedef struct rect {
 
 extern rect world;
 extern int turn;
+extern int ignore_password;
 extern const char *keywords[];
 extern char buf[];
 extern const keyword_t directions[];
