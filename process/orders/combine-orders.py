@@ -14,20 +14,22 @@ LOG_FILENAME='orders.log'
 logging.basicConfig(filename=LOG_FILENAME, level=logging.INFO)
 logger = logging
 
-turn=None
-try:
-    fo = open('turn', 'r')
-    line = fo.readline()
-    turn = int(line)
-    fo.close()
-except IOError:
-    logger.warning("could not open 'turn' file, processing all orders")
+def read_turn(path, default=0):
+    filename = os.path.join(path, 'turn')
+    try:
+        fo = fopen(filename, 'r')
+        line = fo.readline()
+        return int(line)
+    except:
+        logger.error("could not open '%s' file, assuming turn=%d" % (filename, default))
+        return default
 
 game = sys.argv[1] or '1'
 game = 'game-' + game
 if not os.path.exists(game):
     logger.error('invalid game %s' % game)
     sys.exit(-1)
+turn = read_turn(game)
 logger.info('using database %s/atlantis.db' % game)
 con = sqlite3.connect('%s/atlantis.db' % game)
 cur = con.cursor()
@@ -39,7 +41,8 @@ if not os.path.exists(path):
 if turn is None:
     cur.execute("SELECT email, filename FROM orders ORDER BY date ASC")
 else:
-    cur.execute("SELECT email, filename FROM orders ORDER BY date ASC WHERE turn=?" % (turn, ))
+    q="SELECT email, filename FROM orders WHERE turn=%d ORDER BY date ASC" % (turn, )
+    cur.execute(q)
 
 for row in cur.fetchall():
     email, filename = row

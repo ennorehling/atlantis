@@ -29,15 +29,6 @@ def send_report(smtp, path, email, subject):
     msg['Subject'] = subject
     smtp.sendmail(me, [email], msg.as_string())
 
-def read_turn():
-    try:
-        fo = fopen('turn', 'r')
-        line = fo.readline()
-        return int(line)
-    except:
-        logger.error("could not open 'turn' file, assuming turn=%d" % (turn, ))
-    return 0
-
 smtp = smtplib.SMTP('localhost')
 game = sys.argv[1]
 path = os.path.join('game-'+game, 'send')

@@ -136,18 +136,19 @@ def get_sender(header):
         if replyto is None: return None
     return parseaddr(replyto)[1]
 
+def read_turn(path, default=0):
+    try:
+        fo = fopen(os.path.join(path, 'turn'), 'r')
+        line = fo.readline()
+        return int(line)
+    except:
+        logger.error("could not open 'turn' file, assuming turn=%d" % (default, ))
+        return default
+
 # the main body of the script:
 logging.basicConfig(filename=LOG_FILENAME, level=logging.INFO)
 logger = logging
 
-turn = 0
-try:
-    fo = fopen('turn', 'r')
-    line = fo.readline()
-    turn = int(line)
-except:
-    turn = 0
-    logger.error("could not open 'turn' file, assuming turn=%d" % (turn, ))
 infile = sys.stdin
 if len(sys.argv)>1:
     logger.info('reading message from %s' % sys.argv[1])
@@ -173,6 +174,7 @@ game = m.expand(r'game-\1')
 if not os.path.exists(game):
     logger.error('invalid game %s' % game)
     sys.exit(-3)
+turn = read_turn(game)
 logger.info('using database %s/atlantis.db' % game)
 con = sqlite3.connect('%s/atlantis.db' % game)
 cur = con.cursor()
