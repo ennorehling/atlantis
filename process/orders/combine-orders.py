@@ -17,12 +17,12 @@ logger = logging
 def read_turn(path, default=0):
     filename = os.path.join(path, 'turn')
     try:
-        fo = fopen(filename, 'r')
-        line = fo.readline()
-        return int(line)
+        fo = open(filename, 'r')
     except:
         logger.error("could not open '%s' file, assuming turn=%d" % (filename, default))
         return default
+    line = fo.readline()
+    return int(line)
 
 game = sys.argv[1] or '1'
 game = 'game-' + game

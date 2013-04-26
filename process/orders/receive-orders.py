@@ -138,12 +138,12 @@ def get_sender(header):
 
 def read_turn(path, default=0):
     try:
-        fo = fopen(os.path.join(path, 'turn'), 'r')
-        line = fo.readline()
-        return int(line)
+        fo = open(os.path.join(path, 'turn'), 'r')
     except:
         logger.error("could not open 'turn' file, assuming turn=%d" % (default, ))
         return default
+    line = fo.readline()
+    return int(line)
 
 # the main body of the script:
 logging.basicConfig(filename=LOG_FILENAME, level=logging.INFO)
