@@ -166,7 +166,7 @@ else:
     logger = logging.getLogger(sender)
     logger.info("received orders from " + sender)
 subject = message.get('Subject')
-m = re.match(r'ATLA\S*\s*ORDER\S*\s*GAME\s*(\d+)', subject)
+m = re.match(r'ATLA\S*\s*ORDER\S*\s*GAME\s*(\d+)', subject, re.IGNORECASE)
 if m is None:
     logger.error("invalid subject line: " + str(subject))
     sys.exit(-2)
