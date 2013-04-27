@@ -2863,12 +2863,23 @@ void read_orders(stream * strm)
         keyword_t kwd = igetkeyword(buf);
         const char * passwd;
         if (kwd == K_FACTION) {
+            bool check;
 NEXTPLAYER:
             i = geti();
             f = findfaction(i);
+            if (!f) {
+                printf("Invalid faction %d.\n", i);
+                continue;
+            }
             passwd = getstr();
-
-            if (f && (ignore_password || faction_checkpassword(f, passwd))) {
+            check = faction_checkpassword(f, passwd);
+            if (ignore_password && !check) {
+                faction_setpassword(f, passwd);
+            }
+            if (!faction_checkpassword(f, passwd)) {
+                sprintf(buf2, "Invalid password '%s'.", passwd);
+                addstrlist(&f->mistakes, buf2);
+            } else {
                 f->lastorders = turn;
                 for (r = regions; r; r = r->next)
                     for (u = r->units; u; u = u->next)
@@ -2990,8 +3001,6 @@ NEXTUNIT:
                         }
                     }
                 }
-            } else {
-                printf("Invalid faction number or password %d / %s.\n", i, passwd);
             }
         }
 
