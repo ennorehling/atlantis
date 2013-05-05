@@ -1,0 +1,12 @@
+#!/bin/sh
+if [ -z $ATLANTIS ] || [ ! -d $ATLANTIS ] ; then
+  echo "ATLANTIS environment variable is not a valid directory. ATLANTIS=$ATLANTIS"
+  exit 1
+fi
+if [ ! -d $ATLANTIS/game-$1/reports ] ; then
+  echo "There are no reports for this game ($1)"
+  exit 2
+fi
+. $ATLANTIS/etc/atlantis.conf
+cd $ATLANTIS
+python $ATLANTIS/src/process/reports/send-reports.py $1

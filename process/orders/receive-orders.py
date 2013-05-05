@@ -184,7 +184,7 @@ if not os.path.exists(path):
 
 while sender is not None:
     try:
-        filename = uuid.uuid4().hex
+        filename = "%d-%s" % (turn, uuid.uuid4().hex)
         cur.execute("INSERT INTO orders (email, filename, turn) VALUES (?, ?, ?)", (sender, filename, turn))
         break
     except sqlite3.IntegrityError:
