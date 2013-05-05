@@ -61,7 +61,7 @@ TARGET_LINK_LIBRARIES (rtl_tests ${CUTEST_LIBRARIES} )
 ADD_TEST (rtl rtl_tests)
 
 ADD_CUSTOM_TARGET(check COMMAND ${CMAKE_CTEST_COMMAND}
-                  DEPENDS rtl_tests atlantis_tests storage_tests CuTestTest atlantis
+                  DEPENDS md5main rtl_tests atlantis_tests storage_tests CuTestTest atlantis
                   COMMENT "Running Tests...")
 
 IF (MSVC)
