@@ -6,7 +6,7 @@
 	url = git://github.com/eressea/cmake.git
 [submodule "storage"]
 	path = storage
-	url = git://github.com/badgerman/storage.git
+	url = git@github.com:badgerman/storage.git
 [submodule "crypto"]
 	path = crypto
 	url = git://github.com/badgerman/crypto.git
