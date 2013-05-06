@@ -10,3 +10,6 @@
 [submodule "crypto"]
 	path = crypto
 	url = git://github.com/badgerman/crypto.git
+[submodule "cJSON"]
+	path = cJSON
+	url = git@github.com:badgerman/cJSON.git

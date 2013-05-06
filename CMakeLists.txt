@@ -45,15 +45,20 @@ INCLUDE_DIRECTORIES (${CMAKE_BINARY_DIR}/include)
 INCLUDE_DIRECTORIES (${CUTEST_INCLUDE_DIR})
 INCLUDE_DIRECTORIES (${STORAGE_INCLUDE_DIR})
 INCLUDE_DIRECTORIES (${CRYPTO_INCLUDE_DIR})
+INCLUDE_DIRECTORIES (${CMAKE_CURRENT_SOURCE_DIR}/cJSON)
 
-SET( ATLANTIS_SRC atlantis.c atlantis.h spells.h skills.h items.h unit.h unit.c region.h region.c faction.h faction.c keywords.h settings.h )
+SET( ATLANTIS_SRC atlantis.c atlantis.h spells.h skills.h items.h
+unit.h unit.c region.h region.c faction.h faction.c keywords.h
+settings.h json.c json.h cJSON/cJSON.c )
 SET( RTL_SRC rtl.c rtl.h )
 ADD_EXECUTABLE(atlantis main.c ${ATLANTIS_SRC} ${RTL_SRC} )
 TARGET_LINK_LIBRARIES (atlantis ${CRYPTO_LIBRARIES} ${STORAGE_LIBRARIES} )
+TARGET_LINK_LIBRARIES (atlantis m)
 
 
 ADD_EXECUTABLE(atlantis_tests atlantis.test.c ${ATLANTIS_SRC} ${RTL_SRC} )
 TARGET_LINK_LIBRARIES (atlantis_tests ${STORAGE_LIBRARIES} ${CUTEST_LIBRARIES} ${CRYPTO_LIBRARIES} )
+TARGET_LINK_LIBRARIES (atlantis_tests m)
 ADD_TEST (atlantis atlantis_tests)
 
 ADD_EXECUTABLE(rtl_tests rtl.test.c ${RTL_SRC})
