@@ -59,6 +59,7 @@ static cJSON * show_item(const unit * u, int i) {
 static cJSON * show_unit(const faction *f, const region * r, const unit * u) {
     cJSON *json, *chld;
     const char * str;
+    int i;
 
     json = cJSON_CreateObject();
     cJSON_AddNumberToObject(json, "id", u->no);
@@ -79,7 +80,6 @@ static cJSON * show_unit(const faction *f, const region * r, const unit * u) {
         cJSON_AddNumberToObject(json, "building", u->building->no);
     }
     if (f==u->faction) {
-        int i;
         cJSON_AddStringToObject(json, "default", u->lastorder);
         cJSON_AddNumberToObject(json, "money", u->money);
         if (u->behind) {
@@ -97,14 +97,14 @@ static cJSON * show_unit(const faction *f, const region * r, const unit * u) {
                 cJSON_AddItemToArray(chld, show_skill(u, (skill_t)i));
             }
         }
-        chld = 0;
-        for (i = 0; i != MAXITEMS; i++) {
-            if (u->items[i]) {
-                if (!chld) {
-                    cJSON_AddItemToObject(json, "items", chld = cJSON_CreateArray());
-                }
-                cJSON_AddItemToArray(chld, show_item(u, i));
+    }
+    chld = 0;
+    for (i = 0; i != MAXITEMS; i++) {
+        if (u->items[i]) {
+            if (!chld) {
+                cJSON_AddItemToObject(json, "items", chld = cJSON_CreateArray());
             }
+            cJSON_AddItemToArray(chld, show_item(u, i));
         }
     }
     return json;
