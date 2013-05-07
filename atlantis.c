@@ -10,6 +10,7 @@
 #include "faction.h"
 #include "keywords.h"
 #include "region.h"
+#include "ship.h"
 #include "unit.h"
 #include "settings.h"
 #include "spells.h"
@@ -46,12 +47,6 @@ int ignore_password = 0;
 #define xisdigit(c) ((c) == '-' || ((c) >= '0' && (c) <= '9'))
 #define addptr(p,i) ((void *)(((char *)p) + i))
 
-typedef enum {
-    SH_LONGBOAT,
-    SH_CLIPPER,
-    SH_GALLEON,
-} ship_t;
-
 typedef struct list {
     struct list *next;
 } list;
@@ -64,15 +59,6 @@ typedef struct building {
     int size;
     int sizeleft;
 } building;
-
-typedef struct ship {
-    struct ship *next;
-    int no;
-    char name[NAMESIZE];
-    char display[DISPLAYSIZE];
-    ship_t type;
-    int left;
-} ship;
 
 typedef struct order {
     struct order *next;
@@ -1916,7 +1902,7 @@ char *shipid(ship * sh)
 {
     static char buf[NAMESIZE + 20];
 
-    sprintf(buf, "%s (%d)", sh->name, sh->no);
+    sprintf(buf, "%s (%d)", ship_getname(sh), sh->no);
     return buf;
 }
 
@@ -3437,9 +3423,9 @@ void report(faction * f)
             if (sh->left)
                 scat(", under construction");
 
-            if (sh->display[0]) {
+            if (ship_getdisplay(sh)) {
                 scat("; ");
-                scat(sh->display);
+                scat(ship_getdisplay(sh));
             }
 
             scat(".");
@@ -3963,7 +3949,7 @@ void processorders(void)
                             break;
                         }
 
-                        sn = u->ship->display;
+                        ship_setdisplay(u->ship, getstr());
                         break;
 
                     case K_UNIT:
@@ -4025,7 +4011,7 @@ void processorders(void)
                             break;
                         }
 
-                        sn = u->ship->name;
+                        ship_setname(u->ship, getstr());
                         break;
 
                     case K_UNIT:
@@ -5444,7 +5430,8 @@ void processorders(void)
 
                     do {
                         sh->no++;
-                        sprintf(sh->name, "Ship %d", sh->no);
+                        sprintf(buf2, "Ship %d", sh->no);
+                        ship_setname(sh, buf2);
                     }
                     while (findship(sh->no));
 
@@ -6130,13 +6117,18 @@ int readgame(void)
 
         while (--n2 >= 0) {
             int no;
-            store->r_int(H, &no);
+            char temp[DISPLAYSIZE];
 
+            store->r_int(H, &no);
             sh = cmalloc(sizeof(ship));
             sh->no = no;
 
-            store->r_str(H, sh->name, sizeof(sh->name));
-            store->r_str(H, sh->display, sizeof(sh->display));
+            if (store->r_str(H, name, sizeof(temp))==0) {
+                ship_setname(sh, temp);
+            }
+            if (store->r_str(H, temp, sizeof(temp))==0) {
+                ship_setdisplay(sh, temp);
+            }
             store->r_int(H, &no);
             sh->type = (ship_t)no;
             store->r_int(H, &sh->left);
@@ -6398,8 +6390,8 @@ int writegame(void)
 
         for (sh = r->ships; sh; sh = sh->next) {
             store->w_int(H, sh->no);
-            store->w_str(H, sh->name);
-            store->w_str(H, sh->display);
+            store->w_str(H, ship_getname(sh));
+            store->w_str(H, ship_getdisplay(sh));
             store->w_int(H, sh->type);
             store->w_int(H, sh->left);
         }

@@ -2,12 +2,28 @@
 #include "atlantis.h"
 #include "faction.h"
 #include "region.h"
+#include "ship.h"
 #include "unit.h"
 #include "storage/stream.h"
 #include <cJSON.h>
 #include <string.h>
 #include <stdlib.h>
 
+
+static cJSON * show_ship(const faction *f, const region * r, const ship * s) {
+    cJSON *json;
+    const char * str;
+    
+    json = cJSON_CreateObject();
+    cJSON_AddNumberToObject(json, "id", s->no);
+    if ((str = ship_getname(s))!=0) {
+        cJSON_AddStringToObject(json, "name", str);
+    }
+    if ((str = ship_getdisplay(s))!=0) {
+        cJSON_AddStringToObject(json, "display", str);
+    }
+    return json;
+}
 
 static cJSON * show_unit(const faction *f, const region * r, const unit * u) {
     cJSON *json;
@@ -22,7 +38,7 @@ static cJSON * show_unit(const faction *f, const region * r, const unit * u) {
         cJSON_AddStringToObject(json, "name", str);
     }
     if ((str = unit_getdisplay(u))!=0) {
-        cJSON_AddStringToObject(json, "info", str);
+        cJSON_AddStringToObject(json, "display", str);
     }
     cJSON_AddNumberToObject(json, "number", u->number);
     if (f==u->faction) {
@@ -53,6 +69,7 @@ static cJSON * show_region(const faction *f, const region * r) {
     cJSON *json, *chld;
     int x, y, d;
     unit * u;
+    ship *s;
     const char * str;
     
     x = (r->x - f->origin_x + world.width) % world.width;
@@ -70,6 +87,12 @@ static cJSON * show_region(const faction *f, const region * r) {
     for (d=0;d!=MAXDIRECTIONS;++d) {
         if (r->connect[d]) {
             cJSON_AddItemToArray(chld, show_exit(f, r, d));
+        }
+    }
+    if (r->ships) {
+        cJSON_AddItemToObject(json, "ships", chld = cJSON_CreateArray());
+        for (s=r->ships;s;s=s->next) {
+            cJSON_AddItemToArray(chld, show_ship(f, r, s));
         }
     }
     cJSON_AddItemToObject(json, "units", chld = cJSON_CreateArray());
