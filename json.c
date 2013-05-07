@@ -37,8 +37,18 @@ static cJSON * show_ship(const faction *f, const region * r, const ship * s) {
     return json;
 }
 
-static cJSON * show_unit(const faction *f, const region * r, const unit * u) {
+static cJSON * show_skill(const unit * u, skill_t sk) {
     cJSON *json;
+    
+    json = cJSON_CreateObject();
+    cJSON_AddStringToObject(json, "skill", skillnames[sk]);
+    cJSON_AddNumberToObject(json, "level", effskill(u, sk));
+    cJSON_AddNumberToObject(json, "total", u->skills[sk]);
+    return json;
+}
+
+static cJSON * show_unit(const faction *f, const region * r, const unit * u) {
+    cJSON *json, *chld;
     const char * str;
 
     json = cJSON_CreateObject();
@@ -60,6 +70,7 @@ static cJSON * show_unit(const faction *f, const region * r, const unit * u) {
         cJSON_AddNumberToObject(json, "building", u->building->no);
     }
     if (f==u->faction) {
+        int i;
         cJSON_AddStringToObject(json, "default", u->lastorder);
         cJSON_AddNumberToObject(json, "money", u->money);
         if (u->behind) {
@@ -67,6 +78,12 @@ static cJSON * show_unit(const faction *f, const region * r, const unit * u) {
         }
         if (u->guard) {
             cJSON_AddTrueToObject(json, "guard");
+        }
+        cJSON_AddItemToObject(json, "skills", chld = cJSON_CreateArray());
+        for (i = 0; i != MAXSKILLS; i++) {
+            if (u->skills[i]) {
+                cJSON_AddItemToArray(chld, show_skill(u, (skill_t)i));
+            }
         }
     }
     return json;

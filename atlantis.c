@@ -29,6 +29,7 @@
 #include <filestream.h>
 #include <mtrand.h>
 #include <base64.h>
+#include <cJSON.h>
 
 const storage * store = &binary_store;
 int ignore_password = 0;
@@ -3259,10 +3260,13 @@ void report(faction * f)
     unit *u;
     strlist *S;
     stream strm;
+    cJSON * json;
 
     sprintf(buf, "reports/%d-%d.json", turn, f->no);
     fstream_init(&strm, cfopen(buf, "w"));
-    json_write(json_report(f), &strm);
+    json = json_report(f);
+    json_write(json, &strm);
+    cJSON_Delete(json);
     fstream_done(&strm);
 
     sprintf(buf, "reports/%d-%d.r", turn, f->no);
