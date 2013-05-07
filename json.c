@@ -78,9 +78,9 @@ static cJSON * show_exit(const faction *f, const region * r, int d) {
     region * rn = r->connect[d];
 
     json = cJSON_CreateObject();
-    strncpy(buf, keywords[directions[r->terrain]], sizeof(buf));
+    strncpy(buf, keywords[directions[d]], sizeof(buf));
     cJSON_AddStringToObject(json, "direction", rtl_strlwr(buf));
-    cJSON_AddStringToObject(json, "terrain", terrainnames[r->terrain]);
+    cJSON_AddStringToObject(json, "terrain", terrainnames[rn->terrain]);
     return json;
 }
 
