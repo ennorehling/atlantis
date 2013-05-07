@@ -10,6 +10,7 @@
 #define ATLANTIS_H
 
 #include "keywords.h"
+#include "items.h"
 #include <stdio.h>
 
 struct region;
@@ -34,6 +35,7 @@ extern char buf[];
 extern const keyword_t directions[];
 extern const char *terrainnames[];
 extern const char *skillnames[];
+extern const char *itemnames[2][MAXITEMS];
 
 void read_orders(struct stream * strm);
 void processorders(void);

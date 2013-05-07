@@ -5,6 +5,8 @@
 #include "building.h"
 #include "ship.h"
 #include "unit.h"
+#include "items.h"
+#include "keywords.h"
 #include "storage/stream.h"
 #include <cJSON.h>
 #include <string.h>
@@ -47,6 +49,13 @@ static cJSON * show_skill(const unit * u, skill_t sk) {
     return json;
 }
 
+static cJSON * show_item(const unit * u, int i) {
+    cJSON *json = cJSON_CreateObject();
+    cJSON_AddStringToObject(json, "name", itemnames[0][i]);
+    cJSON_AddNumberToObject(json, "count", u->items[i]);
+    return json;
+}
+
 static cJSON * show_unit(const faction *f, const region * r, const unit * u) {
     cJSON *json, *chld;
     const char * str;
@@ -79,10 +88,22 @@ static cJSON * show_unit(const faction *f, const region * r, const unit * u) {
         if (u->guard) {
             cJSON_AddTrueToObject(json, "guard");
         }
-        cJSON_AddItemToObject(json, "skills", chld = cJSON_CreateArray());
+        chld = 0;
         for (i = 0; i != MAXSKILLS; i++) {
             if (u->skills[i]) {
+                if (!chld) {
+                    cJSON_AddItemToObject(json, "skills", chld = cJSON_CreateArray());
+                }
                 cJSON_AddItemToArray(chld, show_skill(u, (skill_t)i));
+            }
+        }
+        chld = 0;
+        for (i = 0; i != MAXITEMS; i++) {
+            if (u->items[i]) {
+                if (!chld) {
+                    cJSON_AddItemToObject(json, "items", chld = cJSON_CreateArray());
+                }
+                cJSON_AddItemToArray(chld, show_item(u, i));
             }
         }
     }
