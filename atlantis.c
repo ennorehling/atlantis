@@ -10,6 +10,7 @@
 #include "faction.h"
 #include "keywords.h"
 #include "region.h"
+#include "building.h"
 #include "ship.h"
 #include "unit.h"
 #include "settings.h"
@@ -50,15 +51,6 @@ int ignore_password = 0;
 typedef struct list {
     struct list *next;
 } list;
-
-typedef struct building {
-    struct building *next;
-    int no;
-    char name[NAMESIZE];
-    char display[DISPLAYSIZE];
-    int size;
-    int sizeleft;
-} building;
 
 typedef struct order {
     struct order *next;

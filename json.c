@@ -2,6 +2,7 @@
 #include "atlantis.h"
 #include "faction.h"
 #include "region.h"
+#include "building.h"
 #include "ship.h"
 #include "unit.h"
 #include "storage/stream.h"
@@ -9,6 +10,16 @@
 #include <string.h>
 #include <stdlib.h>
 
+
+static cJSON * show_strlist(const strlist *slist) {
+    cJSON *json, *chld;
+    json = cJSON_CreateArray();
+    while (slist) {
+        cJSON_AddItemToArray(json, cJSON_CreateString(slist->s));
+        slist = slist->next;
+    }
+    return json;
+}
 
 static cJSON * show_ship(const faction *f, const region * r, const ship * s) {
     cJSON *json;
@@ -42,7 +53,14 @@ static cJSON * show_unit(const faction *f, const region * r, const unit * u) {
         cJSON_AddStringToObject(json, "display", str);
     }
     cJSON_AddNumberToObject(json, "number", u->number);
+    if (u->ship) {
+        cJSON_AddNumberToObject(json, "ship", u->ship->no);
+    }
+    if (u->building) {
+        cJSON_AddNumberToObject(json, "building", u->building->no);
+    }
     if (f==u->faction) {
+        cJSON_AddStringToObject(json, "default", u->lastorder);
         cJSON_AddNumberToObject(json, "money", u->money);
         if (u->behind) {
             cJSON_AddTrueToObject(json, "behind");
@@ -84,6 +102,10 @@ static cJSON * show_region(const faction *f, const region * r) {
     cJSON_AddStringToObject(json, "terrain", terrainnames[r->terrain]);
     cJSON_AddNumberToObject(json, "x", x);
     cJSON_AddNumberToObject(json, "y", y);
+    if (r->peasants) {
+        cJSON_AddNumberToObject(json, "peasants", r->peasants);
+        cJSON_AddNumberToObject(json, "money", r->money);
+    }
     cJSON_AddItemToObject(json, "exits", chld = cJSON_CreateArray());
     for (d=0;d!=MAXDIRECTIONS;++d) {
         if (r->connect[d]) {
@@ -112,6 +134,27 @@ cJSON * json_report(const faction * f) {
     cJSON_AddItemToObject(json, "faction", chld = cJSON_CreateObject());
     cJSON_AddNumberToObject(chld, "id", f->no);
     cJSON_AddStringToObject(chld, "name", faction_getname(f));
+
+    if (f->mistakes) {
+        cJSON_AddItemToObject(json, "mistakes", show_strlist(f->mistakes));
+    }
+    if (f->messages) {
+        cJSON_AddItemToObject(json, "messages", show_strlist(f->messages));
+    }
+    if (f->battles) {
+        cJSON_AddItemToObject(json, "battles", show_strlist(f->battles));
+    }
+    if (f->events) {
+        cJSON_AddItemToObject(json, "events", show_strlist(f->events));
+    }
+    /* spells */
+    if (f->allies) {
+        rfaction * rf;
+        cJSON_AddItemToObject(json, "allies", chld = cJSON_CreateArray());
+        for (rf = f->allies; rf; rf = rf->next) {
+            cJSON_AddItemToArray(json, cJSON_CreateNumber(rf->faction->no));
+        }
+    }
     cJSON_AddItemToObject(json, "regions", chld = cJSON_CreateArray());
     
     for (r = regions; r; r = r->next) {
