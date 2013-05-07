@@ -16,6 +16,7 @@
 #include "skills.h"
 #include "items.h"
 
+#include "json.h"
 #include "rtl.h"
 #include "bool.h"
 
@@ -1118,7 +1119,7 @@ int transform(int *x, int *y, int direction)
     return 0;
 }
 
-int effskill(unit * u, int i)
+int effskill(const unit * u, int i)
 {
     int n, j, result;
 
@@ -1137,7 +1138,7 @@ int effskill(unit * u, int i)
     return result;
 }
 
-bool ispresent(faction * f, region * r)
+bool ispresent(const faction * f, const region * r)
 {
     unit *u;
 
@@ -1148,7 +1149,7 @@ bool ispresent(faction * f, region * r)
     return false;
 }
 
-int cansee(faction * f, region * r, unit * u)
+int cansee(const faction * f, const region * r, const unit * u)
 {
     int n, o;
     int cansee;
@@ -3285,6 +3286,12 @@ void report(faction * f)
     ship *sh;
     unit *u;
     strlist *S;
+    stream strm;
+
+    sprintf(buf, "reports/%d-%d.json", turn, f->no);
+    fstream_init(&strm, cfopen(buf, "w"));
+    json_write(json_report(f), &strm);
+    fstream_done(&strm);
 
     sprintf(buf, "reports/%d-%d.r", turn, f->no);
     F = cfopen(buf, "w");

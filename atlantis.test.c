@@ -27,6 +27,7 @@ static void test_json_report(CuTest * tc) {
     r = create_region(1, 1, T_PLAIN);
     f = addplayer(r, 0, 0);
     u = r->units;
+    makeworld();
 
     json = json_report(f);
     CuAssertIntEquals(tc, turn, cJSON_GetObjectItem(json, "turn")->valueint);
