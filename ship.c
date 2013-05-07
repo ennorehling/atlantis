@@ -5,6 +5,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+const char *shiptypenames[] = {
+    "longboat",
+    "clipper",
+    "galleon",
+};
+
 const char * ship_getname(const struct ship *self)
 {
     return self->name_;

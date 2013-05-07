@@ -16,6 +16,7 @@ static cJSON * show_ship(const faction *f, const region * r, const ship * s) {
     
     json = cJSON_CreateObject();
     cJSON_AddNumberToObject(json, "id", s->no);
+    cJSON_AddStringToObject(json, "type", shiptypenames[s->type]);
     if ((str = ship_getname(s))!=0) {
         cJSON_AddStringToObject(json, "name", str);
     }

@@ -504,12 +504,6 @@ int maxoutput[NUMTERRAINS][4] = {
     {0, 100, 0, 0},
 };
 
-char *shiptypenames[] = {
-    "longboat",
-    "clipper",
-    "galleon",
-};
-
 int shipcapacity[] = {
     200,
     800,

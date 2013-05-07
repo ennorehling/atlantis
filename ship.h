@@ -30,6 +30,8 @@ typedef struct ship {
     int left;
 } ship;
 
+extern const char *shiptypenames[];
+
 const char * ship_getname(const struct ship *u);
 void ship_setname(struct ship *u, const char *name);
 const char * ship_getdisplay(const struct ship *u);
