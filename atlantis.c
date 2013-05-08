@@ -628,7 +628,7 @@ const char *spellnames[] = {
     "Teleport",
 };
 
-char spelllevel[] = {
+int spelllevel[] = {
     4,
     2,
     1,
@@ -682,7 +682,7 @@ char iscombatspell[] = {
     0,
 };
 
-char *spelldata[] = {
+const char *spelldata[] = {
     "This spell creates a black whirlwind of energy which destroys all life, "
     "leaving frozen corpses with faces twisted into expressions of horror. Cast "
     "in battle, it kills from 2 to 1250 enemies.",
@@ -1518,7 +1518,6 @@ faction * addplayer(region * r, const char * email, int no)
     faction * f;
     unit * u;
     int i;
-    unsigned long pwdata[4];
     char msg[1024];
     
     if (no==0) ++no;
@@ -1527,9 +1526,10 @@ faction * addplayer(region * r, const char * email, int no)
     f = createfaction(no);
     faction_setaddr(f, email);
 
-    for (i=0;i!=4;++i) pwdata[i] = genrand_int32();
-    base64_encode((unsigned char *)pwdata, sizeof(pwdata), buf2, sizeof(buf2));
-    buf2[8] = 0;
+    for (i=0;i!=4;++i) {
+        sprintf(buf2+i*4, "%4x", genrand_int32());
+    }
+    buf2[16] = 0;
     faction_setpassword(f, buf2);
     sprintf(msg, "Your password is '%s'.", buf2);
     addstrlist(&f->messages, msg);
@@ -1881,7 +1881,7 @@ char *buildingid(building * b)
 {
     static char buf[NAMESIZE + 20];
 
-    sprintf(buf, "%s (%d)", b->name, b->no);
+    sprintf(buf, "%s (%d)", building_getname(b), b->no);
     return buf;
 }
 
@@ -1901,7 +1901,7 @@ char *unitid(unit * u)
     return buf;
 }
 
-void sparagraph(strlist ** SP, char *s, int indent, int mark)
+void sparagraph(strlist ** SP, const char *s, int indent, int mark)
 {
     int i, j, width;
     int firstline;
@@ -2068,7 +2068,7 @@ void spunit(strlist ** SP, faction * f, region * r, unit * u, int indent,
     sparagraph(SP, buf, indent, (u->faction == f) ? '*' : '-');
 }
 
-void mistake(faction * f, char *s, char *comment)
+void mistake(faction * f, const char *s, const char *comment)
 {
     static char buf[512];
 
@@ -2076,7 +2076,7 @@ void mistake(faction * f, char *s, char *comment)
     sparagraph(&f->mistakes, buf, 0, 0);
 }
 
-void mistake2(unit * u, strlist * S, char *comment)
+void mistake2(unit * u, strlist * S, const char *comment)
 {
     static char buf[512];
 
@@ -2084,12 +2084,12 @@ void mistake2(unit * u, strlist * S, char *comment)
     sparagraph(&u->faction->mistakes, buf, 0, 0);
 }
 
-void mistakeu(unit * u, char *comment)
+void mistakeu(unit * u, const char *comment)
 {
     mistake(u->faction, u->thisorder, comment);
 }
 
-void addevent(faction * f, char *s)
+void addevent(faction * f, const char *s)
 {
     sparagraph(&f->events, s, 0, 0);
 }
@@ -3216,7 +3216,7 @@ void rpstrlist(FILE * F, strlist * S)
     }
 }
 
-void centrestrlist(FILE * F, char *s, strlist * S)
+void centrestrlist(FILE * F, const char *s, strlist * S)
 {
     if (S) {
         rnl(F);
@@ -3227,7 +3227,7 @@ void centrestrlist(FILE * F, char *s, strlist * S)
     }
 }
 
-void rparagraph(FILE * F, char *s, int indent, int mark)
+void rparagraph(FILE * F, char const *s, int indent, int mark)
 {
     strlist *S;
 
@@ -3383,9 +3383,9 @@ void report(faction * f)
         for (b = r->buildings; b; b = b->next) {
             sprintf(buf, "%s, size %d", buildingid(b), b->size);
 
-            if (b->display[0]) {
+            if (building_getdisplay(b)) {
                 scat("; ");
-                scat(b->display);
+                scat(building_getdisplay(b));
             }
 
             scat(".");
@@ -3743,6 +3743,24 @@ region *movewhere(region * r)
     return 0;
 }
 
+const char * getname(unit * u, const char *ord) {
+    const char *s2 = getstr();
+    int i;
+
+    if (!s2[0]) {
+        mistake(u->faction, ord, "No name given");
+        return 0;
+    }
+    
+    for (i = 0; s2[i]; i++) {
+        if (s2[i] == '(') {
+            mistake(u->faction, ord, "Names cannot contain brackets");
+            return 0;
+        }
+    }
+    return s2;
+}
+
 void processorders(void)
 {
     int i, j, k;
@@ -3925,7 +3943,7 @@ void processorders(void)
                             break;
                         }
 
-                        sn = u->building->display;
+                        building_setdisplay(u->building, getstr());
                         break;
 
                     case K_SHIP:
@@ -3969,8 +3987,6 @@ void processorders(void)
                     break;
 
                 case K_NAME:
-                    sn = 0;
-
                     switch (getkeyword()) {
                     case K_BUILDING:
                         if (!u->building) {
@@ -3983,11 +3999,11 @@ void processorders(void)
                             break;
                         }
 
-                        sn = u->building->name;
+                        building_setname(u->building, getname(u, S->s));
                         break;
 
                     case K_FACTION:
-                        faction_setname(u->faction, getstr());
+                        faction_setname(u->faction, getname(u, S->s));
                         break;
 
                     case K_SHIP:
@@ -4001,38 +4017,17 @@ void processorders(void)
                             break;
                         }
 
-                        ship_setname(u->ship, getstr());
+                        ship_setname(u->ship, getname(u, S->s));
                         break;
 
                     case K_UNIT:
-                        unit_setname(u, getstr());
+                        unit_setname(u, getname(u, S->s));
                         break;
 
                     default:
                         mistake2(u, S, "Order not recognized");
                         break;
                     }
-
-                    if (!sn)
-                        break;
-
-                    s2 = getstr();
-
-                    if (!s2[0]) {
-                        mistake2(u, S, "No name given");
-                        break;
-                    }
-
-                    for (i = 0; s2[i]; i++)
-                        if (s2[i] == '(')
-                            break;
-
-                    if (s2[i]) {
-                        mistake2(u, S, "Names cannot contain brackets");
-                        break;
-                    }
-
-                    nstrcpy(sn, s2, NAMESIZE);
                     break;
 
                 case K_RESHOW:
@@ -5334,7 +5329,8 @@ void processorders(void)
 
                         do {
                             b->no++;
-                            sprintf(b->name, "Building %d", b->no);
+                            sprintf(buf2, "Building %d", b->no);
+                            building_setname(b, buf2);
                         }
                         while (findbuilding(b->no));
 
@@ -6068,7 +6064,7 @@ int readgame(void)
 
     while (--n >= 0) {
         int x, y, n;
-        char name[NAMESIZE];
+        char name[DISPLAYSIZE];
 
         store->r_int(H, &x);
         store->r_int(H, &y);
@@ -6092,8 +6088,12 @@ int readgame(void)
             b = cmalloc(sizeof(building));
 
             store->r_int(H, &b->no);
-            store->r_str(H, b->name, sizeof(b->name));
-            store->r_str(H, b->display, sizeof(b->display));
+            if (store->r_str(H, name, sizeof(name))==0) {
+                building_setname(b, name);
+            }
+            if (store->r_str(H, name, sizeof(name))==0) {
+                building_setdisplay(b, name);
+            }
             store->r_int(H, &b->size);
 
             addlist2(bp, b);
@@ -6371,8 +6371,8 @@ int writegame(void)
 
         for (b = r->buildings; b; b = b->next) {
             store->w_int(H, b->no);
-            store->w_str(H, b->name);
-            store->w_str(H, b->display);
+            store->w_str(H, building_getname(b));
+            store->w_str(H, building_getdisplay(b));
             store->w_int(H, b->size);
         }
 

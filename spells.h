@@ -29,4 +29,8 @@ typedef enum {
     MAXSPELLS
 } spell_t;
 
+extern const char *spellnames[];
+extern int spelllevel[];
+extern const char *spelldata[];
+
 #endif

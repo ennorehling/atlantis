@@ -48,7 +48,7 @@ INCLUDE_DIRECTORIES (${CRYPTO_INCLUDE_DIR})
 INCLUDE_DIRECTORIES (${CMAKE_CURRENT_SOURCE_DIR}/cJSON)
 
 SET( ATLANTIS_SRC atlantis.c atlantis.h spells.h skills.h items.h
-unit.h unit.c ship.h ship.c region.h region.c faction.h faction.c keywords.h
+unit.h unit.c building.h building.c ship.h ship.c region.h region.c faction.h faction.c keywords.h
 settings.h json.c json.h cJSON/cJSON.c cJSON/cJSON.h )
 SET( RTL_SRC rtl.c rtl.h )
 ADD_EXECUTABLE(atlantis main.c ${ATLANTIS_SRC} ${RTL_SRC} )

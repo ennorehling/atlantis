@@ -7,6 +7,7 @@
 #include "unit.h"
 #include "items.h"
 #include "keywords.h"
+#include "spells.h"
 #include "storage/stream.h"
 #include <cJSON.h>
 #include <string.h>
@@ -34,6 +35,27 @@ static cJSON * show_ship(const faction *f, const region * r, const ship * s) {
         cJSON_AddStringToObject(json, "name", str);
     }
     if ((str = ship_getdisplay(s))!=0) {
+        cJSON_AddStringToObject(json, "display", str);
+    }
+    if (s->left) {
+        cJSON_AddTrueToObject(json, "finished");
+    } else {
+        cJSON_AddFalseToObject(json, "finished");
+    }
+    return json;
+}
+
+static cJSON * show_building(const faction *f, const region * r, const building * b) {
+    cJSON *json;
+    const char * str;
+    
+    json = cJSON_CreateObject();
+    cJSON_AddNumberToObject(json, "id", b->no);
+    cJSON_AddNumberToObject(json, "size", b->size);
+    if ((str = building_getname(b))!=0) {
+        cJSON_AddStringToObject(json, "name", str);
+    }
+    if ((str = building_getdisplay(b))!=0) {
         cJSON_AddStringToObject(json, "display", str);
     }
     return json;
@@ -97,6 +119,18 @@ static cJSON * show_unit(const faction *f, const region * r, const unit * u) {
                 cJSON_AddItemToArray(chld, show_skill(u, (skill_t)i));
             }
         }
+        chld = 0;
+        for (i = 0; i != MAXSPELLS; i++) {
+            if (u->spells[i]) {
+                if (!chld) {
+                    cJSON_AddItemToObject(json, "spells", chld = cJSON_CreateArray());
+                }
+                cJSON_AddItemToArray(chld, cJSON_CreateString(spellnames[i]));
+            }
+        }
+        if (u->combatspell >= 0) {
+            cJSON_AddItemToObject(json, "combatspell", cJSON_CreateString(spellnames[u->combatspell]));
+        }
     }
     chld = 0;
     for (i = 0; i != MAXITEMS; i++) {
@@ -126,7 +160,6 @@ static cJSON * show_region(const faction *f, const region * r) {
     cJSON *json, *chld;
     int x, y, d;
     unit * u;
-    ship *s;
     const char * str;
     
     x = (r->x - f->origin_x + world.width) % world.width;
@@ -150,7 +183,15 @@ static cJSON * show_region(const faction *f, const region * r) {
             cJSON_AddItemToArray(chld, show_exit(f, r, d));
         }
     }
+    if (r->buildings) {
+        building *b;
+        cJSON_AddItemToObject(json, "buildings", chld = cJSON_CreateArray());
+        for (b=r->buildings;b;b=b->next) {
+            cJSON_AddItemToArray(chld, show_building(f, r, b));
+        }
+    }
     if (r->ships) {
+        ship *s;
         cJSON_AddItemToObject(json, "ships", chld = cJSON_CreateArray());
         for (s=r->ships;s;s=s->next) {
             cJSON_AddItemToArray(chld, show_ship(f, r, s));
@@ -166,6 +207,7 @@ static cJSON * show_region(const faction *f, const region * r) {
 cJSON * json_report(const faction * f) {
     cJSON *json, *chld;
     region *r;
+    int i;
     
     json = cJSON_CreateObject();
     cJSON_AddNumberToObject(json, "turn", turn);
@@ -173,6 +215,20 @@ cJSON * json_report(const faction * f) {
     cJSON_AddNumberToObject(chld, "id", f->no);
     cJSON_AddStringToObject(chld, "name", faction_getname(f));
 
+    chld = 0;
+    for (i = 0; i != MAXSPELLS; i++) {
+        if (f->showdata[i]) {
+            cJSON *spell;
+            if (!chld) {
+                cJSON_AddItemToObject(json, "spells", chld = cJSON_CreateArray());
+            }
+            cJSON_AddItemToArray(chld, spell = cJSON_CreateArray());
+            cJSON_AddNumberToObject(spell, "level", spelllevel[i]);
+            cJSON_AddStringToObject(spell, "name", spellnames[i]);
+            cJSON_AddStringToObject(spell, "description", spelldata[i]);
+        }
+    }
+    
     if (f->mistakes) {
         cJSON_AddItemToObject(json, "mistakes", show_strlist(f->mistakes));
     }
