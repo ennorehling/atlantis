@@ -31,7 +31,6 @@
 #include <base64.h>
 #include <cJSON.h>
 
-const storage * store = &binary_store;
 int ignore_password = 0;
 
 #include <errno.h>
@@ -48,6 +47,9 @@ int ignore_password = 0;
 #define addlist2(l,p) (*l = p, l = &p->next)
 #define xisdigit(c) ((c) == '-' || ((c) >= '0' && (c) <= '9'))
 #define addptr(p,i) ((void *)(((char *)p) + i))
+
+static void (*store_init)(struct storage *, FILE *) = binstore_init;
+static void (*store_done)(struct storage *) = binstore_done;
 
 typedef struct list {
     struct list *next;
@@ -5961,15 +5963,15 @@ void processorders(void)
                        "Please send orders next turn if you wish to continue playing.");
 }
 
-void rstrlist(HSTORAGE H, strlist ** SP)
+void rstrlist(storage * store, strlist ** SP)
 {
     int n;
     strlist *S;
 
-    store->r_int(H, &n);
+    store->api->r_int(store->handle, &n);
 
     while (--n >= 0) {
-        if (store->r_str(H, buf, sizeof(buf))==0) {
+        if (store->api->r_str(store->handle, buf, sizeof(buf))==0) {
             S = makestrlist(buf);
             addlist2(SP, S);
         }
@@ -5981,7 +5983,6 @@ void rstrlist(HSTORAGE H, strlist ** SP)
 int readgame(void)
 {
     FILE * F;
-    HSTORAGE H;
     int i, n, n2;
     faction *f, **fp;
     rfaction *rf, **rfp;
@@ -5990,6 +5991,7 @@ int readgame(void)
     ship *sh, **shp;
     unit *u, **up;
     int minx, miny, maxx, maxy;
+    storage store;
 
     minx = INT_MAX;
     maxx = INT_MIN;
@@ -5998,58 +6000,58 @@ int readgame(void)
 
     sprintf(buf, "data/%d", turn);
     F = cfopen(buf, "rb");
-    H = store->begin(F, IO_READ);
+    store_init(&store, F);
 
     printf("Reading turn %d...\n", turn);
 
-    store->r_int(H, &n);
+    store.api->r_int(store.handle, &n);
     if (turn!=n) return -1;
 
     /* Read factions */
 
-    store->r_int(H, &n);
+    store.api->r_int(store.handle, &n);
     if (n<0) return -2;
     fp = &factions;
 
     while (--n >= 0) {
         int no;
 
-        store->r_int(H, &no);
+        store.api->r_int(store.handle, &no);
         f = create_faction(no);
-        if (store->r_str(H, buf, sizeof(buf))==0) {
+        if (store.api->r_str(store.handle, buf, sizeof(buf))==0) {
             faction_setname(f, buf[0] ? buf : 0);
         }
-        if (store->r_str(H, buf, sizeof(buf))==0) {
+        if (store.api->r_str(store.handle, buf, sizeof(buf))==0) {
             faction_setaddr(f, buf[0] ? buf : 0);
         }
-        if (store->r_str(H, buf, sizeof(buf))==0) {
+        if (store.api->r_str(store.handle, buf, sizeof(buf))==0) {
             faction_setpwhash(f, buf[0] ? buf : 0);
         }
-        store->r_int(H, &f->lastorders);
-        store->r_int(H, &f->origin_x);
-        store->r_int(H, &f->origin_y);
+        store.api->r_int(store.handle, &f->lastorders);
+        store.api->r_int(store.handle, &f->origin_x);
+        store.api->r_int(store.handle, &f->origin_y);
 
         for (i = 0; i != MAXSPELLS; i++) {
-            store->r_int(H, &no);
+            store.api->r_int(store.handle, &no);
             f->showdata[i] = (no != 0);
         }
 
-        store->r_int(H, &n2);
+        store.api->r_int(store.handle, &n2);
         if (n2<0) return -6;
         rfp = &f->allies;
 
         while (--n2 >= 0) {
             rf = cmalloc(sizeof(rfaction));
-            store->r_int(H, &rf->factionno);
+            store.api->r_int(store.handle, &rf->factionno);
             addlist2(rfp, rf);
         }
 
         *rfp = 0;
 
-        rstrlist(H, &f->mistakes);
-        rstrlist(H, &f->messages);
-        rstrlist(H, &f->battles);
-        rstrlist(H, &f->events);
+        rstrlist(&store, &f->mistakes);
+        rstrlist(&store, &f->messages);
+        rstrlist(&store, &f->battles);
+        rstrlist(&store, &f->events);
 
         addlist2(fp, f);
     }
@@ -6058,7 +6060,7 @@ int readgame(void)
 
     /* Read regions */
 
-    store->r_int(H, &n);
+    store.api->r_int(store.handle, &n);
     if (n<0) return -3;
     rp = &regions;
 
@@ -6066,42 +6068,42 @@ int readgame(void)
         int x, y, n;
         char name[DISPLAYSIZE];
 
-        store->r_int(H, &x);
-        store->r_int(H, &y);
-        store->r_int(H, &n);
+        store.api->r_int(store.handle, &x);
+        store.api->r_int(store.handle, &y);
+        store.api->r_int(store.handle, &n);
         r = create_region(x, y, (terrain_t)n);
         minx = MIN(minx, r->x);
         maxx = MAX(maxx, r->x);
         miny = MIN(miny, r->y);
         maxy = MAX(maxy, r->y);
-        if (store->r_str(H, name, sizeof(name))==0) {
+        if (store.api->r_str(store.handle, name, sizeof(name))==0) {
             region_setname(r, name[0] ? name : 0);
         }
-        store->r_int(H, &r->peasants);
-        store->r_int(H, &r->money);
+        store.api->r_int(store.handle, &r->peasants);
+        store.api->r_int(store.handle, &r->money);
 
-        store->r_int(H, &n2);
+        store.api->r_int(store.handle, &n2);
         if (n2<0) return -4;
         bp = &r->buildings;
 
         while (--n2 >= 0) {
             b = cmalloc(sizeof(building));
 
-            store->r_int(H, &b->no);
-            if (store->r_str(H, name, sizeof(name))==0) {
+            store.api->r_int(store.handle, &b->no);
+            if (store.api->r_str(store.handle, name, sizeof(name))==0) {
                 building_setname(b, name);
             }
-            if (store->r_str(H, name, sizeof(name))==0) {
+            if (store.api->r_str(store.handle, name, sizeof(name))==0) {
                 building_setdisplay(b, name);
             }
-            store->r_int(H, &b->size);
+            store.api->r_int(store.handle, &b->size);
 
             addlist2(bp, b);
         }
 
         *bp = 0;
 
-        store->r_int(H, &n2);
+        store.api->r_int(store.handle, &n2);
         if (n2<0) return -5;
         shp = &r->ships;
 
@@ -6109,26 +6111,26 @@ int readgame(void)
             int no;
             char temp[DISPLAYSIZE];
 
-            store->r_int(H, &no);
+            store.api->r_int(store.handle, &no);
             sh = cmalloc(sizeof(ship));
             sh->no = no;
 
-            if (store->r_str(H, name, sizeof(temp))==0) {
+            if (store.api->r_str(store.handle, name, sizeof(temp))==0) {
                 ship_setname(sh, temp);
             }
-            if (store->r_str(H, temp, sizeof(temp))==0) {
+            if (store.api->r_str(store.handle, temp, sizeof(temp))==0) {
                 ship_setdisplay(sh, temp);
             }
-            store->r_int(H, &no);
+            store.api->r_int(store.handle, &no);
             sh->type = (ship_t)no;
-            store->r_int(H, &sh->left);
+            store.api->r_int(store.handle, &sh->left);
 
             addlist2(shp, sh);
         }
 
         *shp = 0;
 
-        store->r_int(H, &n2);
+        store.api->r_int(store.handle, &n2);
         if (n2<0) return -7;
         up = &r->units;
 
@@ -6138,46 +6140,46 @@ int readgame(void)
             char temp[DISPLAYSIZE];
             int no, fno;
 
-            store->r_int(H, &no);
-            store->r_int(H, &fno);
+            store.api->r_int(store.handle, &no);
+            store.api->r_int(store.handle, &fno);
             u = create_unit(findfaction(fno), no);
 
-            if (store->r_str(H, temp, sizeof(temp))==0) {
+            if (store.api->r_str(store.handle, temp, sizeof(temp))==0) {
                 unit_setname(u, temp[0] ? temp : 0);
             }
-            if (store->r_str(H, temp, sizeof(temp))==0) {
+            if (store.api->r_str(store.handle, temp, sizeof(temp))==0) {
                 unit_setdisplay(u, temp[0] ? temp : 0);
             }
-            store->r_int(H, &u->number);
-            store->r_int(H, &u->money);
+            store.api->r_int(store.handle, &u->number);
+            store.api->r_int(store.handle, &u->money);
 
-            store->r_int(H, &no);
+            store.api->r_int(store.handle, &no);
             u->building = findbuilding(no);
 
-            store->r_int(H, &no);
+            store.api->r_int(store.handle, &no);
             u->ship = findship(no);
 
-            store->r_int(H, &no);
+            store.api->r_int(store.handle, &no);
             u->owner = no != 0;
-            store->r_int(H, &no);
+            store.api->r_int(store.handle, &no);
             u->behind = no != 0;
-            store->r_int(H, &no);
+            store.api->r_int(store.handle, &no);
             u->guard = no != 0;
 
-            store->r_str(H, u->lastorder, sizeof(u->lastorder));
-            store->r_int(H, &u->combatspell);
+            store.api->r_str(store.handle, u->lastorder, sizeof(u->lastorder));
+            store.api->r_int(store.handle, &u->combatspell);
 
             for (i = 0; i != MAXSKILLS; i++) {
-                store->r_int(H, &no);
+                store.api->r_int(store.handle, &no);
                 u->skills[i] = (skill_t)no;
             }
             for (i = 0; i != MAXITEMS; i++) {
-                store->r_int(H, &no);
+                store.api->r_int(store.handle, &no);
                 u->items[i] = (item_t)no;
             }
 
             for (i = 0; i != MAXSPELLS; i++) {
-                store->r_int(H, &no);
+                store.api->r_int(store.handle, &no);
                 u->spells[i] = (spell_t)no;
             }
 
@@ -6226,16 +6228,16 @@ int readgame(void)
     }
     update_world(minx, miny, maxx, maxy);
     connectregions();
-    fclose(F);
+    store_done(&store);
     return 0;
 }
 
-void wstrlist(HSTORAGE H, strlist * S)
+void wstrlist(storage * store, strlist * S)
 {
-    store->w_int(H, listlen(S));
+    store->api->w_int(store->handle, listlen(S));
 
     while (S) {
-        store->w_str(H, S->s);
+        store->api->w_str(store->handle, S->s);
         S = S->next;
     }
 }
@@ -6309,8 +6311,7 @@ void cleargame(void)
 
 int writegame(void)
 {
-    HSTORAGE H;
-    FILE * F;
+    storage store;
     int i;
     faction *f;
     rfaction *rf;
@@ -6320,105 +6321,103 @@ int writegame(void)
     unit *u;
 
     sprintf(buf, "data/%d", turn);
-    F = cfopen(buf, "wb");
     printf("Writing turn %d...\n", turn);
 
-    H = store->begin(F, IO_WRITE);
-    store->w_int(H, turn);
+    store_init(&store, cfopen(buf, "wb"));
+    store.api->w_int(store.handle, turn);
 
     /* Write factions */
 
-    store->w_int(H, listlen(factions));
+    store.api->w_int(store.handle, listlen(factions));
 
     for (f = factions; f; f = f->next) {
-        store->w_int(H, f->no);
-        store->w_str(H, faction_getname(f));
-        store->w_str(H, faction_getaddr(f));
-        store->w_str(H, faction_getpwhash(f));
-        store->w_int(H, f->lastorders);
-        store->w_int(H, f->origin_x);
-        store->w_int(H, f->origin_y);
+        store.api->w_int(store.handle, f->no);
+        store.api->w_str(store.handle, faction_getname(f));
+        store.api->w_str(store.handle, faction_getaddr(f));
+        store.api->w_str(store.handle, faction_getpwhash(f));
+        store.api->w_int(store.handle, f->lastorders);
+        store.api->w_int(store.handle, f->origin_x);
+        store.api->w_int(store.handle, f->origin_y);
 
         for (i = 0; i != MAXSPELLS; i++) {
-            store->w_int(H, f->showdata[i]);
+            store.api->w_int(store.handle, f->showdata[i]);
         }
 
-        store->w_int(H, listlen(f->allies));
+        store.api->w_int(store.handle, listlen(f->allies));
 
         for (rf = f->allies; rf; rf = rf->next) {
-            store->w_int(H, rf->faction->no);
+            store.api->w_int(store.handle, rf->faction->no);
         }
 
-        wstrlist(H, f->mistakes);
-        wstrlist(H, f->messages);
-        wstrlist(H, f->battles);
-        wstrlist(H, f->events);
+        wstrlist(&store, f->mistakes);
+        wstrlist(&store, f->messages);
+        wstrlist(&store, f->battles);
+        wstrlist(&store, f->events);
     }
 
     /* Write regions */
 
-    store->w_int(H, listlen(regions));
+    store.api->w_int(store.handle, listlen(regions));
 
     for (r = regions; r; r = r->next) {
-        store->w_int(H, r->x);
-        store->w_int(H, r->y);
-        store->w_int(H, r->terrain);
-        store->w_str(H, region_getname(r));
-        store->w_int(H, r->peasants);
-        store->w_int(H, r->money);
+        store.api->w_int(store.handle, r->x);
+        store.api->w_int(store.handle, r->y);
+        store.api->w_int(store.handle, r->terrain);
+        store.api->w_str(store.handle, region_getname(r));
+        store.api->w_int(store.handle, r->peasants);
+        store.api->w_int(store.handle, r->money);
 
-        store->w_int(H, listlen(r->buildings));
+        store.api->w_int(store.handle, listlen(r->buildings));
 
         for (b = r->buildings; b; b = b->next) {
-            store->w_int(H, b->no);
-            store->w_str(H, building_getname(b));
-            store->w_str(H, building_getdisplay(b));
-            store->w_int(H, b->size);
+            store.api->w_int(store.handle, b->no);
+            store.api->w_str(store.handle, building_getname(b));
+            store.api->w_str(store.handle, building_getdisplay(b));
+            store.api->w_int(store.handle, b->size);
         }
 
-        store->w_int(H, listlen(r->ships));
+        store.api->w_int(store.handle, listlen(r->ships));
 
         for (sh = r->ships; sh; sh = sh->next) {
-            store->w_int(H, sh->no);
-            store->w_str(H, ship_getname(sh));
-            store->w_str(H, ship_getdisplay(sh));
-            store->w_int(H, sh->type);
-            store->w_int(H, sh->left);
+            store.api->w_int(store.handle, sh->no);
+            store.api->w_str(store.handle, ship_getname(sh));
+            store.api->w_str(store.handle, ship_getdisplay(sh));
+            store.api->w_int(store.handle, sh->type);
+            store.api->w_int(store.handle, sh->left);
         }
 
-        store->w_int(H, listlen(r->units));
+        store.api->w_int(store.handle, listlen(r->units));
 
         for (u = r->units; u; u = u->next) {
-            store->w_int(H, u->no);
-            store->w_int(H, u->faction->no);
-            store->w_str(H, unit_getname(u));
-            store->w_str(H, unit_getdisplay(u));
-            store->w_int(H, u->number);
-            store->w_int(H, u->money);
-            store->w_int(H, u->building ? u->building->no : 0);
-            store->w_int(H, u->ship ? u->ship->no : 0);
-            store->w_int(H, u->owner);
-            store->w_int(H, u->behind);
-            store->w_int(H, u->guard);
-            store->w_str(H, u->lastorder);
-            store->w_int(H, u->combatspell);
+            store.api->w_int(store.handle, u->no);
+            store.api->w_int(store.handle, u->faction->no);
+            store.api->w_str(store.handle, unit_getname(u));
+            store.api->w_str(store.handle, unit_getdisplay(u));
+            store.api->w_int(store.handle, u->number);
+            store.api->w_int(store.handle, u->money);
+            store.api->w_int(store.handle, u->building ? u->building->no : 0);
+            store.api->w_int(store.handle, u->ship ? u->ship->no : 0);
+            store.api->w_int(store.handle, u->owner);
+            store.api->w_int(store.handle, u->behind);
+            store.api->w_int(store.handle, u->guard);
+            store.api->w_str(store.handle, u->lastorder);
+            store.api->w_int(store.handle, u->combatspell);
 
             for (i = 0; i != MAXSKILLS; i++) {
-                store->w_int(H, u->skills[i]);
+                store.api->w_int(store.handle, u->skills[i]);
             }
 
             for (i = 0; i != MAXITEMS; i++) {
-                store->w_int(H, u->items[i]);
+                store.api->w_int(store.handle, u->items[i]);
             }
 
             for (i = 0; i != MAXSPELLS; i++) {
-                store->w_int(H, u->spells[i]);
+                store.api->w_int(store.handle, u->spells[i]);
             }
 
         }
     }
-    store->end(H);
-    fclose(F);
+    store_done(&store);
     return 0;
 }
 
