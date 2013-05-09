@@ -97,6 +97,34 @@ static void test_good_password(CuTest * tc)
     mstream_done(&strm);
 }
 
+static void test_quoted_password(CuTest * tc)
+{
+    region * r;
+    unit * u;
+    faction * f;
+    char line[256];
+    stream strm;
+
+    cleargame();
+    turn = 0;
+    r = create_region(1, 1, T_PLAIN);
+    f = addplayer(r, 0, 0);
+    u = r->units;
+
+    faction_setpassword(f, "mypassword");
+    CuAssertIntEquals(tc, 0, f->lastorders);
+    turn = 1;
+    mstream_init(&strm);
+    sprintf(line, "FACTION %d \"mypassword\"", f->no);
+    strm.api->writeln(strm.handle, line);
+    strm.api->rewind(strm.handle);
+    read_orders(&strm);
+    CuAssertPtrEquals(tc, 0, u->orders);
+    CuAssertIntEquals(tc, 1, f->lastorders);
+
+    mstream_done(&strm);
+}
+
 static void test_bad_password(CuTest * tc)
 {
     region * r;
@@ -618,6 +646,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_addplayer);
     SUITE_ADD_TEST(suite, test_orders);
     SUITE_ADD_TEST(suite, test_good_password);
+    SUITE_ADD_TEST(suite, test_quoted_password);
     SUITE_ADD_TEST(suite, test_bad_password);
     SUITE_ADD_TEST(suite, test_password_cmd);
     SUITE_ADD_TEST(suite, test_addplayers);

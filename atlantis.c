@@ -2848,6 +2848,10 @@ NEXTPLAYER:
                 continue;
             }
             passwd = getstr();
+            if (passwd[0]=='\"') {
+              strcpy(buf2, passwd+1);
+              passwd = strtok(buf2, "\"");
+            }
             check = faction_checkpassword(f, passwd);
             if (ignore_password && !check) {
                 faction_setpassword(f, passwd);
