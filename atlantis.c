@@ -3163,8 +3163,10 @@ void writesummary(void)
         fputc('\n', F);
 
     for (f = factions; f; f = f->next) {
-        fprintf(F, "%s, units: %d, number: %d, $%d, address: %s, loc: %d,%d\n",
+        fprintf(F, "%s, units: %d, number: %d, $%d, address: %s, loc: %d,%d",
         factionid(f), f->nunits, f->number, f->money, faction_getaddr(f), f->origin_x, f->origin_y);
+        if (f->lastorders==turn) fputc('\n', F);
+        else fputs(", nmr\n",  F);
     }
     fclose(F);
 }
