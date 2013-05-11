@@ -13,6 +13,7 @@
 #include "building.h"
 #include "ship.h"
 #include "unit.h"
+#include "battle.h"
 #include "settings.h"
 #include "spells.h"
 #include "skills.h"
@@ -1970,7 +1971,7 @@ void spskill(unit * u, int i, int *dh, int days)
 }
 
 void spunit(strlist ** SP, faction * f, region * r, unit * u, int indent,
-            int battle)
+            bool battle)
 {
     const char * sc;
     int i;
@@ -1978,7 +1979,7 @@ void spunit(strlist ** SP, faction * f, region * r, unit * u, int indent,
 
     strcpy(buf, unitid(u));
 
-    if (cansee(f, r, u) == 2) {
+    if (battle || cansee(f, r, u) == 2) {
         scat(", faction ");
         scat(factionid(u->faction));
     }
@@ -1988,7 +1989,7 @@ void spunit(strlist ** SP, faction * f, region * r, unit * u, int indent,
         icat(u->number);
     }
 
-    if (u->behind && (u->faction == f || battle))
+    if (u->behind && (battle || u->faction == f))
         scat(", behind");
 
     if (u->guard)
@@ -2098,7 +2099,7 @@ void addevent(faction * f, const char *s)
 
 void addbattle(faction * f, char *s)
 {
-    sparagraph(&f->battles, s, 0, 0);
+    sparagraph(&f->battles->events, s, 0, 0);
 }
 
 void reportevent(region * r, char *s)
@@ -2424,21 +2425,51 @@ void battlerecord(char *s)
 {
     faction *f;
 
-    for (f = factions; f; f = f->next)
-        if (f->seesbattle)
-            sparagraph(&f->battles, s, 0, 0);
-
+    for (f = factions; f; f = f->next) {
+        if (f->seesbattle) {
+            sparagraph(&f->battles->events, s, 0, 0);
+        }
+    }
     if (s[0])
         puts(s);
 }
 
-void battlepunit(region * r, unit * u)
+unit * battle_create_unit(faction * f, int no, int number,
+                          const char * name, const char * display,
+                          const int items[], bool behind)
+{
+    unit * u = create_unit(f, no);
+    u->number = number;
+    u->behind = behind;
+    unit_setname(u, name);
+    unit_setdisplay(u, display);
+    if (items) {
+        memcpy(u->items, items, sizeof(u->items));
+    }
+    return u;
+}
+
+void battle_add_unit(battle * b, const unit * u, int index)
+{
+    unit * u2;
+    
+    u2 = battle_create_unit(u->faction, u->no, u->number,
+                            unit_getname(u), unit_getdisplay(u), 
+                            u->items, u->behind);
+    u2->next = b->units[index];
+    addlist(b->units+index, u2);
+}
+
+void battle_report_unit(const unit * u, int index)
 {
     faction *f;
 
-    for (f = factions; f; f = f->next)
-        if (f->seesbattle)
-            spunit(&f->battles, f, r, u, 4, 1);
+    for (f = factions; f; f = f->next) {
+        if (f->seesbattle) {
+            battle * b = f->battles;
+            battle_add_unit(b, u, index);
+        }
+    }
 }
 
 int contest(int a, int d)
@@ -3243,7 +3274,7 @@ void rparagraph(FILE * F, char const *s, int indent, int mark)
     freelist(S);
 }
 
-void rpunit(FILE * F, faction * f, region * r, unit * u, int indent, int battle)
+void rpunit(FILE * F, faction * f, region * r, unit * u, int indent, bool battle)
 {
     strlist *S;
 
@@ -3288,13 +3319,29 @@ void report(faction * f)
     centrestrlist(F, "Messages", f->messages);
 
     if (f->battles || f->events) {
+        battle * b;
         rnl(F);
         centre(F, "Events During Turn");
         rnl(F);
 
-        for (S = f->battles; S; S = S->next) {
-            rps(S->s);
+        for (b = f->battles; b; b = b->next) {
+            int i;
+            rps(b->events->s);
             rnl(F);
+            rps("");
+            rnl(F);
+            for (i = 0; i!=2; ++i) {
+                unit * u;
+                for (u=b->units[i];u;u=u->next) {
+                    rpunit(F, f, b->region, u, 4, true);
+                }
+                rps("");
+                rnl(F);
+            }
+            for (S=b->events->next;S;S=S->next) {
+                rps(S->s);
+                rnl(F);
+            }
         }
 
         if (f->battles && f->events)
@@ -4300,50 +4347,55 @@ void processorders(void)
 
                             for (f2 = factions; f2; f2 = f2->next) {
                                 f2->seesbattle = ispresent(f2, r);
-                                if (f2->seesbattle && f2->battles)
-                                    addstrlist(&f2->battles, "");
+                                if (f2->seesbattle) {
+                                    battle * b = (battle *)calloc(1, sizeof(battle));
+                                    b->next = f2->battles;
+                                    b->region = r;
+                                    f2->battles = b;
+                                }
                             }
 
-                            if (u2)
+                            if (u2) {
                                 strcpy(buf2, unitid(u2));
-                            else
+                            } else {
                                 strcpy(buf2, "the peasants");
+                            }
                             for (f2 = factions; f2; f2 = f2->next) {
                                 if (f2->seesbattle) {
+                                    battle * b = f2->battles;
                                     sprintf(buf, "%s attacks %s in %s!", unitid(u),
                                             buf2, regionid(r, f2));
-                                    sparagraph(&f2->battles, buf, 0, 0);
+                                    sparagraph(&f2->battles->events, buf, 0, 0);
                                 }
                             }
 
                             /* List sides */
+                            battle_report_unit(u, 0);
 
-                            battlerecord("");
-
-                            battlepunit(r, u);
-
-                            for (u3 = r->units; u3; u3 = u3->next)
-                                if (u3->side == 1 && u3 != u)
-                                    battlepunit(r, u3);
-
-                            battlerecord("");
-
-                            if (u2)
-                                battlepunit(r, u2);
-                            else {
-                                sprintf(buf, "Peasants, number: %d",
-                                        r->peasants);
-                                for (f2 = factions; f2; f2 = f2->next)
-                                    if (f2->seesbattle)
-                                        sparagraph(&f2->battles, buf, 4,
-                                                   '-');
+                            for (u3 = r->units; u3; u3 = u3->next) {
+                                if (u3->side == 1 && u3 != u) {
+                                    battle_report_unit(u3, 0);
+                                }
                             }
 
-                            for (u3 = r->units; u3; u3 = u3->next)
-                                if (u3->side == 0 && u3 != u2)
-                                    battlepunit(r, u3);
+                            if (u2)
+                                battle_report_unit(u2, 1);
+                            else {
+                                u3 = battle_create_unit(u->faction, 0, r->peasants,
+                                                        "Peasants", 0, 0, false);
+                                for (f2 = factions; f2; f2 = f2->next) {
+                                    if (f2->seesbattle) {
+                                        battle * b = f2->battles;
+                                        battle_add_unit(b, u3, 1);
+                                    }
+                                }
+                            }
 
-                            battlerecord("");
+                            for (u3 = r->units; u3; u3 = u3->next) {
+                                if (u3->side == 1 && u3 != u) {
+                                    battle_report_unit(u3, 0);
+                                }
+                            }
 
                             /* Does one side have an advantage in tactics? */
 
@@ -6019,6 +6071,7 @@ int readgame(void)
 
     while (--n >= 0) {
         int no;
+        strlist * junk;
 
         store.api->r_int(store.handle, &no);
         f = create_faction(no);
@@ -6054,7 +6107,7 @@ int readgame(void)
 
         rstrlist(&store, &f->mistakes);
         rstrlist(&store, &f->messages);
-        rstrlist(&store, &f->battles);
+        rstrlist(&store, &junk);
         rstrlist(&store, &f->events);
 
         addlist2(fp, f);
@@ -6284,6 +6337,7 @@ void cleargame(void)
     }
 
     while (factions) {
+        battle *b;
         faction * f = factions;
         factions = f->next;
 
@@ -6291,7 +6345,22 @@ void cleargame(void)
         free(f->addr_);
         free(f->pwhash_);
         freestrlist(&f->messages);
-        freestrlist(&f->battles);
+        while (f->battles) {
+            int i;
+            b = f->battles;
+            f->battles = b->next;
+            freestrlist(&b->events);
+            for (i=0;i!=2;++i) {
+                while (b->units[i]) {
+                    unit * u = b->units[i];
+                    b->units[i] = u->next;
+                    free(u->name_);
+                    free(u->display_);
+                    free(u);
+                }
+            }
+            free(b);
+        }
         freestrlist(&f->events);
         freestrlist(&f->mistakes);
         while (f->allies) {
@@ -6355,7 +6424,7 @@ int writegame(void)
 
         wstrlist(&store, f->mistakes);
         wstrlist(&store, f->messages);
-        wstrlist(&store, f->battles);
+        wstrlist(&store, 0);
         wstrlist(&store, f->events);
     }
 

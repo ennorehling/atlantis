@@ -14,6 +14,7 @@
 #include "bool.h"
 
 struct strlist;
+struct battle;
 
 typedef struct rfaction {
     struct rfaction *next;
@@ -35,7 +36,7 @@ typedef struct faction {
     struct rfaction *allies;
     struct strlist *mistakes;
     struct strlist *messages;
-    struct strlist *battles;
+    struct battle *battles;
     struct strlist *events;
     char alive;
     char attacking;

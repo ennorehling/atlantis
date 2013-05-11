@@ -1,6 +1,7 @@
 #include "rtl.h"
 #include "atlantis.h"
 #include "faction.h"
+#include "battle.h"
 #include "region.h"
 #include "building.h"
 #include "ship.h"
@@ -236,7 +237,14 @@ cJSON * json_report(const faction * f) {
         cJSON_AddItemToObject(json, "messages", show_strlist(f->messages));
     }
     if (f->battles) {
-        cJSON_AddItemToObject(json, "battles", show_strlist(f->battles));
+        battle * b;
+        cJSON_AddItemToObject(json, "battles", chld = cJSON_CreateArray());
+        for (b=f->battles;b;b=b->next) {
+            cJSON * jbtl;
+            cJSON_AddItemToArray(chld, jbtl = cJSON_CreateObject());
+            cJSON_AddStringToObject(jbtl, "region", region_getname(b->region));
+            cJSON_AddItemToObject(jbtl, "events", show_strlist(b->events));
+        }
     }
     if (f->events) {
         cJSON_AddItemToObject(json, "events", show_strlist(f->events));
