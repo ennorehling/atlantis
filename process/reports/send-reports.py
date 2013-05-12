@@ -26,7 +26,8 @@ def send_report(smtp, path, filename, body, email, subject):
     hello = MIMEText(fp.read(), 'plain')
     msg.attach(hello)
 
-    report = os.path.join(path, 'reports', filename)
+    name, ext = os.path.splitext(filename)
+    report = os.path.join(path, 'reports', name + '.r')
     try:
         fp = open(report, 'r')
         attach = MIMEText(fp.read(), 'plain')
@@ -37,13 +38,12 @@ def send_report(smtp, path, filename, body, email, subject):
         print "could not attach report %s for %s" % (report, email)
         pass
     
-    name, ext = os.path.splitext(filename)
     report = os.path.join(path, 'reports', name + '.json')
     try:
         fp = open(report, 'r')
         attach = MIMEApplication(fp.read(), 'json')
         fp.close()
-        attach.add_header('Content-Disposition', 'attachment', filename=filename+'.txt')
+        attach.add_header('Content-Disposition', 'attachment', filename=filename + '.json')
         msg.attach(attach)
     except:
         print "could not attach report %s for %s" % (report, email)
