@@ -240,10 +240,22 @@ cJSON * json_report(const faction * f) {
         battle * b;
         cJSON_AddItemToObject(json, "battles", chld = cJSON_CreateArray());
         for (b=f->battles;b;b=b->next) {
-            cJSON * jbtl;
+            cJSON *jbtl, *jsd;
+            int i;
+
             cJSON_AddItemToArray(chld, jbtl = cJSON_CreateObject());
             cJSON_AddStringToObject(jbtl, "region", region_getname(b->region));
             cJSON_AddItemToObject(jbtl, "events", show_strlist(b->events));
+            cJSON_AddItemToObject(jbtl, "sides", jsd = cJSON_CreateArray());
+            for (i=0;i!=2;++i) {
+                cJSON * jul;
+                unit * u;
+
+                cJSON_AddItemToArray(jsd, jul = cJSON_CreateArray());
+                for (u=b->units[i];u;u=u->next) {
+                    cJSON_AddItemToArray(jul, show_unit(f, b->region, u));
+                }
+            }
         }
     }
     if (f->events) {

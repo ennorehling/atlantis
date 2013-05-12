@@ -2449,25 +2449,25 @@ unit * battle_create_unit(faction * f, int no, int number,
     return u;
 }
 
-void battle_add_unit(battle * b, const unit * u, int index)
+void battle_add_unit(battle * b, const unit * u)
 {
     unit * u2;
-    
+    assert(u->side>=0);
     u2 = battle_create_unit(u->faction, u->no, u->number,
                             unit_getname(u), unit_getdisplay(u), 
                             u->items, u->behind);
-    u2->next = b->units[index];
-    addlist(b->units+index, u2);
+    u2->next = b->units[u->side];
+    addlist(b->units+u->side, u2);
 }
 
-void battle_report_unit(const unit * u, int index)
+void battle_report_unit(const unit * u)
 {
     faction *f;
 
     for (f = factions; f; f = f->next) {
         if (f->seesbattle) {
             battle * b = f->battles;
-            battle_add_unit(b, u, index);
+            battle_add_unit(b, u);
         }
     }
 }
@@ -4309,10 +4309,10 @@ void processorders(void)
                                     continue;
 
                                 if (u3->faction->attacking) {
-                                    u3->side = 1;
+                                    u3->side = 0;
                                     tp = maketroops(tp, u3, r->terrain);
                                 } else if (isallied(u3, u2)) {
-                                    u3->side = 0;
+                                    u3->side = 1;
                                     tp = maketroops(tp, u3, r->terrain);
                                 }
                             }
@@ -4372,30 +4372,31 @@ void processorders(void)
                             }
 
                             /* List sides */
-                            battle_report_unit(u, 0);
+                            battle_report_unit(u);
 
                             for (u3 = r->units; u3; u3 = u3->next) {
-                                if (u3->side == 1 && u3 != u) {
-                                    battle_report_unit(u3, 0);
+                                if (u3->side == 0 && u3 != u) {
+                                    battle_report_unit(u3);
                                 }
                             }
 
-                            if (u2)
-                                battle_report_unit(u2, 1);
-                            else {
+                            if (u2) {
+                                battle_report_unit(u2);
+                            } else {
                                 u3 = battle_create_unit(u->faction, 0, r->peasants,
                                                         "Peasants", 0, 0, false);
+                                u3->side = 1;
                                 for (f2 = factions; f2; f2 = f2->next) {
                                     if (f2->seesbattle) {
                                         battle * b = f2->battles;
-                                        battle_add_unit(b, u3, 1);
+                                        battle_add_unit(b, u3);
                                     }
                                 }
                             }
 
                             for (u3 = r->units; u3; u3 = u3->next) {
-                                if (u3->side == 1 && u3 != u) {
-                                    battle_report_unit(u3, 0);
+                                if (u3->side == 1 && u3 != u2) {
+                                    battle_report_unit(u3);
                                 }
                             }
 
@@ -4482,7 +4483,7 @@ void processorders(void)
 
                             /* Report on winner */
 
-                            if (attacker.side)
+                            if (attacker.side==0)
                                 sprintf(buf, "%s wins the battle!",
                                         unitid(u));
                             else if (u2)
