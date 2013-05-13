@@ -19,17 +19,22 @@ void print_template(cJSON *json, FILE *F) {
         cJSON *region = cJSON_GetArrayItem(regions, r);
         cJSON *units = cJSON_GetObjectItem(region, "units");
 
-        fprintf(F, ";REGION %s, %s (%d,%d)\n",
+        fprintf(F, ";REGION %s, %s (%d,%d), $%d\n",
                 cJSON_GetObjectItem(region, "name")->valuestring,
                 cJSON_GetObjectItem(region, "terrain")->valuestring,
                 cJSON_GetObjectItem(region, "x")->valueint,
-                cJSON_GetObjectItem(region, "y")->valueint);
+                cJSON_GetObjectItem(region, "y")->valueint,
+                cJSON_GetObjectItem(region, "money")->valueint);
         for (u = 0 ; u != cJSON_GetArraySize(units) ; ++u) {
             cJSON *chld, *unit = cJSON_GetArrayItem(units, u);
 
             chld = cJSON_GetObjectItem(unit, "faction");
             if (chld && fno==chld->valueint) {
                 fprintf(F, "UNIT %d\n", cJSON_GetObjectItem(unit, "id")->valueint);
+                fprintf(F, ";%s, %d, $%d\n",
+                        cJSON_GetObjectItem(unit, "name")->valuestring,
+                        cJSON_GetObjectItem(unit, "number")->valueint,
+                        cJSON_GetObjectItem(unit, "money")->valueint);
                 fprintf(F, "    %s\n", cJSON_GetObjectItem(unit, "default")->valuestring);
             }
         }
