@@ -7,13 +7,14 @@
 void print_template(cJSON *json, FILE *F) {
     int r;
     int fno = 0;
+    const char * passwd = "mypassword";
     cJSON *faction, *regions = cJSON_GetObjectItem(json, "regions");
 
     faction = cJSON_GetObjectItem(json, "faction");
     if (faction) {
         fno = cJSON_GetObjectItem(faction, "id")->valueint;
     }
-    fputs("FACTION password\n", F);
+    fprintf(F, "FACTION %d %s\n", fno, passwd);
     for (r = 0 ; r != cJSON_GetArraySize(regions) ; ++r) {
         int u;
         cJSON *region = cJSON_GetArrayItem(regions, r);
