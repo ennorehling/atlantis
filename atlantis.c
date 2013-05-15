@@ -6127,15 +6127,23 @@ int readgame(void)
     while (--n >= 0) {
         int x, y, n;
         char name[DISPLAYSIZE];
+        region dummy;
 
         store.api->r_int(store.handle, &x);
         store.api->r_int(store.handle, &y);
         store.api->r_int(store.handle, &n);
-        r = create_region(x, y, (terrain_t)n);
-        minx = MIN(minx, r->x);
-        maxx = MAX(maxx, r->x);
-        miny = MIN(miny, r->y);
-        maxy = MAX(maxy, r->y);
+        if (world.width && world.height && (x<world.left || y<world.top
+           || x>=world.left+world.width || y>=world.top+world.height)) {
+            r = &dummy;
+            memset(r, 0, sizeof(region));
+        } else {
+            r = create_region(x, y, (terrain_t)n);
+            minx = MIN(minx, r->x);
+            maxx = MAX(maxx, r->x);
+            miny = MIN(miny, r->y);
+            maxy = MAX(maxy, r->y);
+            addlist2(rp, r);
+        }
         if (store.api->r_str(store.handle, name, sizeof(name))==0) {
             region_setname(r, name[0] ? name : 0);
         }
@@ -6193,8 +6201,6 @@ int readgame(void)
         store.api->r_int(store.handle, &n2);
         if (n2<0) return -7;
         up = &r->units;
-
-        addlist2(rp, r);
 
         while (--n2 >= 0) {
             char temp[DISPLAYSIZE];
