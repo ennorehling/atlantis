@@ -10,11 +10,13 @@
 #define ATLANTIS_H
 
 #include "keywords.h"
+#include "items.h"
 #include <stdio.h>
 
 struct region;
 struct faction;
 struct stream;
+struct unit;
 
 typedef struct strlist {
     struct strlist *next;
@@ -31,6 +33,9 @@ extern int ignore_password;
 extern const char *keywords[];
 extern char buf[];
 extern const keyword_t directions[];
+extern const char *terrainnames[];
+extern const char *skillnames[];
+extern const char *itemnames[2][MAXITEMS];
 
 void read_orders(struct stream * strm);
 void processorders(void);
@@ -50,8 +55,9 @@ int processturn(const char *orders);
 void createcontinent(void);
 void addplayers(struct region * r, struct stream * strm);
 void addunits(void);
-
+int cansee(const struct faction * f, const struct region * r, const struct unit * u);
 struct region *movewhere(struct region * r);
+int effskill(const struct unit * u, int i);
 
 void makeblock(int x1, int y1);
 struct faction * addplayer(struct region * r, const char * email, int no);

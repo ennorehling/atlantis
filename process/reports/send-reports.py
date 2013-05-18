@@ -2,6 +2,7 @@
 # -*- coding: iso-8859-1 -*-
 
 from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 
 import email.utils
@@ -24,13 +25,29 @@ def send_report(smtp, path, filename, body, email, subject):
     fp = open(os.path.join(path, body), 'r')
     hello = MIMEText(fp.read(), 'plain')
     msg.attach(hello)
+
+    name, ext = os.path.splitext(filename)
+    report = os.path.join(path, 'reports', name + '.r')
+    try:
+        fp = open(report, 'r')
+        attach = MIMEText(fp.read(), 'plain')
+        fp.close()
+        attach.add_header('Content-Disposition', 'attachment', filename=filename+'.txt')
+        msg.attach(attach)
+    except:
+        print "could not attach report %s for %s" % (report, email)
+        pass
     
-    fp = open(os.path.join(path, 'reports', filename), 'r')
-    report = MIMEText(fp.read(), 'plain')
-    fp.close()
-    report.add_header('Content-Disposition', 'attachment', filename=filename+'.txt')
-    msg.attach(report)
-    
+    report = os.path.join(path, 'reports', name + '.json')
+    try:
+        fp = open(report, 'r')
+        attach = MIMEApplication(fp.read(), 'json')
+        fp.close()
+        attach.add_header('Content-Disposition', 'attachment', filename=filename + '.json')
+        msg.attach(attach)
+    except:
+        print "could not attach report %s for %s" % (report, email)
+        
     me = 'atlantis@twigtechnology.com'
     name = "Atlantis Server"
     msg['From'] = '"%s" <%s>' % (name, me)

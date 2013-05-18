@@ -10,12 +10,16 @@
 #include "faction.h"
 #include "keywords.h"
 #include "region.h"
+#include "building.h"
+#include "ship.h"
 #include "unit.h"
+#include "battle.h"
 #include "settings.h"
 #include "spells.h"
 #include "skills.h"
 #include "items.h"
 
+#include "json.h"
 #include "rtl.h"
 #include "bool.h"
 
@@ -26,8 +30,8 @@
 #include <filestream.h>
 #include <mtrand.h>
 #include <base64.h>
+#include <cJSON.h>
 
-const storage * store = &binary_store;
 int ignore_password = 0;
 
 #include <errno.h>
@@ -45,33 +49,12 @@ int ignore_password = 0;
 #define xisdigit(c) ((c) == '-' || ((c) >= '0' && (c) <= '9'))
 #define addptr(p,i) ((void *)(((char *)p) + i))
 
-typedef enum {
-    SH_LONGBOAT,
-    SH_CLIPPER,
-    SH_GALLEON,
-} ship_t;
+static void (*store_init)(struct storage *, FILE *) = binstore_init;
+static void (*store_done)(struct storage *) = binstore_done;
 
 typedef struct list {
     struct list *next;
 } list;
-
-typedef struct building {
-    struct building *next;
-    int no;
-    char name[NAMESIZE];
-    char display[DISPLAYSIZE];
-    int size;
-    int sizeleft;
-} building;
-
-typedef struct ship {
-    struct ship *next;
-    int no;
-    char name[NAMESIZE];
-    char display[DISPLAYSIZE];
-    ship_t type;
-    int left;
-} ship;
 
 typedef struct order {
     struct order *next;
@@ -517,12 +500,6 @@ int maxoutput[NUMTERRAINS][4] = {
     {0, 100, 0, 0},
 };
 
-char *shiptypenames[] = {
-    "longboat",
-    "clipper",
-    "galleon",
-};
-
 int shipcapacity[] = {
     200,
     800,
@@ -654,7 +631,7 @@ const char *spellnames[] = {
     "Teleport",
 };
 
-char spelllevel[] = {
+int spelllevel[] = {
     4,
     2,
     1,
@@ -708,7 +685,7 @@ char iscombatspell[] = {
     0,
 };
 
-char *spelldata[] = {
+const char *spelldata[] = {
     "This spell creates a black whirlwind of energy which destroys all life, "
     "leaving frozen corpses with faces twisted into expressions of horror. Cast "
     "in battle, it kills from 2 to 1250 enemies.",
@@ -1118,7 +1095,7 @@ int transform(int *x, int *y, int direction)
     return 0;
 }
 
-int effskill(unit * u, int i)
+int effskill(const unit * u, int i)
 {
     int n, j, result;
 
@@ -1137,7 +1114,7 @@ int effskill(unit * u, int i)
     return result;
 }
 
-bool ispresent(faction * f, region * r)
+bool ispresent(const faction * f, const region * r)
 {
     unit *u;
 
@@ -1148,7 +1125,7 @@ bool ispresent(faction * f, region * r)
     return false;
 }
 
-int cansee(faction * f, region * r, unit * u)
+int cansee(const faction * f, const region * r, const unit * u)
 {
     int n, o;
     int cansee;
@@ -1544,7 +1521,6 @@ faction * addplayer(region * r, const char * email, int no)
     faction * f;
     unit * u;
     int i;
-    unsigned long pwdata[4];
     char msg[1024];
     
     if (no==0) ++no;
@@ -1553,9 +1529,10 @@ faction * addplayer(region * r, const char * email, int no)
     f = createfaction(no);
     faction_setaddr(f, email);
 
-    for (i=0;i!=4;++i) pwdata[i] = genrand_int32();
-    base64_encode((unsigned char *)pwdata, sizeof(pwdata), buf2, sizeof(buf2));
-    buf2[8] = 0;
+    for (i=0;i!=4;++i) {
+        sprintf(buf2+i*4, "%4x", genrand_int32());
+    }
+    buf2[16] = 0;
     faction_setpassword(f, buf2);
     sprintf(msg, "Your password is '%s'.", buf2);
     addstrlist(&f->messages, msg);
@@ -1907,7 +1884,7 @@ char *buildingid(building * b)
 {
     static char buf[NAMESIZE + 20];
 
-    sprintf(buf, "%s (%d)", b->name, b->no);
+    sprintf(buf, "%s (%d)", building_getname(b), b->no);
     return buf;
 }
 
@@ -1915,7 +1892,7 @@ char *shipid(ship * sh)
 {
     static char buf[NAMESIZE + 20];
 
-    sprintf(buf, "%s (%d)", sh->name, sh->no);
+    sprintf(buf, "%s (%d)", ship_getname(sh), sh->no);
     return buf;
 }
 
@@ -1927,7 +1904,7 @@ char *unitid(unit * u)
     return buf;
 }
 
-void sparagraph(strlist ** SP, char *s, int indent, int mark)
+void sparagraph(strlist ** SP, const char *s, int indent, int mark)
 {
     int i, j, width;
     int firstline;
@@ -1994,7 +1971,7 @@ void spskill(unit * u, int i, int *dh, int days)
 }
 
 void spunit(strlist ** SP, faction * f, region * r, unit * u, int indent,
-            int battle)
+            bool battle)
 {
     const char * sc;
     int i;
@@ -2002,7 +1979,7 @@ void spunit(strlist ** SP, faction * f, region * r, unit * u, int indent,
 
     strcpy(buf, unitid(u));
 
-    if (cansee(f, r, u) == 2) {
+    if (battle || cansee(f, r, u) == 2) {
         scat(", faction ");
         scat(factionid(u->faction));
     }
@@ -2012,7 +1989,7 @@ void spunit(strlist ** SP, faction * f, region * r, unit * u, int indent,
         icat(u->number);
     }
 
-    if (u->behind && (u->faction == f || battle))
+    if (u->behind && (battle || u->faction == f))
         scat(", behind");
 
     if (u->guard)
@@ -2094,7 +2071,7 @@ void spunit(strlist ** SP, faction * f, region * r, unit * u, int indent,
     sparagraph(SP, buf, indent, (u->faction == f) ? '*' : '-');
 }
 
-void mistake(faction * f, char *s, char *comment)
+void mistake(faction * f, const char *s, const char *comment)
 {
     static char buf[512];
 
@@ -2102,7 +2079,7 @@ void mistake(faction * f, char *s, char *comment)
     sparagraph(&f->mistakes, buf, 0, 0);
 }
 
-void mistake2(unit * u, strlist * S, char *comment)
+void mistake2(unit * u, strlist * S, const char *comment)
 {
     static char buf[512];
 
@@ -2110,19 +2087,19 @@ void mistake2(unit * u, strlist * S, char *comment)
     sparagraph(&u->faction->mistakes, buf, 0, 0);
 }
 
-void mistakeu(unit * u, char *comment)
+void mistakeu(unit * u, const char *comment)
 {
     mistake(u->faction, u->thisorder, comment);
 }
 
-void addevent(faction * f, char *s)
+void addevent(faction * f, const char *s)
 {
     sparagraph(&f->events, s, 0, 0);
 }
 
 void addbattle(faction * f, char *s)
 {
-    sparagraph(&f->battles, s, 0, 0);
+    sparagraph(&f->battles->events, s, 0, 0);
 }
 
 void reportevent(region * r, char *s)
@@ -2448,21 +2425,51 @@ void battlerecord(char *s)
 {
     faction *f;
 
-    for (f = factions; f; f = f->next)
-        if (f->seesbattle)
-            sparagraph(&f->battles, s, 0, 0);
-
+    for (f = factions; f; f = f->next) {
+        if (f->seesbattle) {
+            sparagraph(&f->battles->events, s, 0, 0);
+        }
+    }
     if (s[0])
         puts(s);
 }
 
-void battlepunit(region * r, unit * u)
+unit * battle_create_unit(faction * f, int no, int number,
+                          const char * name, const char * display,
+                          const int items[], bool behind)
+{
+    unit * u = create_unit(f, no);
+    u->number = number;
+    u->behind = behind;
+    unit_setname(u, name);
+    unit_setdisplay(u, display);
+    if (items) {
+        memcpy(u->items, items, sizeof(u->items));
+    }
+    return u;
+}
+
+void battle_add_unit(battle * b, const unit * u)
+{
+    unit * u2;
+    assert(u->side>=0);
+    u2 = battle_create_unit(u->faction, u->no, u->number,
+                            unit_getname(u), unit_getdisplay(u), 
+                            u->items, u->behind);
+    u2->next = b->units[u->side];
+    addlist(b->units+u->side, u2);
+}
+
+void battle_report_unit(const unit * u)
 {
     faction *f;
 
-    for (f = factions; f; f = f->next)
-        if (f->seesbattle)
-            spunit(&f->battles, f, r, u, 4, 1);
+    for (f = factions; f; f = f->next) {
+        if (f->seesbattle) {
+            battle * b = f->battles;
+            battle_add_unit(b, u);
+        }
+    }
 }
 
 int contest(int a, int d)
@@ -2872,6 +2879,10 @@ NEXTPLAYER:
                 continue;
             }
             passwd = getstr();
+            if (passwd[0]=='\"') {
+              strcpy(buf2, passwd+1);
+              passwd = strtok(buf2, "\"");
+            }
             check = faction_checkpassword(f, passwd);
             if (ignore_password && !check) {
                 faction_setpassword(f, passwd);
@@ -3152,8 +3163,10 @@ void writesummary(void)
         fputc('\n', F);
 
     for (f = factions; f; f = f->next) {
-        fprintf(F, "%s, units: %d, number: %d, $%d, address: %s, loc: %d,%d\n",
+        fprintf(F, "%s, units: %d, number: %d, $%d, address: %s, loc: %d,%d",
         factionid(f), f->nunits, f->number, f->money, faction_getaddr(f), f->origin_x, f->origin_y);
+        if (f->lastorders==turn) fputc('\n', F);
+        else fputs(", nmr\n",  F);
     }
     fclose(F);
 }
@@ -3242,7 +3255,7 @@ void rpstrlist(FILE * F, strlist * S)
     }
 }
 
-void centrestrlist(FILE * F, char *s, strlist * S)
+void centrestrlist(FILE * F, const char *s, strlist * S)
 {
     if (S) {
         rnl(F);
@@ -3253,7 +3266,7 @@ void centrestrlist(FILE * F, char *s, strlist * S)
     }
 }
 
-void rparagraph(FILE * F, char *s, int indent, int mark)
+void rparagraph(FILE * F, char const *s, int indent, int mark)
 {
     strlist *S;
 
@@ -3263,7 +3276,7 @@ void rparagraph(FILE * F, char *s, int indent, int mark)
     freelist(S);
 }
 
-void rpunit(FILE * F, faction * f, region * r, unit * u, int indent, int battle)
+void rpunit(FILE * F, faction * f, region * r, unit * u, int indent, bool battle)
 {
     strlist *S;
 
@@ -3285,6 +3298,15 @@ void report(faction * f)
     ship *sh;
     unit *u;
     strlist *S;
+    stream strm;
+    cJSON * json;
+
+    sprintf(buf, "reports/%d-%d.json", turn, f->no);
+    fstream_init(&strm, cfopen(buf, "w"));
+    json = json_report(f);
+    json_write(json, &strm);
+    cJSON_Delete(json);
+    fstream_done(&strm);
 
     sprintf(buf, "reports/%d-%d.r", turn, f->no);
     F = cfopen(buf, "w");
@@ -3299,13 +3321,29 @@ void report(faction * f)
     centrestrlist(F, "Messages", f->messages);
 
     if (f->battles || f->events) {
+        battle * b;
         rnl(F);
         centre(F, "Events During Turn");
         rnl(F);
 
-        for (S = f->battles; S; S = S->next) {
-            rps(S->s);
+        for (b = f->battles; b; b = b->next) {
+            int i;
+            rps(b->events->s);
             rnl(F);
+            rps("");
+            rnl(F);
+            for (i = 0; i!=2; ++i) {
+                unit * u;
+                for (u=b->units[i];u;u=u->next) {
+                    rpunit(F, f, b->region, u, 4, true);
+                }
+                rps("");
+                rnl(F);
+            }
+            for (S=b->events->next;S;S=S->next) {
+                rps(S->s);
+                rnl(F);
+            }
         }
 
         if (f->battles && f->events)
@@ -3400,9 +3438,9 @@ void report(faction * f)
         for (b = r->buildings; b; b = b->next) {
             sprintf(buf, "%s, size %d", buildingid(b), b->size);
 
-            if (b->display[0]) {
+            if (building_getdisplay(b)) {
                 scat("; ");
-                scat(b->display);
+                scat(building_getdisplay(b));
             }
 
             scat(".");
@@ -3430,9 +3468,9 @@ void report(faction * f)
             if (sh->left)
                 scat(", under construction");
 
-            if (sh->display[0]) {
+            if (ship_getdisplay(sh)) {
                 scat("; ");
-                scat(sh->display);
+                scat(ship_getdisplay(sh));
             }
 
             scat(".");
@@ -3760,6 +3798,24 @@ region *movewhere(region * r)
     return 0;
 }
 
+const char * getname(unit * u, const char *ord) {
+    const char *s2 = getstr();
+    int i;
+
+    if (!s2[0]) {
+        mistake(u->faction, ord, "No name given");
+        return 0;
+    }
+    
+    for (i = 0; s2[i]; i++) {
+        if (s2[i] == '(') {
+            mistake(u->faction, ord, "Names cannot contain brackets");
+            return 0;
+        }
+    }
+    return s2;
+}
+
 void processorders(void)
 {
     int i, j, k;
@@ -3942,7 +3998,7 @@ void processorders(void)
                             break;
                         }
 
-                        sn = u->building->display;
+                        building_setdisplay(u->building, getstr());
                         break;
 
                     case K_SHIP:
@@ -3956,7 +4012,7 @@ void processorders(void)
                             break;
                         }
 
-                        sn = u->ship->display;
+                        ship_setdisplay(u->ship, getstr());
                         break;
 
                     case K_UNIT:
@@ -3986,8 +4042,6 @@ void processorders(void)
                     break;
 
                 case K_NAME:
-                    sn = 0;
-
                     switch (getkeyword()) {
                     case K_BUILDING:
                         if (!u->building) {
@@ -4000,11 +4054,11 @@ void processorders(void)
                             break;
                         }
 
-                        sn = u->building->name;
+                        building_setname(u->building, getname(u, S->s));
                         break;
 
                     case K_FACTION:
-                        faction_setname(u->faction, getstr());
+                        faction_setname(u->faction, getname(u, S->s));
                         break;
 
                     case K_SHIP:
@@ -4018,38 +4072,17 @@ void processorders(void)
                             break;
                         }
 
-                        sn = u->ship->name;
+                        ship_setname(u->ship, getname(u, S->s));
                         break;
 
                     case K_UNIT:
-                        unit_setname(u, getstr());
+                        unit_setname(u, getname(u, S->s));
                         break;
 
                     default:
                         mistake2(u, S, "Order not recognized");
                         break;
                     }
-
-                    if (!sn)
-                        break;
-
-                    s2 = getstr();
-
-                    if (!s2[0]) {
-                        mistake2(u, S, "No name given");
-                        break;
-                    }
-
-                    for (i = 0; s2[i]; i++)
-                        if (s2[i] == '(')
-                            break;
-
-                    if (s2[i]) {
-                        mistake2(u, S, "Names cannot contain brackets");
-                        break;
-                    }
-
-                    nstrcpy(sn, s2, NAMESIZE);
                     break;
 
                 case K_RESHOW:
@@ -4276,10 +4309,10 @@ void processorders(void)
                                     continue;
 
                                 if (u3->faction->attacking) {
-                                    u3->side = 1;
+                                    u3->side = 0;
                                     tp = maketroops(tp, u3, r->terrain);
                                 } else if (isallied(u3, u2)) {
-                                    u3->side = 0;
+                                    u3->side = 1;
                                     tp = maketroops(tp, u3, r->terrain);
                                 }
                             }
@@ -4316,50 +4349,56 @@ void processorders(void)
 
                             for (f2 = factions; f2; f2 = f2->next) {
                                 f2->seesbattle = ispresent(f2, r);
-                                if (f2->seesbattle && f2->battles)
-                                    addstrlist(&f2->battles, "");
+                                if (f2->seesbattle) {
+                                    battle * b = (battle *)calloc(1, sizeof(battle));
+                                    b->next = f2->battles;
+                                    b->region = r;
+                                    f2->battles = b;
+                                }
                             }
 
-                            if (u2)
+                            if (u2) {
                                 strcpy(buf2, unitid(u2));
-                            else
+                            } else {
                                 strcpy(buf2, "the peasants");
+                            }
                             for (f2 = factions; f2; f2 = f2->next) {
                                 if (f2->seesbattle) {
+                                    battle * b = f2->battles;
                                     sprintf(buf, "%s attacks %s in %s!", unitid(u),
                                             buf2, regionid(r, f2));
-                                    sparagraph(&f2->battles, buf, 0, 0);
+                                    sparagraph(&f2->battles->events, buf, 0, 0);
                                 }
                             }
 
                             /* List sides */
+                            battle_report_unit(u);
 
-                            battlerecord("");
-
-                            battlepunit(r, u);
-
-                            for (u3 = r->units; u3; u3 = u3->next)
-                                if (u3->side == 1 && u3 != u)
-                                    battlepunit(r, u3);
-
-                            battlerecord("");
-
-                            if (u2)
-                                battlepunit(r, u2);
-                            else {
-                                sprintf(buf, "Peasants, number: %d",
-                                        r->peasants);
-                                for (f2 = factions; f2; f2 = f2->next)
-                                    if (f2->seesbattle)
-                                        sparagraph(&f2->battles, buf, 4,
-                                                   '-');
+                            for (u3 = r->units; u3; u3 = u3->next) {
+                                if (u3->side == 0 && u3 != u) {
+                                    battle_report_unit(u3);
+                                }
                             }
 
-                            for (u3 = r->units; u3; u3 = u3->next)
-                                if (u3->side == 0 && u3 != u2)
-                                    battlepunit(r, u3);
+                            if (u2) {
+                                battle_report_unit(u2);
+                            } else {
+                                u3 = battle_create_unit(u->faction, 0, r->peasants,
+                                                        "Peasants", 0, 0, false);
+                                u3->side = 1;
+                                for (f2 = factions; f2; f2 = f2->next) {
+                                    if (f2->seesbattle) {
+                                        battle * b = f2->battles;
+                                        battle_add_unit(b, u3);
+                                    }
+                                }
+                            }
 
-                            battlerecord("");
+                            for (u3 = r->units; u3; u3 = u3->next) {
+                                if (u3->side == 1 && u3 != u2) {
+                                    battle_report_unit(u3);
+                                }
+                            }
 
                             /* Does one side have an advantage in tactics? */
 
@@ -4444,7 +4483,7 @@ void processorders(void)
 
                             /* Report on winner */
 
-                            if (attacker.side)
+                            if (attacker.side==0)
                                 sprintf(buf, "%s wins the battle!",
                                         unitid(u));
                             else if (u2)
@@ -5156,11 +5195,6 @@ void processorders(void)
         if (turn - f->lastorders > ORDERGAP)
             destroyfaction(f);
 
-    /* Clear away debris of destroyed factions */
-
-    removeempty();
-    removenullfactions();
-
     /* Set production orders */
 
     puts("Setting production orders...");
@@ -5351,7 +5385,8 @@ void processorders(void)
 
                         do {
                             b->no++;
-                            sprintf(b->name, "Building %d", b->no);
+                            sprintf(buf2, "Building %d", b->no);
+                            building_setname(b, buf2);
                         }
                         while (findbuilding(b->no));
 
@@ -5437,7 +5472,8 @@ void processorders(void)
 
                     do {
                         sh->no++;
-                        sprintf(sh->name, "Ship %d", sh->no);
+                        sprintf(buf2, "Ship %d", sh->no);
+                        ship_setname(sh, buf2);
                     }
                     while (findship(sh->no));
 
@@ -5981,15 +6017,15 @@ void processorders(void)
                        "Please send orders next turn if you wish to continue playing.");
 }
 
-void rstrlist(HSTORAGE H, strlist ** SP)
+void rstrlist(storage * store, strlist ** SP)
 {
     int n;
     strlist *S;
 
-    store->r_int(H, &n);
+    store->api->r_int(store->handle, &n);
 
     while (--n >= 0) {
-        if (store->r_str(H, buf, sizeof(buf))==0) {
+        if (store->api->r_str(store->handle, buf, sizeof(buf))==0) {
             S = makestrlist(buf);
             addlist2(SP, S);
         }
@@ -6001,7 +6037,6 @@ void rstrlist(HSTORAGE H, strlist ** SP)
 int readgame(void)
 {
     FILE * F;
-    HSTORAGE H;
     int i, n, n2;
     faction *f, **fp;
     rfaction *rf, **rfp;
@@ -6010,6 +6045,7 @@ int readgame(void)
     ship *sh, **shp;
     unit *u, **up;
     int minx, miny, maxx, maxy;
+    storage store;
 
     minx = INT_MAX;
     maxx = INT_MIN;
@@ -6018,58 +6054,59 @@ int readgame(void)
 
     sprintf(buf, "data/%d", turn);
     F = cfopen(buf, "rb");
-    H = store->begin(F, IO_READ);
+    store_init(&store, F);
 
     printf("Reading turn %d...\n", turn);
 
-    store->r_int(H, &n);
+    store.api->r_int(store.handle, &n);
     if (turn!=n) return -1;
 
     /* Read factions */
 
-    store->r_int(H, &n);
+    store.api->r_int(store.handle, &n);
     if (n<0) return -2;
     fp = &factions;
 
     while (--n >= 0) {
         int no;
+        strlist * junk;
 
-        store->r_int(H, &no);
+        store.api->r_int(store.handle, &no);
         f = create_faction(no);
-        if (store->r_str(H, buf, sizeof(buf))==0) {
+        if (store.api->r_str(store.handle, buf, sizeof(buf))==0) {
             faction_setname(f, buf[0] ? buf : 0);
         }
-        if (store->r_str(H, buf, sizeof(buf))==0) {
+        if (store.api->r_str(store.handle, buf, sizeof(buf))==0) {
             faction_setaddr(f, buf[0] ? buf : 0);
         }
-        if (store->r_str(H, buf, sizeof(buf))==0) {
+        if (store.api->r_str(store.handle, buf, sizeof(buf))==0) {
             faction_setpwhash(f, buf[0] ? buf : 0);
         }
-        store->r_int(H, &f->lastorders);
-        store->r_int(H, &f->origin_x);
-        store->r_int(H, &f->origin_y);
+        store.api->r_int(store.handle, &f->lastorders);
+        store.api->r_int(store.handle, &f->origin_x);
+        store.api->r_int(store.handle, &f->origin_y);
 
         for (i = 0; i != MAXSPELLS; i++) {
-            store->r_int(H, &no);
+            store.api->r_int(store.handle, &no);
             f->showdata[i] = (no != 0);
         }
 
-        store->r_int(H, &n2);
+        store.api->r_int(store.handle, &n2);
         if (n2<0) return -6;
         rfp = &f->allies;
 
         while (--n2 >= 0) {
             rf = cmalloc(sizeof(rfaction));
-            store->r_int(H, &rf->factionno);
+            store.api->r_int(store.handle, &rf->factionno);
             addlist2(rfp, rf);
         }
 
         *rfp = 0;
 
-        rstrlist(H, &f->mistakes);
-        rstrlist(H, &f->messages);
-        rstrlist(H, &f->battles);
-        rstrlist(H, &f->events);
+        rstrlist(&store, &f->mistakes);
+        rstrlist(&store, &f->messages);
+        rstrlist(&store, &junk);
+        rstrlist(&store, &f->events);
 
         addlist2(fp, f);
     }
@@ -6078,117 +6115,132 @@ int readgame(void)
 
     /* Read regions */
 
-    store->r_int(H, &n);
+    store.api->r_int(store.handle, &n);
     if (n<0) return -3;
     rp = &regions;
 
     while (--n >= 0) {
         int x, y, n;
-        char name[NAMESIZE];
+        char name[DISPLAYSIZE];
+        region dummy;
 
-        store->r_int(H, &x);
-        store->r_int(H, &y);
-        store->r_int(H, &n);
-        r = create_region(x, y, (terrain_t)n);
-        minx = MIN(minx, r->x);
-        maxx = MAX(maxx, r->x);
-        miny = MIN(miny, r->y);
-        maxy = MAX(maxy, r->y);
-        if (store->r_str(H, name, sizeof(name))==0) {
+        store.api->r_int(store.handle, &x);
+        store.api->r_int(store.handle, &y);
+        store.api->r_int(store.handle, &n);
+        if (world.width && world.height && (x<world.left || y<world.top
+           || x>=world.left+world.width || y>=world.top+world.height)) {
+            r = &dummy;
+            memset(r, 0, sizeof(region));
+        } else {
+            r = create_region(x, y, (terrain_t)n);
+            minx = MIN(minx, r->x);
+            maxx = MAX(maxx, r->x);
+            miny = MIN(miny, r->y);
+            maxy = MAX(maxy, r->y);
+            addlist2(rp, r);
+        }
+        if (store.api->r_str(store.handle, name, sizeof(name))==0) {
             region_setname(r, name[0] ? name : 0);
         }
-        store->r_int(H, &r->peasants);
-        store->r_int(H, &r->money);
+        store.api->r_int(store.handle, &r->peasants);
+        store.api->r_int(store.handle, &r->money);
 
-        store->r_int(H, &n2);
+        store.api->r_int(store.handle, &n2);
         if (n2<0) return -4;
         bp = &r->buildings;
 
         while (--n2 >= 0) {
             b = cmalloc(sizeof(building));
 
-            store->r_int(H, &b->no);
-            store->r_str(H, b->name, sizeof(b->name));
-            store->r_str(H, b->display, sizeof(b->display));
-            store->r_int(H, &b->size);
+            store.api->r_int(store.handle, &b->no);
+            if (store.api->r_str(store.handle, name, sizeof(name))==0) {
+                building_setname(b, name);
+            }
+            if (store.api->r_str(store.handle, name, sizeof(name))==0) {
+                building_setdisplay(b, name);
+            }
+            store.api->r_int(store.handle, &b->size);
 
             addlist2(bp, b);
         }
 
         *bp = 0;
 
-        store->r_int(H, &n2);
+        store.api->r_int(store.handle, &n2);
         if (n2<0) return -5;
         shp = &r->ships;
 
         while (--n2 >= 0) {
             int no;
-            store->r_int(H, &no);
+            char temp[DISPLAYSIZE];
 
+            store.api->r_int(store.handle, &no);
             sh = cmalloc(sizeof(ship));
             sh->no = no;
 
-            store->r_str(H, sh->name, sizeof(sh->name));
-            store->r_str(H, sh->display, sizeof(sh->display));
-            store->r_int(H, &no);
+            if (store.api->r_str(store.handle, name, sizeof(temp))==0) {
+                ship_setname(sh, temp);
+            }
+            if (store.api->r_str(store.handle, temp, sizeof(temp))==0) {
+                ship_setdisplay(sh, temp);
+            }
+            store.api->r_int(store.handle, &no);
             sh->type = (ship_t)no;
-            store->r_int(H, &sh->left);
+            store.api->r_int(store.handle, &sh->left);
 
             addlist2(shp, sh);
         }
 
         *shp = 0;
 
-        store->r_int(H, &n2);
+        store.api->r_int(store.handle, &n2);
         if (n2<0) return -7;
         up = &r->units;
-
-        addlist2(rp, r);
 
         while (--n2 >= 0) {
             char temp[DISPLAYSIZE];
             int no, fno;
 
-            store->r_int(H, &no);
-            store->r_int(H, &fno);
+            store.api->r_int(store.handle, &no);
+            store.api->r_int(store.handle, &fno);
             u = create_unit(findfaction(fno), no);
 
-            if (store->r_str(H, temp, sizeof(temp))==0) {
+            if (store.api->r_str(store.handle, temp, sizeof(temp))==0) {
                 unit_setname(u, temp[0] ? temp : 0);
             }
-            if (store->r_str(H, temp, sizeof(temp))==0) {
+            if (store.api->r_str(store.handle, temp, sizeof(temp))==0) {
                 unit_setdisplay(u, temp[0] ? temp : 0);
             }
-            store->r_int(H, &u->number);
-            store->r_int(H, &u->money);
+            store.api->r_int(store.handle, &u->number);
+            store.api->r_int(store.handle, &u->money);
 
-            store->r_int(H, &no);
+            store.api->r_int(store.handle, &no);
             u->building = findbuilding(no);
 
-            store->r_int(H, &no);
+            store.api->r_int(store.handle, &no);
             u->ship = findship(no);
 
-            store->r_int(H, &no);
+            store.api->r_int(store.handle, &no);
             u->owner = no != 0;
-            store->r_int(H, &no);
+            store.api->r_int(store.handle, &no);
             u->behind = no != 0;
-            store->r_int(H, &no);
+            store.api->r_int(store.handle, &no);
             u->guard = no != 0;
 
-            store->r_str(H, u->lastorder, sizeof(u->lastorder));
-            store->r_int(H, &u->combatspell);
+            store.api->r_str(store.handle, u->lastorder, sizeof(u->lastorder));
+            store.api->r_int(store.handle, &u->combatspell);
 
             for (i = 0; i != MAXSKILLS; i++) {
-                store->r_int(H, &no);
+                store.api->r_int(store.handle, &no);
                 u->skills[i] = (skill_t)no;
             }
             for (i = 0; i != MAXITEMS; i++) {
-                store->r_int(H, &no);
+                store.api->r_int(store.handle, &no);
                 u->items[i] = (item_t)no;
             }
 
             for (i = 0; i != MAXSPELLS; i++) {
-                store->r_int(H, &no);
+                store.api->r_int(store.handle, &no);
                 u->spells[i] = (spell_t)no;
             }
 
@@ -6235,18 +6287,23 @@ int readgame(void)
         for (u = r->units; u; u = u->next)
             u->faction->alive = 1;
     }
+
+    /* Clear away debris of destroyed factions */
+    removeempty();
+    removenullfactions();
+
     update_world(minx, miny, maxx, maxy);
     connectregions();
-    fclose(F);
+    store_done(&store);
     return 0;
 }
 
-void wstrlist(HSTORAGE H, strlist * S)
+void wstrlist(storage * store, strlist * S)
 {
-    store->w_int(H, listlen(S));
+    store->api->w_int(store->handle, listlen(S));
 
     while (S) {
-        store->w_str(H, S->s);
+        store->api->w_str(store->handle, S->s);
         S = S->next;
     }
 }
@@ -6289,6 +6346,7 @@ void cleargame(void)
     }
 
     while (factions) {
+        battle *b;
         faction * f = factions;
         factions = f->next;
 
@@ -6296,7 +6354,22 @@ void cleargame(void)
         free(f->addr_);
         free(f->pwhash_);
         freestrlist(&f->messages);
-        freestrlist(&f->battles);
+        while (f->battles) {
+            int i;
+            b = f->battles;
+            f->battles = b->next;
+            freestrlist(&b->events);
+            for (i=0;i!=2;++i) {
+                while (b->units[i]) {
+                    unit * u = b->units[i];
+                    b->units[i] = u->next;
+                    free(u->name_);
+                    free(u->display_);
+                    free(u);
+                }
+            }
+            free(b);
+        }
         freestrlist(&f->events);
         freestrlist(&f->mistakes);
         while (f->allies) {
@@ -6320,8 +6393,7 @@ void cleargame(void)
 
 int writegame(void)
 {
-    HSTORAGE H;
-    FILE * F;
+    storage store;
     int i;
     faction *f;
     rfaction *rf;
@@ -6331,105 +6403,103 @@ int writegame(void)
     unit *u;
 
     sprintf(buf, "data/%d", turn);
-    F = cfopen(buf, "wb");
     printf("Writing turn %d...\n", turn);
 
-    H = store->begin(F, IO_WRITE);
-    store->w_int(H, turn);
+    store_init(&store, cfopen(buf, "wb"));
+    store.api->w_int(store.handle, turn);
 
     /* Write factions */
 
-    store->w_int(H, listlen(factions));
+    store.api->w_int(store.handle, listlen(factions));
 
     for (f = factions; f; f = f->next) {
-        store->w_int(H, f->no);
-        store->w_str(H, faction_getname(f));
-        store->w_str(H, faction_getaddr(f));
-        store->w_str(H, faction_getpwhash(f));
-        store->w_int(H, f->lastorders);
-        store->w_int(H, f->origin_x);
-        store->w_int(H, f->origin_y);
+        store.api->w_int(store.handle, f->no);
+        store.api->w_str(store.handle, faction_getname(f));
+        store.api->w_str(store.handle, faction_getaddr(f));
+        store.api->w_str(store.handle, faction_getpwhash(f));
+        store.api->w_int(store.handle, f->lastorders);
+        store.api->w_int(store.handle, f->origin_x);
+        store.api->w_int(store.handle, f->origin_y);
 
         for (i = 0; i != MAXSPELLS; i++) {
-            store->w_int(H, f->showdata[i]);
+            store.api->w_int(store.handle, f->showdata[i]);
         }
 
-        store->w_int(H, listlen(f->allies));
+        store.api->w_int(store.handle, listlen(f->allies));
 
         for (rf = f->allies; rf; rf = rf->next) {
-            store->w_int(H, rf->faction->no);
+            store.api->w_int(store.handle, rf->faction->no);
         }
 
-        wstrlist(H, f->mistakes);
-        wstrlist(H, f->messages);
-        wstrlist(H, f->battles);
-        wstrlist(H, f->events);
+        wstrlist(&store, f->mistakes);
+        wstrlist(&store, f->messages);
+        wstrlist(&store, 0);
+        wstrlist(&store, f->events);
     }
 
     /* Write regions */
 
-    store->w_int(H, listlen(regions));
+    store.api->w_int(store.handle, listlen(regions));
 
     for (r = regions; r; r = r->next) {
-        store->w_int(H, r->x);
-        store->w_int(H, r->y);
-        store->w_int(H, r->terrain);
-        store->w_str(H, region_getname(r));
-        store->w_int(H, r->peasants);
-        store->w_int(H, r->money);
+        store.api->w_int(store.handle, r->x);
+        store.api->w_int(store.handle, r->y);
+        store.api->w_int(store.handle, r->terrain);
+        store.api->w_str(store.handle, region_getname(r));
+        store.api->w_int(store.handle, r->peasants);
+        store.api->w_int(store.handle, r->money);
 
-        store->w_int(H, listlen(r->buildings));
+        store.api->w_int(store.handle, listlen(r->buildings));
 
         for (b = r->buildings; b; b = b->next) {
-            store->w_int(H, b->no);
-            store->w_str(H, b->name);
-            store->w_str(H, b->display);
-            store->w_int(H, b->size);
+            store.api->w_int(store.handle, b->no);
+            store.api->w_str(store.handle, building_getname(b));
+            store.api->w_str(store.handle, building_getdisplay(b));
+            store.api->w_int(store.handle, b->size);
         }
 
-        store->w_int(H, listlen(r->ships));
+        store.api->w_int(store.handle, listlen(r->ships));
 
         for (sh = r->ships; sh; sh = sh->next) {
-            store->w_int(H, sh->no);
-            store->w_str(H, sh->name);
-            store->w_str(H, sh->display);
-            store->w_int(H, sh->type);
-            store->w_int(H, sh->left);
+            store.api->w_int(store.handle, sh->no);
+            store.api->w_str(store.handle, ship_getname(sh));
+            store.api->w_str(store.handle, ship_getdisplay(sh));
+            store.api->w_int(store.handle, sh->type);
+            store.api->w_int(store.handle, sh->left);
         }
 
-        store->w_int(H, listlen(r->units));
+        store.api->w_int(store.handle, listlen(r->units));
 
         for (u = r->units; u; u = u->next) {
-            store->w_int(H, u->no);
-            store->w_int(H, u->faction->no);
-            store->w_str(H, unit_getname(u));
-            store->w_str(H, unit_getdisplay(u));
-            store->w_int(H, u->number);
-            store->w_int(H, u->money);
-            store->w_int(H, u->building ? u->building->no : 0);
-            store->w_int(H, u->ship ? u->ship->no : 0);
-            store->w_int(H, u->owner);
-            store->w_int(H, u->behind);
-            store->w_int(H, u->guard);
-            store->w_str(H, u->lastorder);
-            store->w_int(H, u->combatspell);
+            store.api->w_int(store.handle, u->no);
+            store.api->w_int(store.handle, u->faction->no);
+            store.api->w_str(store.handle, unit_getname(u));
+            store.api->w_str(store.handle, unit_getdisplay(u));
+            store.api->w_int(store.handle, u->number);
+            store.api->w_int(store.handle, u->money);
+            store.api->w_int(store.handle, u->building ? u->building->no : 0);
+            store.api->w_int(store.handle, u->ship ? u->ship->no : 0);
+            store.api->w_int(store.handle, u->owner);
+            store.api->w_int(store.handle, u->behind);
+            store.api->w_int(store.handle, u->guard);
+            store.api->w_str(store.handle, u->lastorder);
+            store.api->w_int(store.handle, u->combatspell);
 
             for (i = 0; i != MAXSKILLS; i++) {
-                store->w_int(H, u->skills[i]);
+                store.api->w_int(store.handle, u->skills[i]);
             }
 
             for (i = 0; i != MAXITEMS; i++) {
-                store->w_int(H, u->items[i]);
+                store.api->w_int(store.handle, u->items[i]);
             }
 
             for (i = 0; i != MAXSPELLS; i++) {
-                store->w_int(H, u->spells[i]);
+                store.api->w_int(store.handle, u->spells[i]);
             }
 
         }
     }
-    store->end(H);
-    fclose(F);
+    store_done(&store);
     return 0;
 }
 

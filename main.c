@@ -103,6 +103,14 @@ int main(int argc, char **argv)
                 arg = (argv[i][2]) ? (argv[i] + 2) : argv[++i];
                 turn = atoi(arg);
                 break;
+            case 'w': /* width */
+                arg = (argv[i][2]) ? (argv[i] + 2) : argv[++i];
+                world.width = atoi(arg);
+                break;
+            case 'h': /* height */
+                arg = (argv[i][2]) ? (argv[i] + 2) : argv[++i];
+                world.height = atoi(arg);
+                break;
             default:
                 fprintf(stderr, "invalid argument %d: '%s'\n", i, argv[i]);
                 return -1;
@@ -146,7 +154,6 @@ int main(int argc, char **argv)
             break;
 
         case 'w':
-            makeworld();
             writesummary();
             writegame();
             break;
