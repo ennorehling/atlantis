@@ -2780,18 +2780,25 @@ int isallied(unit * u, unit * u2)
     return 0;
 }
 
-int accepts(unit * u, unit * u2)
+bool accepts(unit * u, unit * u2)
 {
     rfaction *rf;
 
-    if (isallied(u, u2))
-        return 1;
+	if (u->skills[SK_MAGIC] || u2->skills[SK_MAGIC]) {
+		return false;
+	}
 
-    for (rf = u->faction->accept; rf; rf = rf->next)
-        if (rf->faction == u2->faction)
-            return 1;
+    if (isallied(u, u2)) {
+        return true;
+	}
 
-    return 0;
+	for (rf = u->faction->accept; rf; rf = rf->next) {
+        if (rf->faction == u2->faction) {
+            return true;
+		}
+	}
+
+    return false;
 }
 
 int admits(unit * u, unit * u2)
