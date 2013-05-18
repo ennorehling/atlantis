@@ -1509,7 +1509,6 @@ faction * createfaction(int no)
 {
     char name[NAMESIZE];
     faction * f = create_faction(no);
-    f->alive = 1;
     f->lastorders = turn;
     sprintf(name, "Faction %d", f->no);
     faction_setname(f, name);
@@ -2226,8 +2225,6 @@ void destroyfaction(faction * f)
 
                 u->number = 0;
             }
-
-    f->alive = 0;
 }
 
 void togglerf(unit * u, strlist * S, rfaction ** r)
@@ -3832,7 +3829,7 @@ void processorders(void)
     int lmoney;
     int dh;
     static int litems[MAXITEMS];
-    const char *s, *s2;
+    const char *s;
     char *sx, *sn;
     faction *f, *f2, **fa;
     rfaction *rf;
@@ -4285,7 +4282,7 @@ void processorders(void)
                             /* What units are involved? */
 
                             for (f2 = factions; f2; f2 = f2->next)
-                                f2->attacking = 0;
+                                f2->attacking = false;
 
                             for (u3 = r->units; u3; u3 = u3->next)
                                 for (S2 = u3->orders; S2; S2 = S2->next)
@@ -4296,7 +4293,7 @@ void processorders(void)
                                             (u4
                                              && u4->faction == u2->faction
                                              && !isallied(u3, u4))) {
-                                            u3->faction->attacking = 1;
+                                            u3->faction->attacking = true;
                                             S2->s[0] = 0;
                                             break;
                                         }
@@ -4367,7 +4364,7 @@ void processorders(void)
                                     battle * b = f2->battles;
                                     sprintf(buf, "%s attacks %s in %s!", unitid(u),
                                             buf2, regionid(r, f2));
-                                    sparagraph(&f2->battles->events, buf, 0, 0);
+                                    sparagraph(&b->events, buf, 0, 0);
                                 }
                             }
 
@@ -6096,7 +6093,7 @@ int readgame(void)
         rfp = &f->allies;
 
         while (--n2 >= 0) {
-            rf = cmalloc(sizeof(rfaction));
+            rf = (rfaction *)cmalloc(sizeof(rfaction));
             store.api->r_int(store.handle, &rf->factionno);
             addlist2(rfp, rf);
         }
@@ -6108,6 +6105,7 @@ int readgame(void)
         rstrlist(&store, &junk);
         rstrlist(&store, &f->events);
 
+		f->alive = false;
         addlist2(fp, f);
     }
 
@@ -6212,13 +6210,16 @@ int readgame(void)
                 unit_setdisplay(u, temp[0] ? temp : 0);
             }
             store.api->r_int(store.handle, &u->number);
+			if (u->number) {
+				u->faction->alive = true;
+			}
             store.api->r_int(store.handle, &u->money);
 
             store.api->r_int(store.handle, &no);
-            u->building = findbuilding(no);
+            u->building = no ? findbuilding(no) : 0;
 
             store.api->r_int(store.handle, &no);
-            u->ship = findship(no);
+            u->ship = no ? findship(no) : 0;
 
             store.api->r_int(store.handle, &no);
             u->owner = no != 0;
@@ -6242,6 +6243,9 @@ int readgame(void)
             for (i = 0; i != MAXSPELLS; i++) {
                 store.api->r_int(store.handle, &no);
                 u->spells[i] = (spell_t)no;
+                if (u->spells[i]) {
+                    u->faction->seendata[i] = true;
+				}
             }
 
             addlist2(up, u);
@@ -6270,24 +6274,11 @@ int readgame(void)
 
     /* Link rfaction structures */
 
-    for (f = factions; f; f = f->next)
-        for (rf = f->allies; rf; rf = rf->next)
+    for (f = factions; f; f = f->next) {
+        for (rf = f->allies; rf; rf = rf->next) {
             rf->faction = findfaction(rf->factionno);
-
-    for (r = regions; r; r = r->next) {
-        /* Initialize faction seendata values */
-
-        for (u = r->units; u; u = u->next)
-            for (i = 0; i != MAXSPELLS; i++)
-                if (u->spells[i])
-                    u->faction->seendata[i] = true;
-
-        /* Check for alive factions */
-
-        for (u = r->units; u; u = u->next)
-            u->faction->alive = 1;
-    }
-
+		}
+	}
     /* Clear away debris of destroyed factions */
     removeempty();
     removenullfactions();

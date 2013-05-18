@@ -16,6 +16,13 @@
 #include <string.h>
 #include <cJSON.h>
 
+static unit *make_unit(faction *f, region *r, int no) {
+    unit * u = create_unit(f, no);
+	u->number = 1;
+    region_addunit(r, u);
+	return u;
+}
+
 static void test_json_report(CuTest * tc) {
     region * r;
     faction * f;
@@ -340,9 +347,8 @@ static void test_readwrite(CuTest * tc)
     errno = 0;
     cleargame();
     f = create_faction(fno);
-    u = create_unit(f, uno);
     r = create_region(0, 0, T_PLAIN);
-    region_addunit(r, u);
+    u = make_unit(f, r, uno);
     CuAssertPtrEquals(tc, f, findfaction(fno));
     CuAssertPtrEquals(tc, u, findunitg(uno));
     CuAssertPtrEquals(tc, r, findregion(0, 0));
@@ -530,9 +536,13 @@ static void test_faction_name(CuTest * tc)
 {
     const char * name = "Sacco & Vanzetti";
     faction * f;
+	region * r;
+	unit * u;
 
     cleargame();
     f = create_faction(1);
+    r = create_region(0, 0, T_PLAIN);
+    u = make_unit(f, r, 1);
     CuAssertPtrEquals(tc, 0, (void *)faction_getname(f));
     faction_setname(f, name);
     CuAssertStrEquals(tc, name, faction_getname(f));
@@ -565,8 +575,7 @@ static void test_unit_name(CuTest * tc)
     cleargame();
     r = create_region(0, 0, T_PLAIN);
     f = create_faction(1);
-    u = create_unit(f, 1);
-    region_addunit(r, u);
+    u = make_unit(f, r, 1);
     unit_setname(u, name);
     CuAssertStrEquals(tc, name, unit_getname(u));
     writegame();
@@ -575,6 +584,24 @@ static void test_unit_name(CuTest * tc)
     u = findunitg(1);
     CuAssertPtrNotNull(tc, u);
     CuAssertStrEquals(tc, name, unit_getname(u));
+}
+
+static void test_remove_empty(CuTest * tc)
+{
+    unit * u;
+    faction * f;
+    region * r;
+
+    cleargame();
+    r = create_region(0, 0, T_PLAIN);
+    f = create_faction(1);
+    u = make_unit(f, r, 1);
+	u->number = 0;
+    writegame();
+    cleargame();
+    readgame();
+	CuAssertPtrEquals(tc, 0, findunitg(1));
+	CuAssertPtrEquals(tc, 0, findfaction(1));
 }
 
 static void test_unit_display(CuTest * tc)
@@ -587,8 +614,7 @@ static void test_unit_display(CuTest * tc)
     cleargame();
     r = create_region(0, 0, T_PLAIN);
     f = create_faction(1);
-    u = create_unit(f, 1);
-    region_addunit(r, u);
+    u = make_unit(f, r, 1);
     unit_setdisplay(u, display);
     CuAssertStrEquals(tc, display, unit_getdisplay(u));
     writegame();
@@ -602,9 +628,13 @@ static void test_faction_addr(CuTest * tc)
 {
     const char * addr = "enno@example.com";
     faction * f;
+	unit *u;
+	region *r;
 
     cleargame();
     f = create_faction(1);
+    r = create_region(0, 0, T_PLAIN);
+    u = make_unit(f, r, 1);
     CuAssertPtrEquals(tc, 0, (void *)faction_getaddr(f));
     faction_setaddr(f, addr);
     CuAssertStrEquals(tc, addr, faction_getaddr(f));
@@ -661,6 +691,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_region_name);
     SUITE_ADD_TEST(suite, test_region_addunit);
     SUITE_ADD_TEST(suite, test_unit_name);
+    SUITE_ADD_TEST(suite, test_remove_empty);
     SUITE_ADD_TEST(suite, test_unit_display);
     SUITE_ADD_TEST(suite, test_faction_name);
     SUITE_ADD_TEST(suite, test_faction_addr);

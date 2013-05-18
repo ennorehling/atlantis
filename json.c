@@ -16,7 +16,7 @@
 
 
 static cJSON * show_strlist(const strlist *slist) {
-    cJSON *json, *chld;
+    cJSON *json;
     json = cJSON_CreateArray();
     while (slist) {
         cJSON_AddItemToArray(json, cJSON_CreateString(slist->s));
@@ -25,7 +25,7 @@ static cJSON * show_strlist(const strlist *slist) {
     return json;
 }
 
-static cJSON * show_ship(const faction *f, const region * r, const ship * s) {
+static cJSON * show_ship(const faction *f, const ship * s) {
     cJSON *json;
     const char * str;
     
@@ -46,7 +46,7 @@ static cJSON * show_ship(const faction *f, const region * r, const ship * s) {
     return json;
 }
 
-static cJSON * show_building(const faction *f, const region * r, const building * b) {
+static cJSON * show_building(const faction *f, const building * b) {
     cJSON *json;
     const char * str;
     
@@ -188,14 +188,14 @@ static cJSON * show_region(const faction *f, const region * r) {
         building *b;
         cJSON_AddItemToObject(json, "buildings", chld = cJSON_CreateArray());
         for (b=r->buildings;b;b=b->next) {
-            cJSON_AddItemToArray(chld, show_building(f, r, b));
+            cJSON_AddItemToArray(chld, show_building(f, b));
         }
     }
     if (r->ships) {
         ship *s;
         cJSON_AddItemToObject(json, "ships", chld = cJSON_CreateArray());
         for (s=r->ships;s;s=s->next) {
-            cJSON_AddItemToArray(chld, show_ship(f, r, s));
+            cJSON_AddItemToArray(chld, show_ship(f, s));
         }
     }
     cJSON_AddItemToObject(json, "units", chld = cJSON_CreateArray());

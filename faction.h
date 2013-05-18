@@ -38,8 +38,8 @@ typedef struct faction {
     struct strlist *messages;
     struct battle *battles;
     struct strlist *events;
-    char alive;
-    char attacking;
+	bool alive;
+    bool attacking;
     bool seesbattle;
     char dh;
     int nunits;
