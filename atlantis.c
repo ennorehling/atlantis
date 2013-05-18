@@ -5195,11 +5195,6 @@ void processorders(void)
         if (turn - f->lastorders > ORDERGAP)
             destroyfaction(f);
 
-    /* Clear away debris of destroyed factions */
-
-    removeempty();
-    removenullfactions();
-
     /* Set production orders */
 
     puts("Setting production orders...");
@@ -6292,6 +6287,11 @@ int readgame(void)
         for (u = r->units; u; u = u->next)
             u->faction->alive = 1;
     }
+
+    /* Clear away debris of destroyed factions */
+    removeempty();
+    removenullfactions();
+
     update_world(minx, miny, maxx, maxy);
     connectregions();
     store_done(&store);
