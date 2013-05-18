@@ -3,23 +3,24 @@ PROJECT (atlantis C)
 
 ENABLE_TESTING()
 
-ADD_SUBDIRECTORY (cutest)
-ADD_SUBDIRECTORY (storage)
-ADD_SUBDIRECTORY (crypto)
-ADD_SUBDIRECTORY (tests)
-
 IF (MSVC)
-	find_package (MSVC MODULE)
+    find_package (MSVC MODULE)
     # Force to always compile with W4
     MSVC_SET_WARNING_LEVEL(4)
 ELSEIF(CMAKE_COMPILER_IS_GNUCC)
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -Wno-unknown-pragmas -Wpointer-arith -Wno-char-subscripts -Wno-long-long")
     SET(CMAKE_C_FLAGS "-g")
+#    SET(CMAKE_C_FLAGS "-pg")
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
-	SET(MATH_LIBRARY m)
+    SET(MATH_LIBRARY m)
 ELSE(MSVC)
     MESSAGE(STATUS "Unknown compiler ${CMAKE_C_COMPILER_ID}")
 ENDIF(MSVC)
+
+ADD_SUBDIRECTORY (cutest)
+ADD_SUBDIRECTORY (storage)
+ADD_SUBDIRECTORY (crypto)
+ADD_SUBDIRECTORY (tests)
 
 FILE(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/include)
 INCLUDE (CheckIncludeFiles)
