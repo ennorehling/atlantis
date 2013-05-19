@@ -1,0 +1,52 @@
+#!/bin/bash
+. test_framework.inc
+
+if [ -z $1 ] || [ ! -x $1 ] ; then
+  echo "usage: $0 <executable>"
+  exit 1
+fi
+
+FILES="orders maillist send summary data/1"
+DIRECTORIES="reports"
+function fail
+{
+  if [ $1 -ne 0 ] ; then rm -rf data ; fi
+  rm -rf $FILES $DIRECTORIES
+  exit $1
+}
+
+# interactive processing:
+
+function test_interactive
+{
+touch orders
+(echo W ; echo Q ) | $1
+( echo P ; echo orders ; echo Q) | $1
+let RESULT=$?
+if [ $RESULT -ne 0 ] ; then
+  echo "non-zero exit code from server: $RESULT"
+  fail $RESULT
+fi
+assert_files $FILES || fail $?
+assert_directories $DIRECTORIES || fail $?
+fail 0
+}
+# command-line argument -p:
+function test_commandline
+{
+touch orders
+(echo W ; echo Q ) | $1
+$1 -p orders -t 0
+let RESULT=$?
+if [ $RESULT -ne 0 ] ; then
+  echo "non-zero exit code from server: $RESULT"
+  fail $RESULT
+fi
+assert_files $FILES || fail $?
+assert_directories $DIRECTORIES || fail $?
+fail 0
+}
+
+echo Q | $1
+test_commandline $1
+test_interactive $1
