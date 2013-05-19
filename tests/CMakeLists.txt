@@ -3,13 +3,13 @@ PROJECT (tests C)
 
 ENABLE_TESTING()
 
-ADD_TEST(NAME atlantis_starts
+ADD_TEST(NAME server_startup
   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/server_starts $<TARGET_FILE:server>
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 ADD_TEST(
-  NAME atlantis_process
+  NAME server_processing
   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/server_process $<TARGET_FILE:server>
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
