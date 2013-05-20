@@ -2078,17 +2078,17 @@ void mistake(faction * f, const char *s, const char *comment)
     sparagraph(&f->mistakes, buf, 0, 0);
 }
 
-void mistake2(unit * u, strlist * S, const char *comment)
+void mistakes(unit * u, const char *str, const char *comment)
 {
     static char buf[512];
 
-    sprintf(buf, "%s: %s - %s.", unitid(u), S->s, comment);
+    sprintf(buf, "%s: %s - %s.", unitid(u), str, comment);
     sparagraph(&u->faction->mistakes, buf, 0, 0);
 }
 
 void mistakeu(unit * u, const char *comment)
 {
-    mistake(u->faction, u->thisorder, comment);
+    mistakes(u, u->thisorder, comment);
 }
 
 void addevent(faction * f, const char *s)
@@ -2248,8 +2248,9 @@ void togglerf(unit * u, strlist * S, rfaction ** r)
                 addlist(r, rf);
             }
         }
-    } else
-        mistake2(u, S, "Faction not found");
+    } else {
+        mistakes(u, S->s, "Faction not found");
+    }
 }
 
 bool iscoast(region * r)
@@ -3802,6 +3803,14 @@ region *movewhere(region * r)
     return 0;
 }
 
+troop * get_troop(troop *ta, int ntroops, int side, int mask) {
+    int j;
+    do {
+        j = rnd() % ntroops;
+    } while (ta[j].status & mask || ta[j].side ==side);
+    return ta+j;
+}
+
 const char * getname(unit * u, const char *ord) {
     const char *s2 = getstr();
     int i;
@@ -3813,416 +3822,36 @@ const char * getname(unit * u, const char *ord) {
     
     for (i = 0; s2[i]; i++) {
         if (s2[i] == '(') {
-            mistake(u->faction, ord, "Names cannot contain brackets");
+            mistake(u->faction, ord, "Names cannot contain parentheses");
             return 0;
         }
     }
     return s2;
 }
 
-void processorders(void)
-{
-    int i, j, k;
-    int n, m;
-    int nfactions;
-    int fno;
-    int winnercasualties;
-    int deadpeasants;
-    int taxed;
-    int availmoney;
-    int teaching;
-    int maxtactics[2];
-    int leader[2];
-    int lmoney;
-    int dh;
-    static int litems[MAXITEMS];
-    const char *s;
-    char *sx, *sn;
-    faction *f, *f2, **fa;
-    rfaction *rf;
-    region *r, *r2;
-    building *b;
-    ship *sh;
-    unit *u, *u2, *u3, *u4;
-    static unit *uv[100];
-    troop *t, *troops, **tp;
-    order *o, *taxorders, *recruitorders, *entertainorders, *workorders;
-    static order *produceorders[MAXITEMS];
-    strlist *S, *S2;
-
-    /* FORM orders */
-
-    puts("Processing FORM orders...");
-
-    for (r = regions; r; r = r->next)
-        for (u = r->units; u; u = u->next)
-            for (S = u->orders; S;)
-                switch (igetkeyword(S->s)) {
-                case K_FORM:
-                    u2 = createunit(r, u->faction);
-
-                    u2->alias = geti();
-                    if (u2->alias == 0)
-                        u2->alias = geti();
-
-                    u2->building = u->building;
-                    u2->ship = u->ship;
-                    u2->behind = u->behind;
-                    u2->guard = u->guard;
-
-                    S = S->next;
-
-                    while (S) {
-                        if (igetkeyword(S->s) == K_END) {
-                            S = S->next;
-                            break;
-                        }
-
-                        S2 = S->next;
-                        translist(&u->orders, &u2->orders, S);
-                        S = S2;
-                    }
-
-                    break;
-
-                default:
-                    S = S->next;
-                }
-
-    /* Instant orders - diplomacy etc. */
-
-    puts("Processing instant orders...");
-
-    for (r = regions; r; r = r->next)
-        for (u = r->units; u; u = u->next)
-            for (S = u->orders; S; S = S->next)
-                switch (igetkeyword(S->s)) {
-                case -1:
-                    mistake2(u, S, "Order not recognized");
-                    break;
-
-                case K_ACCEPT:
-                    togglerf(u, S, &u->faction->accept);
-                    break;
-    
-                case K_PASSWORD:
-                    s = getstr();
-                    faction_setpassword(u->faction, s);
-                    sprintf(buf2, "The faction's password was changed to '%s'.", s);
-                    addstrlist(&u->faction->messages, buf2);
-                    break;
-
-                case K_ADDRESS:
-                    s = getstr();
-
-                    if (!s[0]) {
-                        mistake2(u, S, "No address given");
-                        break;
-                    }
-
-                    faction_setaddr(u->faction, s);
-
-                    printf("%s is changing address to %s.\n",
-                           faction_getname(u->faction), faction_getaddr(u->faction));
-                    break;
-
-                case K_ADMIT:
-                    togglerf(u, S, &u->faction->admit);
-                    break;
-
-                case K_ALLY:
-                    f = getfaction();
-
-                    if (f == 0) {
-                        mistake2(u, S, "Faction not found");
-                        break;
-                    }
-
-                    if (f == u->faction)
-                        break;
-
-                    if (geti()) {
-                        for (rf = u->faction->allies; rf; rf = rf->next)
-                            if (rf->faction == f)
-                                break;
-
-                        if (!rf) {
-                            rf = cmalloc(sizeof(rfaction));
-                            rf->faction = f;
-                            addlist(&u->faction->allies, rf);
-                        }
-                    } else
-                        for (rf = u->faction->allies; rf; rf = rf->next)
-                            if (rf->faction == f) {
-                                removelist(&u->faction->allies, rf);
-                                break;
-                            }
-
-                    break;
-
-                case K_BEHIND:
-                    u->behind = geti() != 0;
-                    break;
-
-                case K_COMBAT:
-                    s = getstr();
-
-                    if (!s[0]) {
-                        u->combatspell = -1;
-                        break;
-                    }
-
-                    i = findspell(s);
-
-                    if (i < 0 || !cancast(u, i)) {
-                        mistake2(u, S, "Spell not found");
-                        break;
-                    }
-
-                    if (!iscombatspell[i]) {
-                        mistake2(u, S, "Not a combat spell");
-                        break;
-                    }
-
-                    u->combatspell = i;
-                    break;
-
-                case K_DISPLAY:
-                    sn = 0;
-
-                    switch (getkeyword()) {
-                    case K_BUILDING:
-                        if (!u->building) {
-                            mistake2(u, S, "Not in a building");
-                            break;
-                        }
-
-                        if (!u->owner) {
-                            mistake2(u, S, "Building not owned by you");
-                            break;
-                        }
-
-                        building_setdisplay(u->building, getstr());
-                        break;
-
-                    case K_SHIP:
-                        if (!u->ship) {
-                            mistake2(u, S, "Not in a ship");
-                            break;
-                        }
-
-                        if (!u->owner) {
-                            mistake2(u, S, "Ship not owned by you");
-                            break;
-                        }
-
-                        ship_setdisplay(u->ship, getstr());
-                        break;
-
-                    case K_UNIT:
-                        unit_setdisplay(u, getstr());
-                        break;
-
-                    default:
-                        mistake2(u, S, "Order not recognized");
-                        break;
-                    }
-
-                    if (!sn)
-                        break;
-
-                    sx = getstr();
-
-                    i = strlen(sx);
-                    if (i && sx[i - 1] == '.')
-                        sx[i - 1] = 0;
-
-                    nstrcpy(sn, sx, DISPLAYSIZE);
-                    break;
-
-                case K_GUARD:
-                    if (geti() == 0)
-                        u->guard = false;
-                    break;
-
-                case K_NAME:
-                    switch (getkeyword()) {
-                    case K_BUILDING:
-                        if (!u->building) {
-                            mistake2(u, S, "Not in a building");
-                            break;
-                        }
-
-                        if (!u->owner) {
-                            mistake2(u, S, "Building not owned by you");
-                            break;
-                        }
-
-                        building_setname(u->building, getname(u, S->s));
-                        break;
-
-                    case K_FACTION:
-                        faction_setname(u->faction, getname(u, S->s));
-                        break;
-
-                    case K_SHIP:
-                        if (!u->ship) {
-                            mistake2(u, S, "Not in a ship");
-                            break;
-                        }
-
-                        if (!u->owner) {
-                            mistake2(u, S, "Ship not owned by you");
-                            break;
-                        }
-
-                        ship_setname(u->ship, getname(u, S->s));
-                        break;
-
-                    case K_UNIT:
-                        unit_setname(u, getname(u, S->s));
-                        break;
-
-                    default:
-                        mistake2(u, S, "Order not recognized");
-                        break;
-                    }
-                    break;
-
-                case K_RESHOW:
-                    i = getspell();
-
-                    if (i < 0 || !u->faction->seendata[i]) {
-                        mistake2(u, S, "Spell not found");
-                        break;
-                    }
-
-                    u->faction->showdata[i] = 1;
-                    break;
-                }
-
-#ifdef ENABLE_FIND                  
-    /* FIND orders */
-
-    puts("Processing FIND orders...");
-
-    for (r = regions; r; r = r->next) {
-        for (u = r->units; u; u = u->next) {
-            for (S = u->orders; S; S = S->next) {
-                switch (igetkeyword(S->s)) {
-                case K_FIND:
-                    f = getfaction();
-
-                    if (f == 0) {
-                        mistake2(u, S, "Faction not found");
-                        break;
-                    }
-
-                    sprintf(buf, "The address of %s is %s.", factionid(f),
-                            faction_getaddr(f));
-                    sparagraph(&u->faction->messages, buf, 0, 0);
-                    break;
-                }
-            }
+void count_casualties(region *r, troop *ta, int ntroops, int *peasants) {
+    unit *u;
+    int i, deadpeasants = 0;
+    /* Count the casualties */
+    for (u = r->units; u; u = u->next) {
+        u->dead = 0;
+    }
+    for (i = 0; i != ntroops; i++) {
+        if (ta[i].unit) {
+            ta[i].unit->dead += ta[i].status;
+        } else {
+            deadpeasants += ta[i].status;
         }
     }
-#endif
-    /* Leaving and entering buildings and ships */
-
-    puts("Processing leaving and entering orders...");
-
-    for (r = regions; r; r = r->next)
-        for (u = r->units; u; u = u->next)
-            for (S = u->orders; S; S = S->next)
-                switch (igetkeyword(S->s)) {
-                case K_BOARD:
-                    sh = getship(r);
-
-                    if (!sh) {
-                        mistake2(u, S, "Ship not found");
-                        break;
-                    }
-
-                    if (!mayboard(r, u, sh)) {
-                        mistake2(u, S, "Not permitted to board");
-                        break;
-                    }
-
-                    leave(r, u);
-                    u->ship = sh;
-                    u->owner = 0;
-                    if (shipowner(r, sh) == 0)
-                        u->owner = 1;
-                    break;
-
-                case K_ENTER:
-                    b = getbuilding(r);
-
-                    if (!b) {
-                        mistake2(u, S, "Building not found");
-                        break;
-                    }
-
-                    if (!mayenter(r, u, b)) {
-                        mistake2(u, S, "Not permitted to enter");
-                        break;
-                    }
-
-                    leave(r, u);
-                    u->building = b;
-                    u->owner = 0;
-                    if (buildingowner(r, b) == 0)
-                        u->owner = 1;
-                    break;
-
-                case K_LEAVE:
-                    if (r->terrain == T_OCEAN) {
-                        mistake2(u, S, "Ship is at sea");
-                        break;
-                    }
-
-                    leave(r, u);
-                    break;
-
-                case K_PROMOTE:
-                    u2 = getunit(r, u);
-
-                    if (!u2) {
-                        mistake2(u, S, "Unit not found");
-                        break;
-                    }
-
-                    if (!u->building && !u->ship) {
-                        mistake2(u, S,
-                                 "No building or ship to transfer ownership of");
-                        break;
-                    }
-
-                    if (!u->owner) {
-                        mistake2(u, S, "Not owned by you");
-                        break;
-                    }
-
-                    if (!accepts(u2, u)) {
-                        mistake2(u, S, "Unit does not accept ownership");
-                        break;
-                    }
-
-                    if (u->building) {
-                        if (u2->building != u->building) {
-                            mistake2(u, S, "Unit not in same building");
-                            break;
-                        }
-                    } else if (u2->ship != u->ship) {
-                        mistake2(u, S, "Unit not on same ship");
-                        break;
-                    }
-
-                    u->owner = 0;
-                    u2->owner = 1;
-                    break;
-                }
-
+    if (peasants) {
+        *peasants = deadpeasants;
+    }
+}
+void process_combat(void)
+{
+    faction **fa;
+    region *r;
+    int nfactions;
     /* Combat */
 
     puts("Processing ATTACK orders...");
@@ -4231,6 +3860,9 @@ void processorders(void)
     fa = cmalloc(nfactions * sizeof(faction *));
 
     for (r = regions; r; r = r->next) {
+        faction *f;
+        int i, fno;
+        
         /* Create randomly sorted list of factions */
 
         for (f = factions, i = 0; f; f = f->next, i++)
@@ -4240,33 +3872,47 @@ void processorders(void)
         /* Handle each faction's attack orders */
 
         for (fno = 0; fno != nfactions; fno++) {
+            unit *u;
+
             f = fa[fno];
 
-            for (u = r->units; u; u = u->next)
-                if (u->faction == f)
-                    for (S = u->orders; S; S = S->next)
+            for (u = r->units; u; u = u->next) {
+                if (u->faction == f) {
+                    strlist * S;
+                    for (S = u->orders; S; S = S->next) {
                         if (igetkeyword(S->s) == K_ATTACK) {
+                            int leader[2];
+                            troop *t, *troops, **tp;
+                            int ntroops;
+                            int maxtactics[2];
+                            int winnercasualties = 0, deadpeasants = 0, lmoney = 0;
+                            int litems[MAXITEMS];
+                            int n, k, j;
+                            faction *f2;
+                            building *b;
+                            unit *u2, *u3, *u4;
                             u2 = getunit(r, u);
 
                             if (!u2 && !getunitpeasants) {
-                                mistake2(u, S, "Unit not found");
+                                mistakes(u, S->s, "Unit not found");
                                 continue;
                             }
 
                             if (u2 && u2->faction == f) {
-                                mistake2(u, S, "One of your units");
+                                mistakes(u, S->s, "One of your units");
                                 continue;
                             }
 
                             if (isallied(u, u2)) {
-                                mistake2(u, S, "An allied unit");
+                                mistakes(u, S->s, "An allied unit");
                                 continue;
                             }
 
                             /* Draw up troops for the battle */
 
-                            for (b = r->buildings; b; b = b->next)
+                            for (b = r->buildings; b; b = b->next) {
                                 b->sizeleft = b->size;
+                            }
 
                             troops = 0;
                             tp = &troops;
@@ -4288,12 +3934,14 @@ void processorders(void)
 
                             /* What units are involved? */
 
-                            for (f2 = factions; f2; f2 = f2->next)
+                            for (f2 = factions; f2; f2 = f2->next) {
                                 f2->attacking = false;
-
-                            for (u3 = r->units; u3; u3 = u3->next)
-                                for (S2 = u3->orders; S2; S2 = S2->next)
+                            }
+                            for (u3 = r->units; u3; u3 = u3->next) {
+                                strlist *S2;
+                                for (S2 = u3->orders; S2; S2 = S2->next) {
                                     if (igetkeyword(S2->s) == K_ATTACK) {
+                                        int deadpeasants;
                                         u4 = getunit(r, u3);
 
                                         if ((getunitpeasants && !u2) ||
@@ -4305,7 +3953,8 @@ void processorders(void)
                                             break;
                                         }
                                     }
-
+                                }
+                            }
                             for (u3 = r->units; u3; u3 = u3->next) {
                                 u3->side = -1;
 
@@ -4409,7 +4058,7 @@ void processorders(void)
                             maxtactics[0] = 0;
                             maxtactics[1] = 0;
 
-                            for (i = 0; i != ntroops; i++)
+                            for (i = 0; i != ntroops; i++) {
                                 if (ta[i].unit) {
                                     j = effskill(ta[i].unit, SK_TACTICS);
 
@@ -4418,29 +4067,32 @@ void processorders(void)
                                         maxtactics[ta[i].side] = j;
                                     }
                                 }
-
+                            }
                             attacker.side = -1;
-                            if (maxtactics[0] > maxtactics[1])
+                            if (maxtactics[0] > maxtactics[1]) {
                                 attacker.side = 0;
-                            if (maxtactics[1] > maxtactics[0])
+                            }
+                            else if (maxtactics[1] > maxtactics[0]) {
                                 attacker.side = 1;
+                            }
 
                             /* Better leader gets free round of attacks */
 
                             if (attacker.side >= 0) {
                                 /* Note the fact in the battle report */
 
-                                if (attacker.side)
+                                if (attacker.side) {
                                     sprintf(buf,
                                             "%s gets a free round of attacks!",
                                             unitid(u));
-                                else if (u2)
+                                } else if (u2) {
                                     sprintf(buf,
                                             "%s gets a free round of attacks!",
                                             unitid(u2));
-                                else
+                                } else {
                                     sprintf(buf,
                                             "The peasants get a free round of attacks!");
+                                }
                                 battlerecord(buf);
 
                                 /* Number of troops to attack */
@@ -4458,10 +4110,10 @@ void processorders(void)
 
                                 /* Do round of attacks */
 
-                                do
+                                do {
                                     doshot();
-                                while (toattack[attacker.side]
-                                       && left[defender.side]);
+                                } while (toattack[attacker.side]
+                                         && left[defender.side]);
                             }
 
                             /* Handle main body of battle */
@@ -4487,69 +4139,57 @@ void processorders(void)
 
                             /* Report on winner */
 
-                            if (attacker.side==0)
+                            if (attacker.side==0) {
                                 sprintf(buf, "%s wins the battle!",
                                         unitid(u));
-                            else if (u2)
+                            } else if (u2) {
                                 sprintf(buf, "%s wins the battle!",
                                         unitid(u2));
-                            else
+                            } else {
                                 sprintf(buf,
                                         "The peasants win the battle!");
+                            }
                             battlerecord(buf);
 
                             /* Has winner suffered any casualties? */
 
                             winnercasualties = 0;
 
-                            for (i = 0; i != ntroops; i++)
+                            for (i = 0; i != ntroops; i++) {
                                 if (ta[i].side == attacker.side
                                     && ta[i].status) {
                                     winnercasualties = 1;
                                     break;
                                 }
-
+                            }
                             /* Can wounded be healed? */
 
                             n = 0;
 
                             for (i = 0; i != ntroops &&
                                  n != initial[attacker.side] -
-                                 left[attacker.side]; i++)
+                                 left[attacker.side]; i++) {
                                 if (!ta[i].status && ta[i].canheal) {
-                                    k = lovar(50 * (1 + ta[i].power));
+                                    int k = lovar(50 * (1 + ta[i].power));
                                     k = MIN(k, initial[attacker.side] -
                                             left[attacker.side] - n);
-
                                     sprintf(buf, "%s heals %d wounded.",
                                             unitid(ta[i].unit), k);
                                     battlerecord(buf);
 
                                     n += k;
                                 }
-
+                            }
                             while (--n >= 0) {
-                                do
+                                do {
                                     i = rnd() % ntroops;
-                                while (!ta[i].status
-                                       || ta[i].side != attacker.side);
+                                } while (!ta[i].status
+                                         || ta[i].side != attacker.side);
 
                                 ta[i].status = 0;
                             }
 
-                            /* Count the casualties */
-
-                            deadpeasants = 0;
-
-                            for (u3 = r->units; u3; u3 = u3->next)
-                                u3->dead = 0;
-
-                            for (i = 0; i != ntroops; i++)
-                                if (ta[i].unit)
-                                    ta[i].unit->dead += ta[i].status;
-                                else
-                                    deadpeasants += ta[i].status;
-
+                            count_casualties(r, ta, ntroops, &deadpeasants);
                             /* Report the casualties */
 
                             reportcasualtiesdh = 0;
@@ -4557,13 +4197,15 @@ void processorders(void)
                             if (attacker.side) {
                                 reportcasualties(u);
 
-                                for (u3 = r->units; u3; u3 = u3->next)
-                                    if (u3->side == 1 && u3 != u)
+                                for (u3 = r->units; u3; u3 = u3->next) {
+                                    if (u3->side == 1 && u3 != u) {
                                         reportcasualties(u3);
+                                    }
+                                }
                             } else {
-                                if (u2)
+                                if (u2) {
                                     reportcasualties(u2);
-                                else if (deadpeasants) {
+                                } else if (deadpeasants) {
                                     battlerecord("");
                                     reportcasualtiesdh = 1;
                                     sprintf(buf, "The peasants lose %d.",
@@ -4571,9 +4213,11 @@ void processorders(void)
                                     battlerecord(buf);
                                 }
 
-                                for (u3 = r->units; u3; u3 = u3->next)
-                                    if (u3->side == 0 && u3 != u2)
+                                for (u3 = r->units; u3; u3 = u3->next) {
+                                    if (u3->side == 0 && u3 != u2) {
                                         reportcasualties(u3);
+                                    }
+                                }
                             }
 
                             /* Dead peasants */
@@ -4607,11 +4251,11 @@ void processorders(void)
                                     }
                                 }
 
-                                for (i = 0; i != MAXSKILLS; i++)
+                                for (i = 0; i != MAXSKILLS; i++) {
                                     u3->skills[i] =
-                                        distribute(u3->number, k,
-                                                   u3->skills[i]);
-
+                                      distribute(u3->number, k,
+                                                 u3->skills[i]);
+                                }
                                 /* Adjust unit numbers */
 
                                 u3->number = k;
@@ -4624,52 +4268,43 @@ void processorders(void)
                             /* Distribute loot */
 
                             for (n = lmoney; n; n--) {
-                                do
-                                    j = rnd() % ntroops;
-                                while (ta[j].status
-                                       || ta[j].side != attacker.side);
-
-                                if (ta[j].unit) {
-                                    ta[j].unit->money++;
-                                    ta[j].unit->n++;
-                                } else
+                                troop *t = get_troop(ta, ntroops, defender.side, 0xFF);
+                                if (t->unit) {
+                                    t->unit->money++;
+                                    t->unit->n++;
+                                } else {
                                     r->money++;
+                                }
                             }
 
-                            for (i = 0; i != MAXITEMS; i++)
-                                for (n = litems[i]; n; n--)
+                            for (i = 0; i != MAXITEMS; i++) {
+                                for (n = litems[i]; n; n--) {
                                     if (i <= I_STONE || rnd() & 1) {
-                                        do
+                                        do {
                                             j = rnd() % ntroops;
-                                        while (ta[j].status
-                                               || ta[j].side !=
-                                               attacker.side);
+                                        } while (ta[j].status || ta[j].side != attacker.side);
 
                                         if (ta[j].unit) {
                                             if (!ta[j].unit->litems) {
                                                 ta[j].unit->litems =
-                                                    cmalloc(MAXITEMS *
-                                                            sizeof(int));
-                                                memset(ta[j].unit->litems,
-                                                       0,
-                                                       MAXITEMS *
-                                                       sizeof(int));
+                                                  calloc(MAXITEMS, sizeof(int));
                                             }
-
                                             ta[j].unit->items[i]++;
                                             ta[j].unit->litems[i]++;
                                         }
                                     }
-
+                                }
+                            }
                             /* Report loot */
 
-                            for (f2 = factions; f2; f2 = f2->next)
+                            for (f2 = factions; f2; f2 = f2->next) {
                                 f2->dh = 0;
-
-                            for (u3 = r->units; u3; u3 = u3->next)
+                            }
+                            for (u3 = r->units; u3; u3 = u3->next) {
                                 if (u3->n || u3->litems) {
+                                    int dh = 0;
+
                                     sprintf(buf, "%s finds ", unitid(u3));
-                                    dh = 0;
 
                                     if (u3->n) {
                                         scat("$");
@@ -4678,21 +4313,23 @@ void processorders(void)
                                     }
 
                                     if (u3->litems) {
-                                        for (i = 0; i != MAXITEMS; i++)
+                                        for (i = 0; i != MAXITEMS; i++) {
                                             if (u3->litems[i]) {
-                                                if (dh)
+                                                if (dh) {
                                                     scat(", ");
+                                                }
                                                 dh = 1;
 
                                                 icat(u3->litems[i]);
                                                 scat(" ");
 
-                                                if (u3->litems[i] == 1)
+                                                if (u3->litems[i] == 1) {
                                                     scat(itemnames[0][i]);
-                                                else
+                                                } else {
                                                     scat(itemnames[1][i]);
+                                                }
                                             }
-
+                                        }
                                         free(u3->litems);
                                         u3->litems = 0;
                                     }
@@ -4705,20 +4342,20 @@ void processorders(void)
                                     scat(".");
                                     addbattle(u3->faction, buf);
                                 }
+                            }
 
                             /* Does winner get combat experience? */
-
                             if (winnercasualties) {
                                 if (maxtactics[attacker.side] &&
-                                    !ta[leader[attacker.side]].status)
+                                    !ta[leader[attacker.side]].status) {
                                     ta[leader[attacker.side]].
-                                        unit->skills[SK_TACTICS] +=
-                                        COMBATEXP;
-
-                                for (i = 0; i != ntroops; i++)
+                                      unit->skills[SK_TACTICS] +=
+                                      COMBATEXP;
+                                }
+                                for (i = 0; i != ntroops; i++) {
                                     if (ta[i].unit &&
                                         !ta[i].status &&
-                                        ta[i].side == attacker.side)
+                                        ta[i].side == attacker.side) {
                                         switch (ta[i].weapon) {
                                         case I_SWORD:
                                             ta[i].unit->skills[SK_SWORD] +=
@@ -4737,14 +4374,420 @@ void processorders(void)
                                                 COMBATEXP;
                                             break;
                                         }
+                                    }
+                                }
                             }
 
                             free(ta);
                         }
+                    }
+                }
+            }
         }
     }
 
     free(fa);
+}
+
+void processorders(void)
+{
+    int i, j, k;
+    int n, m;
+    int nfactions;
+    int fno;
+    int winnercasualties;
+    int deadpeasants;
+    int taxed;
+    int availmoney;
+    int teaching;
+    int dh;
+    const char *s;
+    char *sx, *sn;
+    faction *f, *f2, **fa;
+    rfaction *rf;
+    region *r, *r2;
+    building *b;
+    ship *sh;
+    unit *u, *u2, *u3, *u4;
+    static unit *uv[100];
+    order *o, *taxorders, *recruitorders, *entertainorders, *workorders;
+    static order *produceorders[MAXITEMS];
+    strlist *S, *S2;
+
+    /* FORM orders */
+
+    puts("Processing FORM orders...");
+
+    for (r = regions; r; r = r->next)
+        for (u = r->units; u; u = u->next)
+            for (S = u->orders; S;)
+                switch (igetkeyword(S->s)) {
+                case K_FORM:
+                    u2 = createunit(r, u->faction);
+
+                    u2->alias = geti();
+                    if (u2->alias == 0)
+                        u2->alias = geti();
+
+                    u2->building = u->building;
+                    u2->ship = u->ship;
+                    u2->behind = u->behind;
+                    u2->guard = u->guard;
+
+                    S = S->next;
+
+                    while (S) {
+                        if (igetkeyword(S->s) == K_END) {
+                            S = S->next;
+                            break;
+                        }
+
+                        S2 = S->next;
+                        translist(&u->orders, &u2->orders, S);
+                        S = S2;
+                    }
+
+                    break;
+
+                default:
+                    S = S->next;
+                }
+
+    /* Instant orders - diplomacy etc. */
+
+    puts("Processing instant orders...");
+
+    for (r = regions; r; r = r->next)
+        for (u = r->units; u; u = u->next)
+            for (S = u->orders; S; S = S->next)
+                switch (igetkeyword(S->s)) {
+                case -1:
+                    mistakes(u, S->s, "Order not recognized");
+                    break;
+
+                case K_ACCEPT:
+                    togglerf(u, S, &u->faction->accept);
+                    break;
+    
+                case K_PASSWORD:
+                    s = getstr();
+                    faction_setpassword(u->faction, s);
+                    sprintf(buf2, "The faction's password was changed to '%s'.", s);
+                    addstrlist(&u->faction->messages, buf2);
+                    break;
+
+                case K_ADDRESS:
+                    s = getstr();
+
+                    if (!s[0]) {
+                        mistakes(u, S->s, "No address given");
+                        break;
+                    }
+
+                    faction_setaddr(u->faction, s);
+
+                    printf("%s is changing address to %s.\n",
+                           faction_getname(u->faction), faction_getaddr(u->faction));
+                    break;
+
+                case K_ADMIT:
+                    togglerf(u, S, &u->faction->admit);
+                    break;
+
+                case K_ALLY:
+                    f = getfaction();
+
+                    if (f == 0) {
+                        mistakes(u, S->s, "Faction not found");
+                        break;
+                    }
+
+                    if (f == u->faction)
+                        break;
+
+                    if (geti()) {
+                        for (rf = u->faction->allies; rf; rf = rf->next)
+                            if (rf->faction == f)
+                                break;
+
+                        if (!rf) {
+                            rf = cmalloc(sizeof(rfaction));
+                            rf->faction = f;
+                            addlist(&u->faction->allies, rf);
+                        }
+                    } else
+                        for (rf = u->faction->allies; rf; rf = rf->next)
+                            if (rf->faction == f) {
+                                removelist(&u->faction->allies, rf);
+                                break;
+                            }
+
+                    break;
+
+                case K_BEHIND:
+                    u->behind = geti() != 0;
+                    break;
+
+                case K_COMBAT:
+                    s = getstr();
+
+                    if (!s[0]) {
+                        u->combatspell = -1;
+                        break;
+                    }
+
+                    i = findspell(s);
+
+                    if (i < 0 || !cancast(u, i)) {
+                        mistakes(u, S->s, "Spell not found");
+                        break;
+                    }
+
+                    if (!iscombatspell[i]) {
+                        mistakes(u, S->s, "Not a combat spell");
+                        break;
+                    }
+
+                    u->combatspell = i;
+                    break;
+
+                case K_DISPLAY:
+                    sn = 0;
+
+                    switch (getkeyword()) {
+                    case K_BUILDING:
+                        if (!u->building) {
+                            mistakes(u, S->s, "Not in a building");
+                            break;
+                        }
+
+                        if (!u->owner) {
+                            mistakes(u, S->s, "Building not owned by you");
+                            break;
+                        }
+
+                        building_setdisplay(u->building, getstr());
+                        break;
+
+                    case K_SHIP:
+                        if (!u->ship) {
+                            mistakes(u, S->s, "Not in a ship");
+                            break;
+                        }
+
+                        if (!u->owner) {
+                            mistakes(u, S->s, "Ship not owned by you");
+                            break;
+                        }
+
+                        ship_setdisplay(u->ship, getstr());
+                        break;
+
+                    case K_UNIT:
+                        unit_setdisplay(u, getstr());
+                        break;
+
+                    default:
+                        mistakes(u, S->s, "Order not recognized");
+                        break;
+                    }
+
+                    if (!sn)
+                        break;
+
+                    sx = getstr();
+
+                    i = strlen(sx);
+                    if (i && sx[i - 1] == '.')
+                        sx[i - 1] = 0;
+
+                    nstrcpy(sn, sx, DISPLAYSIZE);
+                    break;
+
+                case K_GUARD:
+                    if (geti() == 0)
+                        u->guard = false;
+                    break;
+
+                case K_NAME:
+                    switch (getkeyword()) {
+                    case K_BUILDING:
+                        if (!u->building) {
+                            mistakes(u, S->s, "Not in a building");
+                            break;
+                        }
+
+                        if (!u->owner) {
+                            mistakes(u, S->s, "Building not owned by you");
+                            break;
+                        }
+
+                        building_setname(u->building, getname(u, S->s));
+                        break;
+
+                    case K_FACTION:
+                        faction_setname(u->faction, getname(u, S->s));
+                        break;
+
+                    case K_SHIP:
+                        if (!u->ship) {
+                            mistakes(u, S->s, "Not in a ship");
+                            break;
+                        }
+
+                        if (!u->owner) {
+                            mistakes(u, S->s, "Ship not owned by you");
+                            break;
+                        }
+
+                        ship_setname(u->ship, getname(u, S->s));
+                        break;
+
+                    case K_UNIT:
+                        unit_setname(u, getname(u, S->s));
+                        break;
+
+                    default:
+                        mistakes(u, S->s, "Order not recognized");
+                        break;
+                    }
+                    break;
+
+                case K_RESHOW:
+                    i = getspell();
+
+                    if (i < 0 || !u->faction->seendata[i]) {
+                        mistakes(u, S->s, "Spell not found");
+                        break;
+                    }
+
+                    u->faction->showdata[i] = 1;
+                    break;
+                }
+
+#ifdef ENABLE_FIND                  
+    /* FIND orders */
+
+    puts("Processing FIND orders...");
+
+    for (r = regions; r; r = r->next) {
+        for (u = r->units; u; u = u->next) {
+            for (S = u->orders; S; S = S->next) {
+                switch (igetkeyword(S->s)) {
+                case K_FIND:
+                    f = getfaction();
+
+                    if (f == 0) {
+                        mistakes(u, S->s, "Faction not found");
+                        break;
+                    }
+
+                    sprintf(buf, "The address of %s is %s.", factionid(f),
+                            faction_getaddr(f));
+                    sparagraph(&u->faction->messages, buf, 0, 0);
+                    break;
+                }
+            }
+        }
+    }
+#endif
+    /* Leaving and entering buildings and ships */
+
+    puts("Processing leaving and entering orders...");
+
+    for (r = regions; r; r = r->next)
+        for (u = r->units; u; u = u->next)
+            for (S = u->orders; S; S = S->next)
+                switch (igetkeyword(S->s)) {
+                case K_BOARD:
+                    sh = getship(r);
+
+                    if (!sh) {
+                        mistakes(u, S->s, "Ship not found");
+                        break;
+                    }
+
+                    if (!mayboard(r, u, sh)) {
+                        mistakes(u, S->s, "Not permitted to board");
+                        break;
+                    }
+
+                    leave(r, u);
+                    u->ship = sh;
+                    u->owner = 0;
+                    if (shipowner(r, sh) == 0)
+                        u->owner = 1;
+                    break;
+
+                case K_ENTER:
+                    b = getbuilding(r);
+
+                    if (!b) {
+                        mistakes(u, S->s, "Building not found");
+                        break;
+                    }
+
+                    if (!mayenter(r, u, b)) {
+                        mistakes(u, S->s, "Not permitted to enter");
+                        break;
+                    }
+
+                    leave(r, u);
+                    u->building = b;
+                    u->owner = 0;
+                    if (buildingowner(r, b) == 0)
+                        u->owner = 1;
+                    break;
+
+                case K_LEAVE:
+                    if (r->terrain == T_OCEAN) {
+                        mistakes(u, S->s, "Ship is at sea");
+                        break;
+                    }
+
+                    leave(r, u);
+                    break;
+
+                case K_PROMOTE:
+                    u2 = getunit(r, u);
+
+                    if (!u2) {
+                        mistakes(u, S->s, "Unit not found");
+                        break;
+                    }
+
+                    if (!u->building && !u->ship) {
+                        mistakes(u, S->s,
+                                 "No building or ship to transfer ownership of");
+                        break;
+                    }
+
+                    if (!u->owner) {
+                        mistakes(u, S->s, "Not owned by you");
+                        break;
+                    }
+
+                    if (!accepts(u2, u)) {
+                        mistakes(u, S->s, "Unit does not accept ownership");
+                        break;
+                    }
+
+                    if (u->building) {
+                        if (u2->building != u->building) {
+                            mistakes(u, S->s, "Unit not in same building");
+                            break;
+                        }
+                    } else if (u2->ship != u->ship) {
+                        mistakes(u, S->s, "Unit not on same ship");
+                        break;
+                    }
+
+                    u->owner = 0;
+                    u2->owner = 1;
+                    break;
+                }
+
+    process_combat();
 
     /* Economic orders */
 
@@ -4761,12 +4804,12 @@ void processorders(void)
                 switch (igetkeyword(S->s)) {
                 case K_DEMOLISH:
                     if (!u->building) {
-                        mistake2(u, S, "Not in a building");
+                        mistakes(u, S->s, "Not in a building");
                         break;
                     }
 
                     if (!u->owner) {
-                        mistake2(u, S, "Building not owned by you");
+                        mistakes(u, S->s, "Building not owned by you");
                         break;
                     }
 
@@ -4789,12 +4832,12 @@ void processorders(void)
                     u2 = getunit(r, u);
 
                     if (!u2 && !getunit0) {
-                        mistake2(u, S, "Unit not found");
+                        mistakes(u, S->s, "Unit not found");
                         break;
                     }
 
                     if (u2 && !accepts(u2, u)) {
-                        mistake2(u, S, "Unit does not accept your gift");
+                        mistakes(u, S->s, "Unit does not accept your gift");
                         break;
                     }
 
@@ -4803,18 +4846,18 @@ void processorders(void)
 
                     if (i >= 0) {
                         if (!u2) {
-                            mistake2(u, S, "Unit not found");
+                            mistakes(u, S->s, "Unit not found");
                             break;
                         }
 
                         if (!u->spells[i]) {
-                            mistake2(u, S, "Spell not found");
+                            mistakes(u, S->s, "Spell not found");
                             break;
                         }
 
                         if (spelllevel[i] >
                             (effskill(u2, SK_MAGIC) + 1) / 2) {
-                            mistake2(u, S,
+                            mistakes(u, S->s,
                                      "Recipient is not able to learn that spell");
                             break;
                         }
@@ -4839,7 +4882,7 @@ void processorders(void)
                         i = getitem();
 
                         if (i < 0) {
-                            mistake2(u, S, "Item not recognized");
+                            mistakes(u, S->s, "Item not recognized");
                             break;
                         }
 
@@ -4847,7 +4890,7 @@ void processorders(void)
                             n = u->items[i];
 
                         if (n == 0) {
-                            mistake2(u, S, "Item not available");
+                            mistakes(u, S->s, "Item not available");
                             break;
                         }
 
@@ -4889,7 +4932,7 @@ void processorders(void)
                     u2 = getunit(r, u);
 
                     if (!u2 && !getunit0 && !getunitpeasants) {
-                        mistake2(u, S, "Unit not found");
+                        mistakes(u, S->s, "Unit not found");
                         break;
                     }
 
@@ -4899,7 +4942,7 @@ void processorders(void)
                         n = u->money;
 
                     if (n == 0) {
-                        mistake2(u, S, "No money available");
+                        mistakes(u, S->s, "No money available");
                         break;
                     }
 
@@ -4928,17 +4971,17 @@ void processorders(void)
 
                 case K_SINK:
                     if (!u->ship) {
-                        mistake2(u, S, "Not on a ship");
+                        mistakes(u, S->s, "Not on a ship");
                         break;
                     }
 
                     if (!u->owner) {
-                        mistake2(u, S, "Ship not owned by you");
+                        mistakes(u, S->s, "Ship not owned by you");
                         break;
                     }
 
                     if (r->terrain == T_OCEAN) {
-                        mistake2(u, S, "Ship is at sea");
+                        mistakes(u, S->s, "Ship is at sea");
                         break;
                     }
 
@@ -4967,12 +5010,12 @@ void processorders(void)
 
                     if (u2) {
                         if (!accepts(u2, u)) {
-                            mistake2(u, S,
+                            mistakes(u, S->s,
                                      "Unit does not accept your gift");
                             break;
                         }
                     } else if (!getunitpeasants) {
-                        mistake2(u, S, "Unit not found");
+                        mistakes(u, S->s, "Unit not found");
                         break;
                     }
 
@@ -4982,7 +5025,7 @@ void processorders(void)
                         n = u->number;
 
                     if (n == 0) {
-                        mistake2(u, S, "No people available");
+                        mistakes(u, S->s, "No people available");
                         break;
                     }
 
@@ -4994,7 +5037,7 @@ void processorders(void)
                             k += u2->number;
 
                         if (k > 3) {
-                            mistake2(u, S, "Only 3 magicians per faction");
+                            mistakes(u, S->s, "Only 3 magicians per faction");
                             break;
                         }
                     }
@@ -5055,7 +5098,7 @@ void processorders(void)
                     n = armedmen(u);
 
                     if (!n) {
-                        mistake2(u, S,
+                        mistakes(u, S->s,
                                  "Unit is not armed and combat trained");
                         break;
                     }
@@ -5063,7 +5106,7 @@ void processorders(void)
                     for (u2 = r->units; u2; u2 = u2->next)
                         if (u2->guard && u2->number && !admits(u2, u)) {
                             sprintf(buf, "%s is on guard", unit_getname(u2));
-                            mistake2(u, S, buf);
+                            mistakes(u, S->s, buf);
                             break;
                         }
 
@@ -5137,7 +5180,7 @@ void processorders(void)
 
                     if (u->skills[SK_MAGIC]
                         && magicians(u->faction) + n > 3) {
-                        mistake2(u, S, "Only 3 magicians per faction");
+                        mistakes(u, S->s, "Only 3 magicians per faction");
                         break;
                     }
 
@@ -5185,7 +5228,7 @@ void processorders(void)
                 switch (igetkeyword(S->s)) {
                 case K_QUIT:
                     if (geti() != u->faction->no) {
-                        mistake2(u, S, "Correct faction number not given");
+                        mistakes(u, S->s, "Correct faction number not given");
                         break;
                     }
 
