@@ -48,18 +48,19 @@ int main (int argc, char **argv) {
     long len;
     char *data;
     cJSON *json;
+	if (argc>=1) {
+		F = fopen(argv[1], "rb");
+		fseek(F,0,SEEK_END);
+		len=ftell(F);
+		fseek(F,0,SEEK_SET);
+		data=malloc(len+1);
+		fread(data,1,len,F);
+		fclose(F);
 
-    F = fopen(argv[1], "rb");
-	fseek(F,0,SEEK_END);
-    len=ftell(F);
-    fseek(F,0,SEEK_SET);
-	data=malloc(len+1);
-    fread(data,1,len,F);
-    fclose(F);
-
-    json = cJSON_Parse(data);
-    print_template(json, stdout);
-    free(data);
-    cJSON_Delete(json);
+		json = cJSON_Parse(data);
+		print_template(json, stdout);
+		free(data);
+		cJSON_Delete(json);
+	}
     return 0;
 }

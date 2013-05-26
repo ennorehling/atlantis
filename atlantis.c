@@ -3941,7 +3941,6 @@ void process_combat(void)
                                 strlist *S2;
                                 for (S2 = u3->orders; S2; S2 = S2->next) {
                                     if (igetkeyword(S2->s) == K_ATTACK) {
-                                        int deadpeasants;
                                         u4 = getunit(r, u3);
 
                                         if ((getunitpeasants && !u2) ||
@@ -4393,22 +4392,17 @@ void processorders(void)
 {
     int i, j, k;
     int n, m;
-    int nfactions;
-    int fno;
-    int winnercasualties;
-    int deadpeasants;
     int taxed;
     int availmoney;
     int teaching;
-    int dh;
     const char *s;
     char *sx, *sn;
-    faction *f, *f2, **fa;
+    faction *f;
     rfaction *rf;
     region *r, *r2;
     building *b;
     ship *sh;
-    unit *u, *u2, *u3, *u4;
+    unit *u, *u2, *u3;
     static unit *uv[100];
     order *o, *taxorders, *recruitorders, *entertainorders, *workorders;
     static order *produceorders[MAXITEMS];
