@@ -4409,7 +4409,7 @@ void processorders(void)
                             maxtactics[0] = 0;
                             maxtactics[1] = 0;
 
-                            for (i = 0; i != ntroops; i++)
+                            for (i = 0; i != ntroops; i++) {
                                 if (ta[i].unit) {
                                     j = effskill(ta[i].unit, SK_TACTICS);
 
@@ -4418,7 +4418,7 @@ void processorders(void)
                                         maxtactics[ta[i].side] = j;
                                     }
                                 }
-
+							}
                             attacker.side = -1;
                             if (maxtactics[0] > maxtactics[1])
                                 attacker.side = 0;

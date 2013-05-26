@@ -17,6 +17,7 @@ struct region;
 struct faction;
 struct stream;
 struct unit;
+struct troop;
 
 typedef struct strlist {
     struct strlist *next;
@@ -67,5 +68,7 @@ int findkeyword(const char *s);
 int igetkeyword(const char *s);
 char *igetstr(const char *s);
 char *getstr(void);
+
+struct troop * get_troop(struct troop *ta, int ntroops, int side, int mask);
 
 #endif
