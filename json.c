@@ -39,9 +39,9 @@ static cJSON * show_ship(const faction *f, const ship * s) {
         cJSON_AddStringToObject(json, "display", str);
     }
     if (s->left) {
-        cJSON_AddTrueToObject(json, "finished");
-    } else {
         cJSON_AddFalseToObject(json, "finished");
+    } else {
+        cJSON_AddTrueToObject(json, "finished");
     }
     return json;
 }

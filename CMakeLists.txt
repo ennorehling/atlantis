@@ -3,23 +3,24 @@ PROJECT (atlantis C)
 
 ENABLE_TESTING()
 
+IF (MSVC)
+    find_package (MSVC MODULE)
+    # Force to always compile with W4
+    MSVC_SET_WARNING_LEVEL(4)
+ELSEIF(CMAKE_COMPILER_IS_GNUCC)
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -Wno-unknown-pragmas -Wpointer-arith -Wno-char-subscripts -Wno-long-long")
+    SET(CMAKE_C_FLAGS "-g")
+    SET(CMAKE_C_FLAGS "-pg")
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+    SET(MATH_LIBRARY m)
+ELSE(MSVC)
+    MESSAGE(STATUS "Unknown compiler ${CMAKE_C_COMPILER_ID}")
+ENDIF(MSVC)
+
 ADD_SUBDIRECTORY (cutest)
 ADD_SUBDIRECTORY (storage)
 ADD_SUBDIRECTORY (crypto)
 ADD_SUBDIRECTORY (tests)
-
-IF (MSVC)
-	find_package (MSVC MODULE)
-    # Force to always compile with W4
-    MSVC_SET_WARNING_LEVEL(4)
-ELSEIF(CMAKE_COMPILER_IS_GNUCC)
-    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -Wno-unknown-pragmas -Wpointer-arith -Wno-char-subscripts -Wno-long-long")
-    SET(CMAKE_C_FLAGS "-g")
-    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
-	SET(MATH_LIBRARY m)
-ELSE(MSVC)
-    MESSAGE(STATUS "Unknown compiler ${CMAKE_C_COMPILER_ID}")
-ENDIF(MSVC)
 
 FILE(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/include)
 INCLUDE (CheckIncludeFiles)
@@ -52,9 +53,9 @@ SET( ATLANTIS_SRC atlantis.c atlantis.h spells.h skills.h items.h
 unit.h unit.c building.h building.c ship.h ship.c region.h region.c faction.h faction.c keywords.h
 settings.h json.c json.h cJSON/cJSON.c cJSON/cJSON.h )
 SET( RTL_SRC rtl.c rtl.h )
-ADD_EXECUTABLE(atlantis main.c ${ATLANTIS_SRC} ${RTL_SRC} )
-TARGET_LINK_LIBRARIES (atlantis ${CRYPTO_LIBRARIES} ${STORAGE_LIBRARIES} )
-TARGET_LINK_LIBRARIES (atlantis ${MATH_LIBRARY})
+ADD_EXECUTABLE(server server.c ${ATLANTIS_SRC} ${RTL_SRC} )
+TARGET_LINK_LIBRARIES (server ${CRYPTO_LIBRARIES} ${STORAGE_LIBRARIES} )
+TARGET_LINK_LIBRARIES (server ${MATH_LIBRARY})
 
 ADD_EXECUTABLE( template template.c cJSON/cJSON.c cJSON/cJSON.h ${RTL_SRC} )
 TARGET_LINK_LIBRARIES( template ${STORAGE_LIBRARIES} )
@@ -74,5 +75,5 @@ ADD_CUSTOM_TARGET(check COMMAND ${CMAKE_CTEST_COMMAND}
                   COMMENT "Running Tests...")
 
 IF (MSVC)
-    MSVC_CRT_SECURE_NO_WARNINGS (template atlantis atlantis_tests rtl_tests)
+    MSVC_CRT_SECURE_NO_WARNINGS (template server atlantis_tests rtl_tests)
 ENDIF (MSVC)

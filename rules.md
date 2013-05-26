@@ -634,7 +634,7 @@ Perform building work on a building.  BUILD BUILDING with a building
 number specified will perform work on that building.  BUILD BUILDING alone will
 create a new building and perform work on it.
 
-### BUILD  SHIP  [ship-no|ship-type]
+### BUILD  [SHIP ship-no|LONGBOAT|CLIPPER|GALLEON]
 
 BUILD SHIP with a ship number specified will perform work on that ship.
 BUILD LONGBOAT, CLIPPER or GALLEON will create a ship of the indicated
