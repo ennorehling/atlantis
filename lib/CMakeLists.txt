@@ -18,12 +18,12 @@ FILE (GLOB LIB_SRC atlantis.c json.c building.c ship.c unit.c region.c faction.c
 
 ADD_LIBRARY (atlantis ${LIB_SRC} ${LIB_HDR})
 
-ADD_EXECUTABLE (test_atlantis atlantis.test.c)
-TARGET_LINK_LIBRARIES (test_atlantis atlantis ${CUTEST_LIBRARIES} ${STORAGE_LIBRARIES} ${CRYPTO_LIBRARIES} ${CJSON_LIBRARIES})
-ADD_TEST (atlantis test_atlantis)
-
 set (ATLANTIS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "atlantis headers")
 set (ATLANTIS_LIBRARIES atlantis ${STORAGE_LIBRARIES} ${CRYPTO_LIBRARIES} ${CJSON_LIBRARIES} CACHE INTERNAL "atlantis libraries")
+
+ADD_EXECUTABLE (test_atlantis atlantis.test.c)
+TARGET_LINK_LIBRARIES (test_atlantis ${CUTEST_LIBRARIES} ${ATLANTIS_LIBRARIES})
+ADD_TEST (atlantis test_atlantis)
 
 IF (MSVC)
     FIND_PACKAGE (MSVC MODULE)
