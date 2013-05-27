@@ -25,4 +25,5 @@ const char * building_getname(const struct building *self);
 void building_setname(struct building *self, const char *name);
 const char * building_getdisplay(const struct building *self);
 void building_setdisplay(struct building *self, const char *display);
+
 #endif
