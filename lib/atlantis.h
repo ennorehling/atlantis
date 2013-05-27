@@ -52,7 +52,6 @@ int autoworld(const char * playerfile);
 
 int transform(int *x, int *y, int kwd);
 void rnd_seed(unsigned long x);
-int processturn(const char *orders);
 void createcontinent(void);
 void addplayers(struct region * r, struct stream * strm);
 void addunits(void);

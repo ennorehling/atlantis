@@ -3024,17 +3024,6 @@ NEXTUNIT:
 
 }
 
-void readorders(const char * filename)
-{
-    FILE * F;
-    stream strm;
-
-    F = cfopen(filename, "r");
-    fstream_init(&strm, F);
-    read_orders(&strm);
-    fclose(F);
-}
-
 void update_world(int minx, int miny, int maxx, int maxy) {
     world.left = minx;
     world.top = miny;
@@ -6546,17 +6535,6 @@ void initgame(void)
     } else {
         readgame();
     }
-}
-
-int processturn(const char *orders)
-{
-    turn++;
-    readorders(orders);
-    processorders();
-    reports();
-    writesummary();
-    writegame();
-    return 0;
 }
 
 void createcontinent(void)

@@ -77,6 +77,29 @@ void addplayers_inter(void) {
     addplayers(r, &strm);
     fclose(F);
 }
+
+static void readorders(const char * filename)
+{
+    FILE * F;
+    stream strm;
+
+    F = fopen(filename, "r");
+    fstream_init(&strm, F);
+    read_orders(&strm);
+    fclose(F);
+}
+
+static int processturn(const char *orders)
+{
+    turn++;
+    readorders(orders);
+    processorders();
+    reports();
+    writesummary();
+    writegame();
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     int i;
