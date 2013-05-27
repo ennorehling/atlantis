@@ -12,5 +12,7 @@ typedef struct battle {
     struct strlist * events;
 } battle;
 
+void free_battle(struct battle * b);
+
 #endif
 

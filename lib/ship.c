@@ -11,6 +11,21 @@ const char *shiptypenames[] = {
     "galleon",
 };
 
+ship *create_ship(int no, ship_t type) {
+    ship *s = (ship *)calloc(1, sizeof(ship));
+    assert(no);
+    s->type = type;
+    s->left = 0;
+    s->no = no;
+    return s;
+}
+
+void free_ship(ship *s) {
+    free(s->name_);
+    free(s->display_);
+    free(s);
+}
+
 const char * ship_getname(const struct ship *self)
 {
     return self->name_;

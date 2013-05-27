@@ -31,8 +31,8 @@ typedef struct faction {
     int lastorders;
     bool seendata[MAXSPELLS];
     bool showdata[MAXSPELLS];
-    struct rfaction *accept;
-    struct rfaction *admit;
+    struct quicklist *accept;
+    struct quicklist *admit;
     struct rfaction *allies;
     struct strlist *mistakes;
     struct strlist *messages;
@@ -50,6 +50,7 @@ typedef struct faction {
 extern struct faction *factions;
 
 struct faction * create_faction(int no);
+void free_faction(struct faction *f);
 struct faction * findfaction(int no);
 
 void faction_setname(struct faction *f, const char * name);

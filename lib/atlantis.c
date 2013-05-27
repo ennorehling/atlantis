@@ -27,6 +27,7 @@
 #include <binarystore.h>
 #include <textstore.h>
 #include <stream.h>
+#include <quicklist.h>
 #include <filestream.h>
 #include <mtrand.h>
 #include <cJSON.h>
@@ -926,8 +927,8 @@ void addlist(void *l1, void *p1)
     list **l;
     list *p, *q;
 
-    l = l1;
-    p = p1;
+    l = (list **)l1;
+    p = (list *)p1;
 
     p->next = 0;
 
@@ -967,7 +968,7 @@ void freelist(void *p1)
 {
     list *p, *p2;
 
-    p = p1;
+    p = (list *)p1;
 
     while (p) {
         p2 = p->next;
@@ -981,7 +982,7 @@ int listlen(void *l)
     int i;
     list *p;
 
-    for (p = l, i = 0; p; p = p->next, i++);
+    for (p = (list *)l, i = 0; p; p = p->next, i++);
     return i;
 }
 
@@ -1657,21 +1658,6 @@ int blockcoord(int x)
                                                   BLOCKBORDER * 2);
 }
 
-struct region * create_region(int x, int y, terrain_t t)
-{
-    region * r;
-
-    r = cmalloc(sizeof(region));
-    memset(r, 0, sizeof(region));
-
-    r->x = x;
-    r->y = y;
-    r->terrain = t;
-
-    addlist(&regions, r);
-    return r;
-}
-
 void initregion(region *r) {
     if (r->terrain != T_OCEAN) {
         int i, n = 0;
@@ -2231,29 +2217,16 @@ void destroyfaction(faction * f)
             }
 }
 
-void togglerf(unit * u, strlist * S, rfaction ** r)
+void togglerf(unit * u, const char *s, quicklist ** ql, faction *f)
 {
-    faction *f;
-    rfaction *rf;
-
-    f = getfaction();
-
     if (f) {
         if (f != u->faction) {
-            for (rf = *r; rf; rf = rf->next)
-                if (rf->faction == f)
-                    break;
-
-            if (rf)
-                removelist(r, rf);
-            else {
-                rf = cmalloc(sizeof(rfaction));
-                rf->faction = f;
-                addlist(r, rf);
+            if (!ql_set_remove(ql, f)) {
+                ql_set_insert(ql, f);
             }
         }
     } else {
-        mistakes(u, S->s, "Faction not found");
+        mistakes(u, s, "Faction not found");
     }
 }
 
@@ -2768,7 +2741,7 @@ void doshot(void)
         terminate(di);
 }
 
-int isallied(unit * u, unit * u2)
+int isallied(const unit * u, const unit * u2)
 {
     rfaction *rf;
 
@@ -2785,42 +2758,26 @@ int isallied(unit * u, unit * u2)
     return 0;
 }
 
-bool accepts(unit * u, unit * u2)
+bool accepts(const unit * u, const unit * u2)
 {
-    rfaction *rf;
 
-	if (u->skills[SK_MAGIC] || u2->skills[SK_MAGIC]) {
-		return false;
-	}
-
-    if (isallied(u, u2)) {
+    if (u->skills[SK_MAGIC] || u2->skills[SK_MAGIC]) {
+        return false;
+    } else if (isallied(u, u2)) {
         return true;
-	}
-
-	for (rf = u->faction->accept; rf; rf = rf->next) {
-        if (rf->faction == u2->faction) {
-            return true;
-		}
-	}
-
-    return false;
+    }
+    return !!ql_set_find(&u->faction->accept, 0, u2->faction);
 }
 
-int admits(unit * u, unit * u2)
+bool admits(const unit * u, const unit * u2)
 {
-    rfaction *rf;
-
     if (isallied(u, u2))
-        return 1;
+        return true;
 
-    for (rf = u->faction->admit; rf; rf = rf->next)
-        if (rf->faction == u2->faction)
-            return 1;
-
-    return 0;
+    return !!ql_set_find(&u->faction->admit, 0, u2->faction);
 }
 
-unit *buildingowner(region * r, building * b)
+unit *buildingowner(const region * r, const building * b)
 {
     unit *u;
 
@@ -2831,7 +2788,7 @@ unit *buildingowner(region * r, building * b)
     return 0;
 }
 
-unit *shipowner(region * r, ship * sh)
+unit *shipowner(const region * r, const ship * sh)
 {
     unit *u;
 
@@ -2842,7 +2799,7 @@ unit *shipowner(region * r, ship * sh)
     return 0;
 }
 
-int mayenter(region * r, unit * u, building * b)
+int mayenter(const region * r, const unit * u, const building * b)
 {
     unit *u2;
 
@@ -3589,7 +3546,7 @@ void expandorders(region * r, order * orders)
     for (o = orders; o; o = o->next)
         norders += o->qty;
 
-    oa = cmalloc(norders * sizeof(order));
+    oa = (order *)cmalloc(norders * sizeof(order));
 
     i = 0;
 
@@ -4452,7 +4409,7 @@ void processorders(void)
                     break;
 
                 case K_ACCEPT:
-                    togglerf(u, S, &u->faction->accept);
+                    togglerf(u, S->s, &u->faction->accept, getfaction());
                     break;
     
                 case K_PASSWORD:
@@ -4477,7 +4434,7 @@ void processorders(void)
                     break;
 
                 case K_ADMIT:
-                    togglerf(u, S, &u->faction->admit);
+                    togglerf(u, S->s, &u->faction->admit, getfaction());
                     break;
 
                 case K_ALLY:
@@ -5118,7 +5075,7 @@ void processorders(void)
         for (o = taxorders; o; o = o->next)
             norders += o->qty / 10;
 
-        oa = cmalloc(norders * sizeof(order));
+        oa = (order *)cmalloc(norders * sizeof(order));
 
         i = 0;
 
@@ -5497,19 +5454,16 @@ void processorders(void)
                         break;
                     }
 
-                    sh = cmalloc(sizeof(ship));
-                    memset(sh, 0, sizeof(ship));
-
-                    sh->type = stype;
-                    sh->left = shipcost[i];
-
+                    n = 0;
                     do {
-                        sh->no++;
-                        sprintf(buf2, "Ship %d", sh->no);
-                        ship_setname(sh, buf2);
+                        n++;
                     }
-                    while (findship(sh->no));
+                    while (findship(n));
 
+                    sh = create_ship(n, stype);
+                    sh->left = shipcost[i];
+                    sprintf(buf2, "Ship %d", n);
+                    ship_setname(sh, buf2);
                     addlist(&r->ships, sh);
 
                     leave(r, u);
@@ -6079,7 +6033,7 @@ int readgame(void)
     unit *u, **up;
     int minx, miny, maxx, maxy;
     storage store;
-	int version = VER_NOHEADER;
+    int version = VER_NOHEADER;
 
     minx = INT_MAX;
     maxx = INT_MIN;
@@ -6146,7 +6100,7 @@ int readgame(void)
         rstrlist(&store, &junk);
         rstrlist(&store, &f->events);
 
-		f->alive = false;
+        f->alive = false;
         addlist2(fp, f);
     }
 
@@ -6210,12 +6164,11 @@ int readgame(void)
         shp = &r->ships;
 
         while (--n2 >= 0) {
-            int no;
+            int no, type;
             char temp[DISPLAYSIZE];
 
             store.api->r_int(store.handle, &no);
-            sh = cmalloc(sizeof(ship));
-            sh->no = no;
+            sh = create_ship(no, SH_LONGBOAT);
 
             if (store.api->r_str(store.handle, name, sizeof(temp))==0) {
                 ship_setname(sh, temp);
@@ -6223,8 +6176,8 @@ int readgame(void)
             if (store.api->r_str(store.handle, temp, sizeof(temp))==0) {
                 ship_setdisplay(sh, temp);
             }
-            store.api->r_int(store.handle, &no);
-            sh->type = (ship_t)no;
+            store.api->r_int(store.handle, &type);
+            sh->type = (ship_t)type;
             store.api->r_int(store.handle, &sh->left);
 
             addlist2(shp, sh);
@@ -6251,9 +6204,9 @@ int readgame(void)
                 unit_setdisplay(u, temp[0] ? temp : 0);
             }
             store.api->r_int(store.handle, &u->number);
-			if (u->number) {
-				u->faction->alive = true;
-			}
+            if (u->number) {
+                u->faction->alive = true;
+            }
             store.api->r_int(store.handle, &u->money);
 
             store.api->r_int(store.handle, &no);
@@ -6286,7 +6239,7 @@ int readgame(void)
                 u->spells[i] = (spell_t)no;
                 if (u->spells[i]) {
                     u->faction->seendata[i] = true;
-				}
+                }
             }
 
             addlist2(up, u);
@@ -6318,8 +6271,8 @@ int readgame(void)
     for (f = factions; f; f = f->next) {
         for (rf = f->allies; rf; rf = rf->next) {
             rf->faction = findfaction(rf->factionno);
-		}
-	}
+        }
+    }
     /* Clear away debris of destroyed factions */
     removeempty();
     removenullfactions();
@@ -6354,72 +6307,14 @@ void cleargame(void)
     while (regions) {
         region * r = regions;
         regions = r->next;
-
-        free(r->name_);
-        while (r->units) {
-            unit * u = r->units;
-            r->units = u->next;
-            freestrlist(&u->orders);
-            free(u->name_);
-            free(u->display_);
-            free(u);
-        }
-        while (r->ships) {
-            ship * s = r->ships;
-            r->ships = s->next;
-            free(s);
-        }
-        while (r->buildings) {
-            building * b = r->buildings;
-            r->buildings = b->next;
-            free(b);
-        }
-        free(r);
+        free_region(r);
     }
 
     while (factions) {
-        battle *b;
         faction * f = factions;
         factions = f->next;
 
-        free(f->name_);
-        free(f->addr_);
-        free(f->pwhash_);
-        freestrlist(&f->messages);
-        while (f->battles) {
-            int i;
-            b = f->battles;
-            f->battles = b->next;
-            freestrlist(&b->events);
-            for (i=0;i!=2;++i) {
-                while (b->units[i]) {
-                    unit * u = b->units[i];
-                    b->units[i] = u->next;
-                    free(u->name_);
-                    free(u->display_);
-                    free(u);
-                }
-            }
-            free(b);
-        }
-        freestrlist(&f->events);
-        freestrlist(&f->mistakes);
-        while (f->allies) {
-            rfaction * rf = f->allies;
-            f->allies = rf->next;
-            free(rf);
-        }
-        while (f->accept) {
-            rfaction * rf = f->admit;
-            f->admit = rf->next;
-            free(rf);
-        }
-        while (f->admit) {
-            rfaction * rf = f->admit;
-            f->admit = rf->next;
-            free(rf);
-        }
-        free(f);
+        free_faction(f);
     }
 }
 
@@ -6438,8 +6333,8 @@ int writegame(void)
     printf("Writing turn %d...\n", turn);
 
     store_init(&store, cfopen(buf, "wb"));
-	store.api->w_int(store.handle, -1);
-	store.api->w_int(store.handle, VER_CURRENT);
+    store.api->w_int(store.handle, -1);
+    store.api->w_int(store.handle, VER_CURRENT);
     store.api->w_int(store.handle, turn);
 
     /* Write factions */

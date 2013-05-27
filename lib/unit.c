@@ -1,9 +1,34 @@
 #include "unit.h"
+#include "atlantis.h"
 
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+unit * create_unit(struct faction *f, int no)
+{
+    char name[NAMESIZE];
+    unit * self = (unit *)calloc(1, sizeof(unit));
+
+    self->faction = f;
+    self->no = no;
+    sprintf(name, "Unit %d", no);
+    unit_setname(self, name);
+    return self;
+}
+
+void free_unit(unit *u) {
+    /*
+    ql_foreach(u->orders, free);
+    ql_free(u->orders);
+    */
+    freestrlist(&u->orders);
+    free(u->litems);
+    free(u->name_);
+    free(u->display_);
+    free(u);
+}
 
 const char * unit_getname(const struct unit *self)
 {
@@ -31,16 +56,4 @@ void unit_setdisplay(struct unit *self, const char *display)
         free(self->display_);
         self->display_ = 0;
     }
-}
-
-unit * create_unit(struct faction *f, int no)
-{
-    char name[NAMESIZE];
-    unit * self = (unit *)calloc(1, sizeof(unit));
-
-    self->faction = f;
-    self->no = no;
-    sprintf(name, "Unit %d", no);
-    unit_setname(self, name);
-    return self;
 }

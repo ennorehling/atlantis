@@ -40,8 +40,9 @@ typedef struct region {
 
 extern struct region * regions;
 
-struct region * findregion(int x, int y);
 struct region * create_region(int x, int y, terrain_t t);
+void free_region(struct region *r);
+struct region * findregion(int x, int y);
 
 const char * region_getname(const struct region *r);
 void region_setname(struct region *r, const char *name);

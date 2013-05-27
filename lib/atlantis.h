@@ -38,6 +38,10 @@ extern const char *terrainnames[];
 extern const char *skillnames[];
 extern const char *itemnames[2][MAXITEMS];
 
+/* untyped list bullshit */
+void freestrlist(struct strlist ** slist);
+void addlist(void *l1, void *p1);
+
 void read_orders(struct stream * strm);
 void processorders(void);
 void reports(void);

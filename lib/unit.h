@@ -50,8 +50,9 @@ typedef struct unit {
     bool isnew;
 } unit;
 
-struct unit * findunitg(int n);
 struct unit * create_unit(struct faction * f, int no);
+void free_unit(struct unit *u);
+struct unit * findunitg(int n);
 
 const char * unit_getname(const struct unit *u);
 void unit_setname(struct unit *u, const char *name);

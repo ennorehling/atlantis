@@ -8,12 +8,17 @@
 
 #include "faction.h"
 
+#include "atlantis.h"
+#include "battle.h"
+
+#include <quicklist.h>
+#include <mtrand.h>
+#include <md5.h>
+
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <mtrand.h>
-#include <md5.h>
 
 faction *factions;
 
@@ -26,6 +31,44 @@ faction * create_faction(int no)
     for (iter=&factions; *iter; iter=&(*iter)->next);
     *iter = f;
     return f;
+}
+
+void free_faction(faction *f) {
+    free(f->name_);
+    free(f->addr_);
+    free(f->pwhash_);
+/*
+    ql_foreach(f->battles, (void (*)(void *))free_battle);
+    ql_free(f->battles);
+    ql_foreach(f->messages, free);
+    ql_free(f->messages);
+    ql_foreach(f->events, free);
+    ql_free(f->events);
+    ql_foreach(f->mistakes, free);
+    ql_free(f->mistakes);
+    ql_foreach(f->allies.factions, free);
+    ql_free(f->allies.factions);
+*/
+    freestrlist(&f->events);
+    freestrlist(&f->messages);
+    freestrlist(&f->mistakes);
+    while (f->battles) {
+        battle * b = f->battles;
+        f->battles = b->next;
+        free_battle(b);
+    }
+
+    while (f->allies) {
+        rfaction * rf = f->allies;
+        f->allies = rf->next;
+        free(rf);
+    }
+
+    ql_foreach(f->accept, free);
+    ql_free(f->accept);
+    ql_foreach(f->admit, free);
+    ql_free(f->admit);
+    free(f);
 }
 
 void faction_setname(faction * f, const char * name) {

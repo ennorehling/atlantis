@@ -32,6 +32,9 @@ typedef struct ship {
 
 extern const char *shiptypenames[];
 
+struct ship *create_ship(int no, ship_t type);
+void free_ship(struct ship *s);
+
 const char * ship_getname(const struct ship *self);
 void ship_setname(struct ship *self, const char *name);
 const char * ship_getdisplay(const struct ship *self);

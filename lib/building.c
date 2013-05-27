@@ -11,6 +11,19 @@ const char *buildingtypenames[] = {
     "galleon",
 };
 
+building *create_building(int no) {
+    building *b = (building *)calloc(1, sizeof(building));
+    assert(no);
+    b->no = no;
+    return b;
+}
+
+void free_building(building *b) {
+    free(b->name_);
+    free(b->display_);
+    free(b);
+}
+
 const char * building_getname(const struct building *self)
 {
     return self->name_;

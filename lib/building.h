@@ -18,6 +18,9 @@ typedef struct building {
     int sizeleft;
 } building;
 
+struct building *create_building(int no);
+void free_building(struct building *b);
+
 const char * building_getname(const struct building *self);
 void building_setname(struct building *self, const char *name);
 const char * building_getdisplay(const struct building *self);
