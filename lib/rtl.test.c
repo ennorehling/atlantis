@@ -3,6 +3,17 @@
 #include <stdio.h>
 #include <string.h>
 
+static void test_strdup(CuTest * tc)
+{
+    const char * cstr = "Hello World";
+    char * str;
+    
+    CuAssertStrEquals(tc, 0, _strdup(0));
+    str = _strdup(cstr);
+    CuAssertStrEquals(tc, cstr, str);
+    free(str);
+}
+
 static void test_strcmpl(CuTest * tc)
 {
     CuAssertIntEquals(tc, 0, _strcmpl("foo", "foo"));
@@ -68,6 +79,7 @@ int main(void)
     CuString *output = CuStringNew();
     CuSuite *suite = CuSuiteNew();
 
+    SUITE_ADD_TEST(suite, test_strdup);
     SUITE_ADD_TEST(suite, test_strcmpl);
     SUITE_ADD_TEST(suite, test_strlwr);
     SUITE_ADD_TEST(suite, test_memicmp);

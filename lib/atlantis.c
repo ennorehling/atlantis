@@ -23,6 +23,8 @@
 #include "rtl.h"
 #include "bool.h"
 
+#include "rtl.h"
+
 #include <storage.h>
 #include <binarystore.h>
 #include <textstore.h>
@@ -2959,7 +2961,7 @@ NEXTUNIT:
                                 }
                             }
                         } else {
-                            _snprintf(buf2, sizeof(buf2), "%s %d", keywords[kwd], i);
+                            sprintf(buf2, "%s %d", keywords[kwd], i);
                             mistake(f, buf2, "unit is not one of yours.");
                         }
                     }

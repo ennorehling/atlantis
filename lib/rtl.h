@@ -4,6 +4,7 @@
 #include <stddef.h>
 int rtl_strcmpl(const char *a, const char *b);
 int rtl_memicmp(const char *a, const char *b, size_t size);
+char *rtl_strdup(const char *a);
 char *rtl_strlwr(char *str);
 
 #include "config.h"
@@ -49,6 +50,14 @@ char *rtl_strlwr(char *str);
 #define _strlwr(a) strlwr(a)
 #else
 #define _strlwr(a) rtl_strlwr(a)
+#endif
+#endif
+
+#if !defined(HAVE__STRDUP)
+#if defined(HAVE_STRDUP)
+#define _strdup(a) strdup(a)
+#else
+#define _strdup(a) rtl_strdup(a)
 #endif
 #endif
 

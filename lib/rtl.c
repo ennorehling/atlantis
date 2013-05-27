@@ -1,7 +1,13 @@
 #include "rtl.h"
 #include <ctype.h>
 #include <string.h>
+#include <stdlib.h>
 #include <stdio.h>
+
+char *rtl_strdup(const char *str)
+{
+    return str ? strcpy(malloc(strlen(str)+1), str) : 0;
+}
 
 char *rtl_strlwr(char *str)
 {
