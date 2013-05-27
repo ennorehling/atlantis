@@ -29,7 +29,6 @@
 #include <stream.h>
 #include <filestream.h>
 #include <mtrand.h>
-#include <base64.h>
 #include <cJSON.h>
 
 int ignore_password = 0;

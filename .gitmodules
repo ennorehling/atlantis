@@ -13,3 +13,6 @@
 [submodule "cJSON"]
 	path = cJSON
 	url = git@github.com:badgerman/cJSON.git
+[submodule "quicklist"]
+	path = quicklist
+	url = git@github.com:badgerman/quicklist.git
