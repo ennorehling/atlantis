@@ -9,7 +9,9 @@
 #include "items.h"
 #include "keywords.h"
 #include "spells.h"
-#include "storage/stream.h"
+
+#include <stream.h>
+
 #include <cJSON.h>
 #include <string.h>
 #include <stdlib.h>
@@ -29,6 +31,7 @@ static cJSON * show_ship(const faction *f, const ship * s) {
     cJSON *json;
     const char * str;
     
+	DBG_UNREFERENCED_PARAMETER(f);
     json = cJSON_CreateObject();
     cJSON_AddNumberToObject(json, "id", s->no);
     cJSON_AddStringToObject(json, "type", shiptypenames[s->type]);
@@ -50,6 +53,7 @@ static cJSON * show_building(const faction *f, const building * b) {
     cJSON *json;
     const char * str;
     
+	DBG_UNREFERENCED_PARAMETER(f);
     json = cJSON_CreateObject();
     cJSON_AddNumberToObject(json, "id", b->no);
     cJSON_AddNumberToObject(json, "size", b->size);
@@ -150,6 +154,7 @@ static cJSON * show_exit(const faction *f, const region * r, int d) {
     cJSON *json;
     region * rn = r->connect[d];
 
+	DBG_UNREFERENCED_PARAMETER(f);
     json = cJSON_CreateObject();
     strncpy(buf, keywords[directions[d]], sizeof(buf));
     cJSON_AddStringToObject(json, "direction", rtl_strlwr(buf));

@@ -1,4 +1,3 @@
-#include "settings.h"
 #include <filestream.h>
 #include <cJSON.h>
 #include <stdio.h>

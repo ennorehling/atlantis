@@ -59,4 +59,8 @@ char *rtl_strlwr(char *str);
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #endif
 
+#if !defined(DBG_UNREFERENCED_PARAMETER)
+#define DBG_UNREFERENCED_PARAMETER(x) x
+#endif
+
 #endif

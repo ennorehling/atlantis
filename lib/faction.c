@@ -12,8 +12,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "crypto/mtrand.h"
-#include "crypto/md5.h"
+#include <mtrand.h>
+#include <md5.h>
 
 faction *factions;
 

@@ -4,7 +4,7 @@ PROJECT (atlantis C)
 ENABLE_TESTING()
 
 IF (MSVC)
-    find_package (MSVC MODULE)
+    FIND_PACKAGE (MSVC MODULE)
     # Force to always compile with W4
     MSVC_SET_WARNING_LEVEL(4)
 ELSEIF(CMAKE_COMPILER_IS_GNUCC)
@@ -19,8 +19,10 @@ ENDIF(MSVC)
 
 ADD_SUBDIRECTORY (cutest)
 ADD_SUBDIRECTORY (storage)
+ADD_SUBDIRECTORY (cJSON)
 ADD_SUBDIRECTORY (crypto)
-ADD_SUBDIRECTORY (tests)
+ADD_SUBDIRECTORY (lib)
+#ADD_SUBDIRECTORY (tests)
 
 FILE(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/include)
 INCLUDE (CheckIncludeFiles)
@@ -49,31 +51,14 @@ INCLUDE_DIRECTORIES (${STORAGE_INCLUDE_DIR})
 INCLUDE_DIRECTORIES (${CRYPTO_INCLUDE_DIR})
 INCLUDE_DIRECTORIES (${CMAKE_CURRENT_SOURCE_DIR}/cJSON)
 
-SET( ATLANTIS_SRC atlantis.c atlantis.h spells.h skills.h items.h
-unit.h unit.c building.h building.c ship.h ship.c region.h region.c faction.h faction.c keywords.h
-settings.h json.c json.h cJSON/cJSON.c cJSON/cJSON.h )
-SET( RTL_SRC rtl.c rtl.h )
-ADD_EXECUTABLE(server server.c ${ATLANTIS_SRC} ${RTL_SRC} )
-TARGET_LINK_LIBRARIES (server ${CRYPTO_LIBRARIES} ${STORAGE_LIBRARIES} )
-TARGET_LINK_LIBRARIES (server ${MATH_LIBRARY})
-
-ADD_EXECUTABLE( template template.c cJSON/cJSON.c cJSON/cJSON.h ${RTL_SRC} )
-TARGET_LINK_LIBRARIES( template ${STORAGE_LIBRARIES} )
+ADD_EXECUTABLE (template template.c)
+TARGET_LINK_LIBRARIES (template ${ATLANTIS_LIBRARIES})
 TARGET_LINK_LIBRARIES (template ${MATH_LIBRARY})
 
-ADD_EXECUTABLE(atlantis_tests atlantis.test.c ${ATLANTIS_SRC} ${RTL_SRC} )
-TARGET_LINK_LIBRARIES (atlantis_tests ${STORAGE_LIBRARIES} ${CUTEST_LIBRARIES} ${CRYPTO_LIBRARIES} )
-TARGET_LINK_LIBRARIES (atlantis_tests ${MATH_LIBRARY})
-ADD_TEST (atlantis atlantis_tests)
-
-ADD_EXECUTABLE(rtl_tests rtl.test.c ${RTL_SRC})
-TARGET_LINK_LIBRARIES (rtl_tests ${CUTEST_LIBRARIES} )
-ADD_TEST (rtl rtl_tests)
-
-ADD_CUSTOM_TARGET(check COMMAND ${CMAKE_CTEST_COMMAND}
-                  DEPENDS md5main rtl_tests atlantis_tests storage_tests CuTestTest atlantis
-                  COMMENT "Running Tests...")
+ADD_EXECUTABLE (server server.c)
+TARGET_LINK_LIBRARIES(server ${ATLANTIS_LIBRARIES})
+TARGET_LINK_LIBRARIES (server ${MATH_LIBRARY})
 
 IF (MSVC)
-    MSVC_CRT_SECURE_NO_WARNINGS (template server atlantis_tests rtl_tests)
+    MSVC_CRT_SECURE_NO_WARNINGS (template server)
 ENDIF (MSVC)
