@@ -985,7 +985,7 @@ strlist *makestrlist(char *s)
 {
     strlist *S;
 
-    S = cmalloc(sizeof(strlist) + strlen(s));
+    S = (strlist *)malloc(sizeof(strlist) + strlen(s));
     S->next = 0;
     strcpy(S->s, s);
     return S;
@@ -1376,7 +1376,7 @@ int findkeyword(const char *s)
     if (!_strcmpl(s, "y"))
         return K_YDD;
 
-    sp = bsearch(&s, keywords, MAXKEYWORDS, sizeof s, strpcmp);
+    sp = (const char **)bsearch(&s, keywords, MAXKEYWORDS, sizeof s, strpcmp);
     if (sp == 0)
         return -1;
     return sp - keywords;
@@ -1816,13 +1816,13 @@ void makeblock(int x1, int y1)
 
     for (x = 0; x != BLOCKSIZE + BLOCKBORDER * 2; x++) {
         for (y = 0; y != BLOCKSIZE + BLOCKBORDER * 2; y++) {
-            terrain_t t = T_OCEAN;
+            int t = T_OCEAN;
 
             if (x >= BLOCKBORDER && x < BLOCKBORDER + BLOCKSIZE &&
                 y >= BLOCKBORDER && y < BLOCKBORDER + BLOCKSIZE) {
                 t = newblock[x - BLOCKBORDER][y - BLOCKBORDER];
             }
-            r = create_region(x1 + x, y1 + y, t);
+            r = create_region(x1 + x, y1 + y, (terrain_t)t);
             initregion(r);
         }
     }
@@ -2264,19 +2264,19 @@ bool iscoast(region * r)
     return false;
 }
 
-int distribute(int old, int new, int n)
+int distribute(int old, int nyu, int n)
 {
     int i;
     int t;
 
-    assert(new <= old);
+    assert(nyu <= old);
 
     if (old == 0)
         return 0;
 
-    t = (n / old) * new;
+    t = (n / old) * nyu;
     for (i = (n % old); i; i--)
-        if (rnd() % old < new)
+        if (rnd() % old < nyu)
             t++;
 
     return t;
@@ -2872,7 +2872,7 @@ void read_orders(stream * strm)
     strlist *S, **SP;
 
     while (getbuf(strm)==0) {
-        keyword_t kwd = igetkeyword(buf);
+        int kwd = igetkeyword(buf);
         const char * passwd;
         if (kwd == K_FACTION) {
             bool check;
@@ -2905,7 +2905,7 @@ NEXTPLAYER:
                         }
 
                 for (;;) {
-                    keyword_t kwd;
+                    int kwd;
                     if (getbuf(strm)!=0) {
                         break;
                     }
@@ -3857,7 +3857,7 @@ void process_combat(void)
     puts("Processing ATTACK orders...");
 
     nfactions = listlen(factions);
-    fa = cmalloc(nfactions * sizeof(faction *));
+    fa = (faction **)cmalloc(nfactions * sizeof(faction *));
 
     for (r = regions; r; r = r->next) {
         faction *f;
@@ -3923,8 +3923,7 @@ void process_combat(void)
 
                             if (!u2) {
                                 for (i = r->peasants; i; i--) {
-                                    t = cmalloc(sizeof(troop));
-                                    memset(t, 0, sizeof(troop));
+                                    t = (troop *)calloc(1, sizeof(troop));
                                     addlist2(tp, t);
                                 }
 
@@ -4286,7 +4285,7 @@ void process_combat(void)
                                         if (ta[j].unit) {
                                             if (!ta[j].unit->litems) {
                                                 ta[j].unit->litems =
-                                                  calloc(MAXITEMS, sizeof(int));
+                                                  (int *)calloc(MAXITEMS, sizeof(int));
                                             }
                                             ta[j].unit->items[i]++;
                                             ta[j].unit->litems[i]++;
@@ -5421,7 +5420,7 @@ void processorders(void)
                     b = getbuilding(r);
 
                     if (!b) {
-                        b = cmalloc(sizeof(building));
+                        b = (building *)cmalloc(sizeof(building));
                         memset(b, 0, sizeof(building));
 
                         do {
@@ -6192,7 +6191,7 @@ int readgame(void)
         bp = &r->buildings;
 
         while (--n2 >= 0) {
-            b = cmalloc(sizeof(building));
+            b = (building *)cmalloc(sizeof(building));
 
             store.api->r_int(store.handle, &b->no);
             if (store.api->r_str(store.handle, name, sizeof(name))==0) {

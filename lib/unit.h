@@ -39,7 +39,7 @@ typedef struct unit {
     int combatspell;
     int skills[MAXSKILLS];
     int items[MAXITEMS];
-    spell_t spells[MAXSPELLS];
+    bool spells[MAXSPELLS];
     struct strlist *orders;
     int alias;
     int dead;
