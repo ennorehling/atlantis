@@ -19,7 +19,7 @@ struct building;
 struct ship;
 struct faction;
 struct region;
-struct strlist;
+struct quicklist;
 
 typedef struct unit {
     struct unit *next;
@@ -40,7 +40,7 @@ typedef struct unit {
     int skills[MAXSKILLS];
     int items[MAXITEMS];
     bool spells[MAXSPELLS];
-    struct strlist *orders;
+    struct quicklist *orders;
     int alias;
     int dead;
     int learning;

@@ -18,6 +18,8 @@ struct faction;
 struct stream;
 struct unit;
 struct troop;
+struct ship;
+struct building;
 
 typedef struct strlist {
     struct strlist *next;
@@ -74,4 +76,5 @@ char *getstr(void);
 
 struct troop * get_troop(struct troop *ta, int ntroops, int side, int mask);
 
+struct unit *shipowner(const struct region * r, const struct ship * sh);
 #endif

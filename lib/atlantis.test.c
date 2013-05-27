@@ -2,12 +2,15 @@
 #include "keywords.h"
 #include "region.h"
 #include "faction.h"
+#include "ship.h"
+#include "building.h"
 #include "unit.h"
 #include "json.h"
 
 #include <stream.h>
 #include <memstream.h>
 #include <filestream.h>
+#include <quicklist.h>
 
 #include <CuTest.h>
 #include <errno.h>
@@ -221,7 +224,7 @@ static void test_orders(CuTest * tc)
     read_orders(&strm);
     CuAssertPtrNotNull(tc, u->orders);
     CuAssertIntEquals(tc, 1, f->lastorders);
-    CuAssertStrEquals(tc, "STUDY magic", u->orders->s);
+    CuAssertStrEquals(tc, "STUDY magic", (const char *)ql_get(u->orders, 0));
     mstream_done(&strm);
 }
 
@@ -420,6 +423,26 @@ static void test_directions(CuTest * tc)
     CuAssertIntEquals(tc, K_MIR, findkeyword("M"));
     CuAssertIntEquals(tc, K_YDD, findkeyword("YDD"));
     CuAssertIntEquals(tc, K_YDD, findkeyword("Y"));
+}
+
+static void test_owners(CuTest * tc) {
+    region *r;
+    unit *u;
+    ship *s;
+    faction *f;
+
+    cleargame();
+    f = create_faction(1);
+    r = create_region(0, 0, T_PLAIN);
+    u = make_unit(f, r, 1);
+    s = create_ship(1, SH_LONGBOAT);
+    CuAssertPtrEquals(tc, 0, shipowner(r, s));
+    u->ship = s;
+    CuAssertPtrEquals(tc, u, shipowner(r, s));
+    u = make_unit(f, r, 2);
+    u->ship = s;
+    u->owner = true;
+    CuAssertPtrEquals(tc, u, shipowner(r, s));
 }
 
 static void test_movewhere(CuTest * tc)
@@ -686,6 +709,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_createregion);
     SUITE_ADD_TEST(suite, test_makeblock);
     SUITE_ADD_TEST(suite, test_transform);
+    SUITE_ADD_TEST(suite, test_owners);
     SUITE_ADD_TEST(suite, test_movewhere);
     SUITE_ADD_TEST(suite, test_origin);
     SUITE_ADD_TEST(suite, test_region_name);

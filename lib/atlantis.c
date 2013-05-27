@@ -895,23 +895,6 @@ void icat(int n)
     scat(s);
 }
 
-void *cmalloc(int n)
-{
-    void *p;
-
-    if (n == 0)
-        n = 1;
-
-    p = malloc(n);
-
-    if (p == 0) {
-        puts("Out of memory.");
-        exit(1);
-    }
-
-    return p;
-}
-
 void rnd_seed(unsigned long x)
 {
     init_genrand(x);
@@ -954,13 +937,13 @@ void choplist(list ** l, list * p)
 
 void translist(void *l1, void *l2, void *p)
 {
-    choplist(l1, p);
+    choplist((list **)l1, (list *)p);
     addlist(l2, p);
 }
 
 void removelist(void *l, void *p)
 {
-    choplist(l, p);
+    choplist((list **)l, (list *)p);
     free(p);
 }
 
@@ -992,7 +975,7 @@ strlist *makestrlist(char *s)
 
     S = (strlist *)malloc(sizeof(strlist) + strlen(s));
     S->next = 0;
-    strcpy(S->s, s);
+    strcpy(s, s);
     return S;
 }
 
@@ -1493,7 +1476,7 @@ void scramble(void *v1, int n, int width)
     int i;
     void *v;
 
-    v = cmalloc(n * (width + 4));
+    v = malloc(n * (width + 4));
 
     for (i = 0; i != n; i++) {
         *(long *) addptr(v, i * (width + 4)) = rnd();
@@ -2315,7 +2298,7 @@ troop **maketroops(troop ** tp, unit * u, int terrain)
         infront[u->side] += u->number;
 
     for (i = u->number; i; i--) {
-        t = cmalloc(sizeof(troop));
+        t = (troop *)malloc(sizeof(troop));
         memset(t, 0, sizeof(troop));
 
         t->unit = u;
@@ -2779,24 +2762,32 @@ bool admits(const unit * u, const unit * u2)
 
 unit *buildingowner(const region * r, const building * b)
 {
-    unit *u;
+    unit *u, *res = 0;
 
-    for (u = r->units; u; u = u->next)
-        if (u->building == b && u->owner)
-            return u;
-
-    return 0;
+    for (u = r->units; u; u = u->next) {
+        if (u->building == b) {
+            if (u->owner) {
+                return u;
+            }
+            res = u;
+        }
+    }
+    return res;
 }
 
 unit *shipowner(const region * r, const ship * sh)
 {
-    unit *u;
+    unit *u, *res = 0;
 
-    for (u = r->units; u; u = u->next)
-        if (u->ship == sh && u->owner)
-            return u;
-
-    return 0;
+    for (u = r->units; u; u = u->next) {
+        if (u->ship == sh) {
+            if (u->owner) {
+                return u;
+            }
+            res = u;
+        }
+    }
+    return res;
 }
 
 int mayenter(const region * r, const unit * u, const building * b)
@@ -2830,7 +2821,6 @@ void read_orders(stream * strm)
     faction *f;
     region *r;
     unit *u;
-    strlist *S, **SP;
 
     while (getbuf(strm)==0) {
         int kwd = igetkeyword(buf);
@@ -2880,7 +2870,6 @@ NEXTUNIT:
                         u = findunitg(i);
 
                         if (u && u->faction == f) {
-                            SP = &u->orders;
 
                             for (;;) {
                                 if (getbuf(strm)!=0) {
@@ -2888,12 +2877,10 @@ NEXTUNIT:
                                 } else {
                                     kwd = igetkeyword(buf);
                                     if (kwd == K_UNIT) {
-                                        *SP = 0;
                                         goto NEXTUNIT;
                                     }
 
                                     if (kwd == K_FACTION) {
-                                        *SP = 0;
                                         goto NEXTPLAYER;
                                     }
 
@@ -2967,14 +2954,13 @@ NEXTUNIT:
 
                                     if (j) {
                                         buf2[j - 1] = 0;
-                                        S = makestrlist(buf2);
-                                        addlist2(SP, S);
+                                        ql_push(&u->orders, _strdup(buf2));
                                     }
                                 }
                             }
                         } else {
-                            sprintf(buf2, "Unit %d is not one of your units.", i);
-                            addstrlist(&f->mistakes, buf2);
+                            _snprintf(buf2, sizeof(buf2), "%s %d", keywords[kwd], i);
+                            mistake(f, buf2, "unit is not one of yours.");
                         }
                     }
                 }
@@ -3546,7 +3532,7 @@ void expandorders(region * r, order * orders)
     for (o = orders; o; o = o->next)
         norders += o->qty;
 
-    oa = (order *)cmalloc(norders * sizeof(order));
+    oa = (order *)malloc(norders * sizeof(order));
 
     i = 0;
 
@@ -3807,7 +3793,7 @@ void process_combat(void)
     puts("Processing ATTACK orders...");
 
     nfactions = listlen(factions);
-    fa = (faction **)cmalloc(nfactions * sizeof(faction *));
+    fa = (faction **)malloc(nfactions * sizeof(faction *));
 
     for (r = regions; r; r = r->next) {
         faction *f;
@@ -3828,9 +3814,10 @@ void process_combat(void)
 
             for (u = r->units; u; u = u->next) {
                 if (u->faction == f) {
-                    strlist * S;
-                    for (S = u->orders; S; S = S->next) {
-                        if (igetkeyword(S->s) == K_ATTACK) {
+                    ql_iter oli;
+                    for (oli = qli_init(u->orders); qli_more(oli);) {
+                        char *s = (char *)qli_next(&oli);
+                        if (igetkeyword(s) == K_ATTACK) {
                             int leader[2];
                             troop *t, *troops, **tp;
                             int ntroops;
@@ -3844,17 +3831,17 @@ void process_combat(void)
                             u2 = getunit(r, u);
 
                             if (!u2 && !getunitpeasants) {
-                                mistakes(u, S->s, "Unit not found");
+                                mistakes(u, s, "Unit not found");
                                 continue;
                             }
 
                             if (u2 && u2->faction == f) {
-                                mistakes(u, S->s, "One of your units");
+                                mistakes(u, s, "One of your units");
                                 continue;
                             }
 
                             if (isallied(u, u2)) {
-                                mistakes(u, S->s, "An allied unit");
+                                mistakes(u, s, "An allied unit");
                                 continue;
                             }
 
@@ -3887,9 +3874,10 @@ void process_combat(void)
                                 f2->attacking = false;
                             }
                             for (u3 = r->units; u3; u3 = u3->next) {
-                                strlist *S2;
-                                for (S2 = u3->orders; S2; S2 = S2->next) {
-                                    if (igetkeyword(S2->s) == K_ATTACK) {
+                                ql_iter oli;
+                                for (oli = qli_init(u3->orders); qli_more(oli);) {
+                                    char *s = (char *)qli_next(&oli);
+                                    if (igetkeyword(s) == K_ATTACK) {
                                         u4 = getunit(r, u3);
 
                                         if ((getunitpeasants && !u2) ||
@@ -3897,7 +3885,7 @@ void process_combat(void)
                                              && u4->faction == u2->faction
                                              && !isallied(u3, u4))) {
                                             u3->faction->attacking = true;
-                                            S2->s[0] = 0;
+                                            s[0] = 0;
                                             break;
                                         }
                                     }
@@ -3930,7 +3918,7 @@ void process_combat(void)
                             /* Set up array of troops */
 
                             ntroops = listlen(troops);
-                            ta = cmalloc(ntroops * sizeof(troop));
+                            ta = (troop *)malloc(ntroops * sizeof(troop));
                             for (t = troops, i = 0; t; t = t->next, i++)
                                 ta[i] = *t;
                             freelist(troops);
@@ -4344,7 +4332,6 @@ void processorders(void)
     int taxed;
     int availmoney;
     int teaching;
-    const char *s;
     char *sx, *sn;
     faction *f;
     rfaction *rf;
@@ -4355,18 +4342,21 @@ void processorders(void)
     static unit *uv[100];
     order *o, *taxorders, *recruitorders, *entertainorders, *workorders;
     static order *produceorders[MAXITEMS];
-    strlist *S, *S2;
 
     /* FORM orders */
 
     puts("Processing FORM orders...");
 
-    for (r = regions; r; r = r->next)
-        for (u = r->units; u; u = u->next)
-            for (S = u->orders; S;)
-                switch (igetkeyword(S->s)) {
-                case K_FORM:
-                    u2 = createunit(r, u->faction);
+    for (r = regions; r; r = r->next) {
+        for (u = r->units; u; u = u->next) {
+            ql_iter oli;
+            for (oli = qli_init(u->orders); qli_more(oli); ) {
+                const char *s = (const char *)qli_next(&oli);
+                unit *u2;
+
+                if (igetkeyword(s) == K_FORM) {
+                    u2 = create_unit(u->faction, 0);
+                    region_addunit(r, u2);
 
                     u2->alias = geti();
                     if (u2->alias == 0)
@@ -4377,39 +4367,35 @@ void processorders(void)
                     u2->behind = u->behind;
                     u2->guard = u->guard;
 
-                    S = S->next;
-
-                    while (S) {
-                        if (igetkeyword(S->s) == K_END) {
-                            S = S->next;
+                    while (qli_more(oli)) {
+                        char *s = (char *)ql_get(oli.l, oli.i);
+                        ql_delete(&oli.l, oli.i);
+                        if (igetkeyword(s) == K_END) {
                             break;
+                        } else {
+                            ql_push(&u2->orders, s);
                         }
-
-                        S2 = S->next;
-                        translist(&u->orders, &u2->orders, S);
-                        S = S2;
                     }
-
-                    break;
-
-                default:
-                    S = S->next;
                 }
-
+            }
+        }
+    }
     /* Instant orders - diplomacy etc. */
 
     puts("Processing instant orders...");
 
-    for (r = regions; r; r = r->next)
-        for (u = r->units; u; u = u->next)
-            for (S = u->orders; S; S = S->next)
-                switch (igetkeyword(S->s)) {
+    for (r = regions; r; r = r->next) {
+        for (u = r->units; u; u = u->next) {
+            ql_iter oli;
+            for (oli = qli_init(u->orders); qli_more(oli); ) {
+                const char *s = (const char *)qli_next(&oli);
+                switch (igetkeyword(s)) {
                 case -1:
-                    mistakes(u, S->s, "Order not recognized");
+                    mistakes(u, s, "Order not recognized");
                     break;
 
                 case K_ACCEPT:
-                    togglerf(u, S->s, &u->faction->accept, getfaction());
+                    togglerf(u, s, &u->faction->accept, getfaction());
                     break;
     
                 case K_PASSWORD:
@@ -4423,7 +4409,7 @@ void processorders(void)
                     s = getstr();
 
                     if (!s[0]) {
-                        mistakes(u, S->s, "No address given");
+                        mistakes(u, s, "No address given");
                         break;
                     }
 
@@ -4434,14 +4420,14 @@ void processorders(void)
                     break;
 
                 case K_ADMIT:
-                    togglerf(u, S->s, &u->faction->admit, getfaction());
+                    togglerf(u, s, &u->faction->admit, getfaction());
                     break;
 
                 case K_ALLY:
                     f = getfaction();
 
                     if (f == 0) {
-                        mistakes(u, S->s, "Faction not found");
+                        mistakes(u, s, "Faction not found");
                         break;
                     }
 
@@ -4454,7 +4440,7 @@ void processorders(void)
                                 break;
 
                         if (!rf) {
-                            rf = cmalloc(sizeof(rfaction));
+                            rf = (rfaction *)malloc(sizeof(rfaction));
                             rf->faction = f;
                             addlist(&u->faction->allies, rf);
                         }
@@ -4482,12 +4468,12 @@ void processorders(void)
                     i = findspell(s);
 
                     if (i < 0 || !cancast(u, i)) {
-                        mistakes(u, S->s, "Spell not found");
+                        mistakes(u, s, "Spell not found");
                         break;
                     }
 
                     if (!iscombatspell[i]) {
-                        mistakes(u, S->s, "Not a combat spell");
+                        mistakes(u, s, "Not a combat spell");
                         break;
                     }
 
@@ -4500,12 +4486,12 @@ void processorders(void)
                     switch (getkeyword()) {
                     case K_BUILDING:
                         if (!u->building) {
-                            mistakes(u, S->s, "Not in a building");
+                            mistakes(u, s, "Not in a building");
                             break;
                         }
 
                         if (!u->owner) {
-                            mistakes(u, S->s, "Building not owned by you");
+                            mistakes(u, s, "Building not owned by you");
                             break;
                         }
 
@@ -4514,12 +4500,12 @@ void processorders(void)
 
                     case K_SHIP:
                         if (!u->ship) {
-                            mistakes(u, S->s, "Not in a ship");
+                            mistakes(u, s, "Not in a ship");
                             break;
                         }
 
                         if (!u->owner) {
-                            mistakes(u, S->s, "Ship not owned by you");
+                            mistakes(u, s, "Ship not owned by you");
                             break;
                         }
 
@@ -4531,7 +4517,7 @@ void processorders(void)
                         break;
 
                     default:
-                        mistakes(u, S->s, "Order not recognized");
+                        mistakes(u, s, "Order not recognized");
                         break;
                     }
 
@@ -4556,42 +4542,42 @@ void processorders(void)
                     switch (getkeyword()) {
                     case K_BUILDING:
                         if (!u->building) {
-                            mistakes(u, S->s, "Not in a building");
+                            mistakes(u, s, "Not in a building");
                             break;
                         }
 
                         if (!u->owner) {
-                            mistakes(u, S->s, "Building not owned by you");
+                            mistakes(u, s, "Building not owned by you");
                             break;
                         }
 
-                        building_setname(u->building, getname(u, S->s));
+                        building_setname(u->building, getname(u, s));
                         break;
 
                     case K_FACTION:
-                        faction_setname(u->faction, getname(u, S->s));
+                        faction_setname(u->faction, getname(u, s));
                         break;
 
                     case K_SHIP:
                         if (!u->ship) {
-                            mistakes(u, S->s, "Not in a ship");
+                            mistakes(u, s, "Not in a ship");
                             break;
                         }
 
                         if (!u->owner) {
-                            mistakes(u, S->s, "Ship not owned by you");
+                            mistakes(u, s, "Ship not owned by you");
                             break;
                         }
 
-                        ship_setname(u->ship, getname(u, S->s));
+                        ship_setname(u->ship, getname(u, s));
                         break;
 
                     case K_UNIT:
-                        unit_setname(u, getname(u, S->s));
+                        unit_setname(u, getname(u, s));
                         break;
 
                     default:
-                        mistakes(u, S->s, "Order not recognized");
+                        mistakes(u, s, "Order not recognized");
                         break;
                     }
                     break;
@@ -4600,14 +4586,16 @@ void processorders(void)
                     i = getspell();
 
                     if (i < 0 || !u->faction->seendata[i]) {
-                        mistakes(u, S->s, "Spell not found");
+                        mistakes(u, s, "Spell not found");
                         break;
                     }
 
                     u->faction->showdata[i] = 1;
                     break;
                 }
-
+            }
+        }
+    }
 #ifdef ENABLE_FIND                  
     /* FIND orders */
 
@@ -4616,12 +4604,12 @@ void processorders(void)
     for (r = regions; r; r = r->next) {
         for (u = r->units; u; u = u->next) {
             for (S = u->orders; S; S = S->next) {
-                switch (igetkeyword(S->s)) {
+                switch (igetkeyword(s)) {
                 case K_FIND:
                     f = getfaction();
 
                     if (f == 0) {
-                        mistakes(u, S->s, "Faction not found");
+                        mistakes(u, s, "Faction not found");
                         break;
                     }
 
@@ -4638,20 +4626,22 @@ void processorders(void)
 
     puts("Processing leaving and entering orders...");
 
-    for (r = regions; r; r = r->next)
-        for (u = r->units; u; u = u->next)
-            for (S = u->orders; S; S = S->next)
-                switch (igetkeyword(S->s)) {
+    for (r = regions; r; r = r->next) {
+        for (u = r->units; u; u = u->next) {
+            ql_iter oli;
+            for (oli = qli_init(u->orders); qli_more(oli); ) {
+                const char *s = (const char *)qli_next(&oli);
+                switch (igetkeyword(s)) {
                 case K_BOARD:
                     sh = getship(r);
 
                     if (!sh) {
-                        mistakes(u, S->s, "Ship not found");
+                        mistakes(u, s, "Ship not found");
                         break;
                     }
 
                     if (!mayboard(r, u, sh)) {
-                        mistakes(u, S->s, "Not permitted to board");
+                        mistakes(u, s, "Not permitted to board");
                         break;
                     }
 
@@ -4666,12 +4656,12 @@ void processorders(void)
                     b = getbuilding(r);
 
                     if (!b) {
-                        mistakes(u, S->s, "Building not found");
+                        mistakes(u, s, "Building not found");
                         break;
                     }
 
                     if (!mayenter(r, u, b)) {
-                        mistakes(u, S->s, "Not permitted to enter");
+                        mistakes(u, s, "Not permitted to enter");
                         break;
                     }
 
@@ -4684,7 +4674,7 @@ void processorders(void)
 
                 case K_LEAVE:
                     if (r->terrain == T_OCEAN) {
-                        mistakes(u, S->s, "Ship is at sea");
+                        mistakes(u, s, "Ship is at sea");
                         break;
                     }
 
@@ -4695,33 +4685,33 @@ void processorders(void)
                     u2 = getunit(r, u);
 
                     if (!u2) {
-                        mistakes(u, S->s, "Unit not found");
+                        mistakes(u, s, "Unit not found");
                         break;
                     }
 
                     if (!u->building && !u->ship) {
-                        mistakes(u, S->s,
+                        mistakes(u, s,
                                  "No building or ship to transfer ownership of");
                         break;
                     }
 
                     if (!u->owner) {
-                        mistakes(u, S->s, "Not owned by you");
+                        mistakes(u, s, "Not owned by you");
                         break;
                     }
 
                     if (!accepts(u2, u)) {
-                        mistakes(u, S->s, "Unit does not accept ownership");
+                        mistakes(u, s, "Unit does not accept ownership");
                         break;
                     }
 
                     if (u->building) {
                         if (u2->building != u->building) {
-                            mistakes(u, S->s, "Unit not in same building");
+                            mistakes(u, s, "Unit not in same building");
                             break;
                         }
                     } else if (u2->ship != u->ship) {
-                        mistakes(u, S->s, "Unit not on same ship");
+                        mistakes(u, s, "Unit not on same ship");
                         break;
                     }
 
@@ -4729,7 +4719,9 @@ void processorders(void)
                     u2->owner = 1;
                     break;
                 }
-
+            }
+        }
+    }
     process_combat();
 
     /* Economic orders */
@@ -4742,17 +4734,20 @@ void processorders(void)
 
         /* DEMOLISH, GIVE, PAY, SINK orders */
 
-        for (u = r->units; u; u = u->next)
-            for (S = u->orders; S; S = S->next)
-                switch (igetkeyword(S->s)) {
+        for (u = r->units; u; u = u->next) {
+            ql_iter oli;
+
+            for (oli = qli_init(u->orders); qli_more(oli); ) {
+                const char *s = (const char *)qli_next(&oli);
+                switch (igetkeyword(s)) {
                 case K_DEMOLISH:
                     if (!u->building) {
-                        mistakes(u, S->s, "Not in a building");
+                        mistakes(u, s, "Not in a building");
                         break;
                     }
 
                     if (!u->owner) {
-                        mistakes(u, S->s, "Building not owned by you");
+                        mistakes(u, s, "Building not owned by you");
                         break;
                     }
 
@@ -4775,12 +4770,12 @@ void processorders(void)
                     u2 = getunit(r, u);
 
                     if (!u2 && !getunit0) {
-                        mistakes(u, S->s, "Unit not found");
+                        mistakes(u, s, "Unit not found");
                         break;
                     }
 
                     if (u2 && !accepts(u2, u)) {
-                        mistakes(u, S->s, "Unit does not accept your gift");
+                        mistakes(u, s, "Unit does not accept your gift");
                         break;
                     }
 
@@ -4789,18 +4784,18 @@ void processorders(void)
 
                     if (i >= 0) {
                         if (!u2) {
-                            mistakes(u, S->s, "Unit not found");
+                            mistakes(u, s, "Unit not found");
                             break;
                         }
 
                         if (!u->spells[i]) {
-                            mistakes(u, S->s, "Spell not found");
+                            mistakes(u, s, "Spell not found");
                             break;
                         }
 
                         if (spelllevel[i] >
                             (effskill(u2, SK_MAGIC) + 1) / 2) {
-                            mistakes(u, S->s,
+                            mistakes(u, s,
                                      "Recipient is not able to learn that spell");
                             break;
                         }
@@ -4825,7 +4820,7 @@ void processorders(void)
                         i = getitem();
 
                         if (i < 0) {
-                            mistakes(u, S->s, "Item not recognized");
+                            mistakes(u, s, "Item not recognized");
                             break;
                         }
 
@@ -4833,7 +4828,7 @@ void processorders(void)
                             n = u->items[i];
 
                         if (n == 0) {
-                            mistakes(u, S->s, "Item not available");
+                            mistakes(u, s, "Item not available");
                             break;
                         }
 
@@ -4875,7 +4870,7 @@ void processorders(void)
                     u2 = getunit(r, u);
 
                     if (!u2 && !getunit0 && !getunitpeasants) {
-                        mistakes(u, S->s, "Unit not found");
+                        mistakes(u, s, "Unit not found");
                         break;
                     }
 
@@ -4885,7 +4880,7 @@ void processorders(void)
                         n = u->money;
 
                     if (n == 0) {
-                        mistakes(u, S->s, "No money available");
+                        mistakes(u, s, "No money available");
                         break;
                     }
 
@@ -4914,17 +4909,17 @@ void processorders(void)
 
                 case K_SINK:
                     if (!u->ship) {
-                        mistakes(u, S->s, "Not on a ship");
+                        mistakes(u, s, "Not on a ship");
                         break;
                     }
 
                     if (!u->owner) {
-                        mistakes(u, S->s, "Ship not owned by you");
+                        mistakes(u, s, "Ship not owned by you");
                         break;
                     }
 
                     if (r->terrain == T_OCEAN) {
-                        mistakes(u, S->s, "Ship is at sea");
+                        mistakes(u, s, "Ship is at sea");
                         break;
                     }
 
@@ -4942,23 +4937,26 @@ void processorders(void)
                     removelist(&r->ships, sh);
                     break;
                 }
-
+            }
+        }
         /* TRANSFER orders */
 
-        for (u = r->units; u; u = u->next)
-            for (S = u->orders; S; S = S->next)
-                switch (igetkeyword(S->s)) {
+        for (u = r->units; u; u = u->next) {
+            ql_iter oli;
+            for (oli = qli_init(u->orders); qli_more(oli); ) {
+                const char *s = (const char *)qli_next(&oli);
+                switch (igetkeyword(s)) {
                 case K_TRANSFER:
                     u2 = getunit(r, u);
 
                     if (u2) {
                         if (!accepts(u2, u)) {
-                            mistakes(u, S->s,
+                            mistakes(u, s,
                                      "Unit does not accept your gift");
                             break;
                         }
                     } else if (!getunitpeasants) {
-                        mistakes(u, S->s, "Unit not found");
+                        mistakes(u, s, "Unit not found");
                         break;
                     }
 
@@ -4968,7 +4966,7 @@ void processorders(void)
                         n = u->number;
 
                     if (n == 0) {
-                        mistakes(u, S->s, "No people available");
+                        mistakes(u, s, "No people available");
                         break;
                     }
 
@@ -4980,7 +4978,7 @@ void processorders(void)
                             k += u2->number;
 
                         if (k > 3) {
-                            mistakes(u, S->s, "Only 3 magicians per faction");
+                            mistakes(u, s, "Only 3 magicians per faction");
                             break;
                         }
                     }
@@ -5026,14 +5024,15 @@ void processorders(void)
                     addevent(u->faction, buf);
                     break;
                 }
-
+            }
+        }
         /* TAX orders */
-
         for (u = r->units; u; u = u->next) {
+            ql_iter oli;
             taxed = 0;
-
-            for (S = u->orders; S; S = S->next)
-                switch (igetkeyword(S->s)) {
+            for (oli = qli_init(u->orders); qli_more(oli); ) {
+                const char *s = (const char *)qli_next(&oli);
+                switch (igetkeyword(s)) {
                 case K_TAX:
                     if (taxed)
                         break;
@@ -5041,7 +5040,7 @@ void processorders(void)
                     n = armedmen(u);
 
                     if (!n) {
-                        mistakes(u, S->s,
+                        mistakes(u, s,
                                  "Unit is not armed and combat trained");
                         break;
                     }
@@ -5049,43 +5048,44 @@ void processorders(void)
                     for (u2 = r->units; u2; u2 = u2->next)
                         if (u2->guard && u2->number && !admits(u2, u)) {
                             sprintf(buf, "%s is on guard", unit_getname(u2));
-                            mistakes(u, S->s, buf);
+                            mistakes(u, s, buf);
                             break;
                         }
 
                     if (u2)
                         break;
 
-                    o = cmalloc(sizeof(order));
+                    o = (order *)malloc(sizeof(order));
                     o->qty = n * TAXINCOME;
                     o->unit = u;
                     addlist(&taxorders, o);
                     taxed = 1;
                     break;
                 }
+            }
         }
 
         /* Do taxation */
 
-        for (u = r->units; u; u = u->next)
+        for (u = r->units; u; u = u->next) {
             u->n = -1;
-
+        }
         norders = 0;
 
         for (o = taxorders; o; o = o->next)
             norders += o->qty / 10;
 
-        oa = (order *)cmalloc(norders * sizeof(order));
+        oa = (order *)malloc(norders * sizeof(order));
 
         i = 0;
 
-        for (o = taxorders; o; o = o->next)
+        for (o = taxorders; o; o = o->next) {
             for (j = o->qty / 10; j; j--) {
                 oa[i].unit = o->unit;
                 oa[i].unit->n = 0;
                 i++;
             }
-
+        }
         freelist(taxorders);
 
         scramble(oa, norders, sizeof(order));
@@ -5106,10 +5106,12 @@ void processorders(void)
         /* GUARD 1, RECRUIT orders */
 
         for (u = r->units; u; u = u->next) {
+            ql_iter oli;
             availmoney = u->money;
 
-            for (S = u->orders; S; S = S->next)
-                switch (igetkeyword(S->s)) {
+            for (oli = qli_init(u->orders); qli_more(oli); ) {
+                const char *s = (const char *)qli_next(&oli);
+                switch (igetkeyword(s)) {
                 case K_GUARD:
                     if (geti())
                         u->guard = true;
@@ -5123,13 +5125,13 @@ void processorders(void)
 
                     if (u->skills[SK_MAGIC]
                         && magicians(u->faction) + n > 3) {
-                        mistakes(u, S->s, "Only 3 magicians per faction");
+                        mistakes(u, s, "Only 3 magicians per faction");
                         break;
                     }
 
                     n = MIN(n, availmoney / RECRUITCOST);
 
-                    o = cmalloc(sizeof(order));
+                    o = (order *)malloc(sizeof(order));
                     o->qty = n;
                     o->unit = u;
                     addlist(&recruitorders, o);
@@ -5137,6 +5139,7 @@ void processorders(void)
                     availmoney -= o->qty * RECRUITCOST;
                     break;
                 }
+            }
         }
 
         /* Do recruiting */
@@ -5154,47 +5157,55 @@ void processorders(void)
 
         free(oa);
 
-        for (u = r->units; u; u = u->next)
+        for (u = r->units; u; u = u->next) {
             if (u->n >= 0) {
                 sprintf(buf, "%s recruits %d.", unitid(u), u->n);
                 addevent(u->faction, buf);
             }
+        }
     }
 
     /* QUIT orders */
 
     puts("Processing QUIT orders...");
 
-    for (r = regions; r; r = r->next)
-        for (u = r->units; u; u = u->next)
-            for (S = u->orders; S; S = S->next)
-                switch (igetkeyword(S->s)) {
+    for (r = regions; r; r = r->next) {
+        for (u = r->units; u; u = u->next) {
+            ql_iter oli;
+            for (oli = qli_init(u->orders); qli_more(oli); ) {
+                const char *s = (const char *)qli_next(&oli);
+                switch (igetkeyword(s)) {
                 case K_QUIT:
                     if (geti() != u->faction->no) {
-                        mistakes(u, S->s, "Correct faction number not given");
+                        mistakes(u, s, "Correct faction number not given");
                         break;
                     }
 
                     destroyfaction(u->faction);
                     break;
                 }
-
+            }
+        }
+    }
     /* Remove players who haven't sent in orders */
 
-    for (f = factions; f; f = f->next)
-        if (turn - f->lastorders > ORDERGAP)
+    for (f = factions; f; f = f->next) {
+        if (turn - f->lastorders > ORDERGAP) {
             destroyfaction(f);
+        }
+    }
 
     /* Set production orders */
 
     puts("Setting production orders...");
 
-    for (r = regions; r; r = r->next)
+    for (r = regions; r; r = r->next) {
         for (u = r->units; u; u = u->next) {
+            ql_iter oli;
             strcpy(u->thisorder, u->lastorder);
-
-            for (S = u->orders; S; S = S->next)
-                switch (igetkeyword(S->s)) {
+            for (oli = qli_init(u->orders); qli_more(oli); ) {
+                const char *s = (const char *)qli_next(&oli);
+                switch (igetkeyword(s)) {
                 case K_BUILD:
                 case K_CAST:
                 case K_ENTERTAIN:
@@ -5205,9 +5216,10 @@ void processorders(void)
                 case K_STUDY:
                 case K_TEACH:
                 case K_WORK:
-                    nstrcpy(u->thisorder, S->s, sizeof u->thisorder);
+                    nstrcpy(u->thisorder, s, sizeof u->thisorder);
                     break;
                 }
+            }
 
             switch (igetkeyword(u->thisorder)) {
             case K_MOVE:
@@ -5219,12 +5231,13 @@ void processorders(void)
                 _strlwr(u->lastorder);
             }
         }
+    }
 
     /* MOVE orders */
 
     puts("Processing MOVE orders...");
 
-    for (r = regions; r; r = r->next)
+    for (r = regions; r; r = r->next) {
         for (u = r->units; u;) {
             u2 = u->next;
 
@@ -5274,12 +5287,12 @@ void processorders(void)
 
             u = u2;
         }
-
+    }
     /* SAIL orders */
 
     puts("Processing SAIL orders...");
 
-    for (r = regions; r; r = r->next)
+    for (r = regions; r; r = r->next) {
         for (u = r->units; u;) {
             u2 = u->next;
 
@@ -5338,7 +5351,7 @@ void processorders(void)
 
             u = u2;
         }
-
+    }
     /* Do production orders */
 
     puts("Processing production orders...");
@@ -5370,7 +5383,7 @@ void processorders(void)
                     b = getbuilding(r);
 
                     if (!b) {
-                        b = (building *)cmalloc(sizeof(building));
+                        b = (building *)malloc(sizeof(building));
                         memset(b, 0, sizeof(building));
 
                         do {
@@ -5478,7 +5491,7 @@ void processorders(void)
                 break;
 
             case K_ENTERTAIN:
-                o = cmalloc(sizeof(order));
+                o = (order *)malloc(sizeof(order));
                 o->unit = u;
                 o->qty =
                     u->number * effskill(u,
@@ -5508,7 +5521,7 @@ void processorders(void)
                 n *= u->number;
 
                 if (i < 4) {
-                    o = cmalloc(sizeof(order));
+                    o = (order *)malloc(sizeof(order));
                     o->unit = u;
                     o->qty = n * productivity[r->terrain][i];
                     addlist(&produceorders[i], o);
@@ -5667,7 +5680,7 @@ void processorders(void)
                 break;
 
             case K_WORK:
-                o = cmalloc(sizeof(order));
+                o = (order *)malloc(sizeof(order));
                 o->unit = u;
                 o->qty = u->number * foodproductivity[r->terrain];
                 addlist(&workorders, o);
@@ -5747,9 +5760,9 @@ void processorders(void)
 
     puts("Processing STUDY orders...");
 
-    for (r = regions; r; r = r->next)
-        if (r->terrain != T_OCEAN)
-            for (u = r->units; u; u = u->next)
+    for (r = regions; r; r = r->next) {
+        if (r->terrain != T_OCEAN) {
+            for (u = r->units; u; u = u->next) {
                 switch (igetkeyword(u->thisorder)) {
                 case K_STUDY:
                     i = getskill();
@@ -5781,24 +5794,26 @@ void processorders(void)
                     u->skills[i] += (u->number * 30) + u->learning;
                     break;
                 }
-
+            }
+        }
+    }
     /* Ritual spells, and loss of spells where required */
 
     puts("Processing CAST orders...");
 
     for (r = regions; r; r = r->next) {
         for (u = r->units; u; u = u->next) {
-            for (i = 0; i != MAXSPELLS; i++)
+            for (i = 0; i != MAXSPELLS; i++) {
                 if (u->spells[i]
                     && spelllevel[i] > (effskill(u, SK_MAGIC) + 1) / 2)
                     u->spells[i] = 0;
-
+            }
             if (u->combatspell >= 0 && !cancast(u, u->combatspell))
                 u->combatspell = -1;
         }
 
-        if (r->terrain != T_OCEAN)
-            for (u = r->units; u; u = u->next)
+        if (r->terrain != T_OCEAN) {
+            for (u = r->units; u; u = u->next) {
                 switch (igetkeyword(u->thisorder)) {
                 case K_CAST:
                     i = getspell();
@@ -5942,7 +5957,11 @@ void processorders(void)
 
                     break;
                 }
+            }
+        }
     }
+
+
 
     /* Population growth, dispersal and food consumption */
 
@@ -5958,7 +5977,7 @@ void processorders(void)
             r->peasants = MIN(r->peasants, n);
             r->money -= r->peasants * MAINTENANCE;
 
-            for (n = r->peasants; n; n--)
+            for (n = r->peasants; n; n--) {
                 if (rnd() % 100 < PEASANTMOVE) {
                     i = rnd() % MAXDIRECTIONS;
 
@@ -5967,6 +5986,7 @@ void processorders(void)
                         r->connect[i]->immigrants++;
                     }
                 }
+            }
         }
 
         for (u = r->units; u; u = u->next) {
@@ -5993,15 +6013,17 @@ void processorders(void)
 
     removeempty();
 
-    for (r = regions; r; r = r->next)
+    for (r = regions; r; r = r->next) {
         r->peasants += r->immigrants;
-
+    }
     /* Warn players who haven't sent in orders */
 
-    for (f = factions; f; f = f->next)
-        if (turn - f->lastorders == ORDERGAP)
+    for (f = factions; f; f = f->next) {
+        if (turn - f->lastorders == ORDERGAP) {
             addstrlist(&f->messages,
                        "Please send orders next turn if you wish to continue playing.");
+        }
+    }
 }
 
 void rstrlist(storage * store, strlist ** SP)
@@ -6088,7 +6110,7 @@ int readgame(void)
         rfp = &f->allies;
 
         while (--n2 >= 0) {
-            rf = (rfaction *)cmalloc(sizeof(rfaction));
+            rf = (rfaction *)malloc(sizeof(rfaction));
             store.api->r_int(store.handle, &rf->factionno);
             addlist2(rfp, rf);
         }
@@ -6143,7 +6165,7 @@ int readgame(void)
         bp = &r->buildings;
 
         while (--n2 >= 0) {
-            b = (building *)cmalloc(sizeof(building));
+            b = (building *)malloc(sizeof(building));
 
             store.api->r_int(store.handle, &b->no);
             if (store.api->r_str(store.handle, name, sizeof(name))==0) {
