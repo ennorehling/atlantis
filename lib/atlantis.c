@@ -44,6 +44,11 @@ int ignore_password = 0;
 #include <stddef.h>
 #include <limits.h>
 
+#define VER_NOHEADER 0 // no version header
+#define VER_HEADER 1 // has a version header
+
+#define VER_CURRENT VER_HEADER
+
 #define addlist2(l,p) (*l = p, l = &p->next)
 #define xisdigit(c) ((c) == '-' || ((c) >= '0' && (c) <= '9'))
 #define addptr(p,i) ((void *)(((char *)p) + i))
@@ -6074,6 +6079,7 @@ int readgame(void)
     unit *u, **up;
     int minx, miny, maxx, maxy;
     storage store;
+	int version = VER_NOHEADER;
 
     minx = INT_MAX;
     maxx = INT_MIN;
@@ -6087,6 +6093,10 @@ int readgame(void)
     printf("Reading turn %d...\n", turn);
 
     store.api->r_int(store.handle, &n);
+    if (n==-1) {
+        store.api->r_int(store.handle, &version);
+        store.api->r_int(store.handle, &n);
+    }
     if (turn!=n) return -1;
 
     /* Read factions */
@@ -6428,6 +6438,8 @@ int writegame(void)
     printf("Writing turn %d...\n", turn);
 
     store_init(&store, cfopen(buf, "wb"));
+	store.api->w_int(store.handle, -1);
+	store.api->w_int(store.handle, VER_CURRENT);
     store.api->w_int(store.handle, turn);
 
     /* Write factions */
