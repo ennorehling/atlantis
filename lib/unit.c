@@ -1,6 +1,8 @@
 #include "unit.h"
 #include "atlantis.h"
 
+#include <quicklist.h>
+
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
@@ -19,11 +21,8 @@ unit * create_unit(struct faction *f, int no)
 }
 
 void free_unit(unit *u) {
-    /*
     ql_foreach(u->orders, free);
     ql_free(u->orders);
-    */
-    freestrlist(&u->orders);
     free(u->litems);
     free(u->name_);
     free(u->display_);

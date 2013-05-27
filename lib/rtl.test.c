@@ -1,6 +1,7 @@
 #include "rtl.h"
 #include <CuTest.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static void test_strdup(CuTest * tc)
