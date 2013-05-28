@@ -28,6 +28,17 @@ static cJSON * show_strlist(const strlist *slist) {
     return json;
 }
 
+static cJSON * show_qstrlist(quicklist *ql) {
+    ql_iter qli;
+    cJSON *json;
+    json = cJSON_CreateArray();
+    for (qli=qli_init(ql); qli_more(qli);) {
+        char * s = (char *)qli_next(&qli);
+        cJSON_AddItemToArray(json, cJSON_CreateString(s));
+    }
+    return json;
+}
+
 static cJSON * show_ship(const faction *f, const ship * s) {
     cJSON *json;
     const char * str;
@@ -251,7 +262,7 @@ cJSON * json_report(const faction * f) {
 
             cJSON_AddItemToArray(chld, jbtl = cJSON_CreateObject());
             cJSON_AddStringToObject(jbtl, "region", region_getname(b->region));
-            cJSON_AddItemToObject(jbtl, "events", show_strlist(b->events));
+            cJSON_AddItemToObject(jbtl, "events", show_qstrlist(b->events));
             cJSON_AddItemToObject(jbtl, "sides", jsd = cJSON_CreateArray());
             for (i=0;i!=2;++i) {
                 cJSON * jul;
