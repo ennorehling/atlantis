@@ -977,7 +977,7 @@ strlist *makestrlist(char *s)
 
     S = (strlist *)malloc(sizeof(strlist) + strlen(s));
     S->next = 0;
-    strcpy(s, s);
+    strcpy(S->s, s);
     return S;
 }
 
@@ -4313,10 +4313,13 @@ void process_combat(void)
 void process_form(unit *u, region *r) {
     ql_iter oli;
     for (oli = qli_init(u->orders); qli_more(oli); ) {
-        const char *s = (const char *)qli_next(&oli);
+        char *s = (char *)ql_get(oli.l, oli.i);
         unit *u2;
 
         if (igetkeyword(s) == K_FORM) {
+            ql_delete(&oli.l, oli.i);
+            free(s);
+
             u2 = create_unit(u->faction, 0);
             region_addunit(r, u2);
 
@@ -4333,11 +4336,14 @@ void process_form(unit *u, region *r) {
                 char *s = (char *)ql_get(oli.l, oli.i);
                 ql_delete(&oli.l, oli.i);
                 if (igetkeyword(s) == K_END) {
+                    free(s);
                     break;
                 } else {
                     ql_push(&u2->orders, s);
                 }
             }
+        } else {
+            qli_next(&oli);
         }
     }
 }

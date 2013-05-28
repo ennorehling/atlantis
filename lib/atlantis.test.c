@@ -187,10 +187,11 @@ static void test_password_cmd(CuTest * tc)
     strm.api->writeln(strm.handle, "PASSWORD newpassword");
     strm.api->rewind(strm.handle);
     read_orders(&strm);
+    freestrlist(&f->messages);
     processorders();
+    CuAssertStrEquals(tc, "The faction's password was changed to 'newpassword'.", f->messages->s);
     CuAssertIntEquals(tc, 1, (int)faction_checkpassword(f, "newpassword"));
     CuAssertIntEquals(tc, 0, (int)faction_checkpassword(f, "mypassword"));
-
     mstream_done(&strm);
 }
 
