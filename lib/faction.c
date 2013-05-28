@@ -58,12 +58,7 @@ void free_faction(faction *f) {
         free_battle(b);
     }
 
-    while (f->allies) {
-        rfaction * rf = f->allies;
-        f->allies = rf->next;
-        free(rf);
-    }
-
+    ql_free(f->allies.factions);
     ql_foreach(f->accept, free);
     ql_free(f->accept);
     ql_foreach(f->admit, free);

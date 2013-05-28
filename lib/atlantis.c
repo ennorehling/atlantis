@@ -2726,21 +2726,15 @@ void doshot(void)
         terminate(di);
 }
 
-int isallied(const unit * u, const unit * u2)
+bool isallied(const unit * u, const unit * u2)
 {
-    rfaction *rf;
-
     if (!u2)
         return u->guard;
 
     if (u->faction == u2->faction)
-        return 1;
+        return true;
 
-    for (rf = u->faction->allies; rf; rf = rf->next)
-        if (rf->faction == u2->faction)
-            return 1;
-
-    return 0;
+    return !!ql_set_find(&u->faction->allies.factions, 0, u2->faction);
 }
 
 bool accepts(const unit * u, const unit * u2)
@@ -3235,7 +3229,6 @@ void report(faction * f)
     int i;
     int dh;
     int anyunits;
-    rfaction *rf;
     region *r;
     building *b;
     ship *sh;
@@ -3321,15 +3314,17 @@ void report(faction * f)
     rnl(F);
     centre(F, "Current Status");
 
-    if (f->allies) {
+    if (f->allies.factions) {
+        ql_iter qli;
         dh = 0;
         strcpy(buf, "You are allied to ");
 
-        for (rf = f->allies; rf; rf = rf->next) {
+        for (qli=qli_init(f->allies.factions); qli_more(qli); ) {
+            faction *rf = (faction *)qli_next(&qli);
             if (dh)
                 scat(", ");
             dh = 1;
-            scat(factionid(rf->faction));
+            scat(factionid(rf));
         }
 
         scat(".");
@@ -3552,35 +3547,23 @@ void expandorders(region * r, order * orders)
 
 void removenullfactions(void)
 {
-    faction *f, *f2, *f3;
-    rfaction *rf, *rf2;
+    faction **fp;
 
-    for (f = factions; f;) {
-        f2 = f->next;
+    for (fp = &factions; *fp;) {
+        faction * f = *fp;
 
         if (!f->alive) {
+            faction *f2;
+            for (f2 = factions; f2; f2=f2->next) {
+                ql_set_remove(&f2->allies.factions, f);
+            }
+
             printf("Removing %s.\n", faction_getname(f));
-
-            for (f3 = factions; f3; f3 = f3->next)
-                for (rf = f3->allies; rf;) {
-                    rf2 = rf->next;
-
-                    if (rf->faction == f)
-                        removelist(&f3->allies, rf);
-
-                    rf = rf2;
-                }
-
-            freelist(f->allies);
-            freelist(f->mistakes);
-            freelist(f->messages);
-            freelist(f->battles);
-            freelist(f->events);
-
-            removelist(&factions, f);
+            *fp = f->next;
+            free_faction(f);
+        } else {
+            fp = &f->next;
         }
-
-        f = f2;
     }
 }
 
@@ -4336,7 +4319,6 @@ void processorders(void)
     int teaching;
     char *sx, *sn;
     faction *f;
-    rfaction *rf;
     region *r, *r2;
     building *b;
     ship *sh;
@@ -4437,22 +4419,10 @@ void processorders(void)
                         break;
 
                     if (geti()) {
-                        for (rf = u->faction->allies; rf; rf = rf->next)
-                            if (rf->faction == f)
-                                break;
-
-                        if (!rf) {
-                            rf = (rfaction *)malloc(sizeof(rfaction));
-                            rf->faction = f;
-                            addlist(&u->faction->allies, rf);
-                        }
-                    } else
-                        for (rf = u->faction->allies; rf; rf = rf->next)
-                            if (rf->faction == f) {
-                                removelist(&u->faction->allies, rf);
-                                break;
-                            }
-
+                        ql_set_insert(&u->faction->allies.factions, f);
+                    } else {
+                        ql_set_remove(&u->faction->allies.factions, f);
+                    }
                     break;
 
                 case K_BEHIND:
@@ -6050,7 +6020,6 @@ int readgame(void)
     FILE * F;
     int i, n, n2;
     faction *f, **fp;
-    rfaction *rf, **rfp;
     region *r, **rp;
     building *b, **bp;
     ship *sh, **shp;
@@ -6109,15 +6078,15 @@ int readgame(void)
 
         store.api->r_int(store.handle, &n2);
         if (n2<0) return -6;
-        rfp = &f->allies;
-
-        while (--n2 >= 0) {
-            rf = (rfaction *)malloc(sizeof(rfaction));
-            store.api->r_int(store.handle, &rf->factionno);
-            addlist2(rfp, rf);
+        if (n2>0) {
+            f->allies.fnos = (int *)malloc(sizeof(int) * (n2+1));
+            for (i=0; i!=n2; ++i) {
+                store.api->r_int(store.handle, f->allies.fnos+i);
+            }
+            f->allies.fnos[n2] = 0;
+        } else {
+            f->allies.fnos = 0;
         }
-
-        *rfp = 0;
 
         rstrlist(&store, &f->mistakes);
         rstrlist(&store, &f->messages);
@@ -6293,8 +6262,13 @@ int readgame(void)
     /* Link rfaction structures */
 
     for (f = factions; f; f = f->next) {
-        for (rf = f->allies; rf; rf = rf->next) {
-            rf->faction = findfaction(rf->factionno);
+        if (f->allies.fnos) {
+            int i, *fnos = f->allies.fnos;
+            f->allies.factions = 0;
+            for (i=0;fnos[i];++i) {
+                ql_set_insert(&f->allies.factions, findfaction(fnos[i]));
+            }
+            free(fnos);
         }
     }
     /* Clear away debris of destroyed factions */
@@ -6347,7 +6321,6 @@ int writegame(void)
     storage store;
     int i;
     faction *f;
-    rfaction *rf;
     region *r;
     building *b;
     ship *sh;
@@ -6366,6 +6339,8 @@ int writegame(void)
     store.api->w_int(store.handle, listlen(factions));
 
     for (f = factions; f; f = f->next) {
+        ql_iter qli;
+
         store.api->w_int(store.handle, f->no);
         store.api->w_str(store.handle, faction_getname(f));
         store.api->w_str(store.handle, faction_getaddr(f));
@@ -6378,10 +6353,10 @@ int writegame(void)
             store.api->w_int(store.handle, f->showdata[i]);
         }
 
-        store.api->w_int(store.handle, listlen(f->allies));
-
-        for (rf = f->allies; rf; rf = rf->next) {
-            store.api->w_int(store.handle, rf->faction->no);
+        store.api->w_int(store.handle, ql_length(f->allies.factions));
+        for (qli = qli_init(f->allies.factions); qli_more(qli);) {
+            faction *rf = (faction *)qli_next(&qli);
+            store.api->w_int(store.handle, rf->no);
         }
 
         wstrlist(&store, f->mistakes);

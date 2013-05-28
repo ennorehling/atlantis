@@ -11,6 +11,7 @@
 #include "spells.h"
 
 #include <stream.h>
+#include <quicklist.h>
 
 #include <cJSON.h>
 #include <string.h>
@@ -267,11 +268,12 @@ cJSON * json_report(const faction * f) {
         cJSON_AddItemToObject(json, "events", show_strlist(f->events));
     }
     /* spells */
-    if (f->allies) {
-        rfaction * rf;
+    if (f->allies.factions) {
+        ql_iter qli;
         cJSON_AddItemToObject(json, "allies", chld = cJSON_CreateArray());
-        for (rf = f->allies; rf; rf = rf->next) {
-            cJSON_AddItemToArray(json, cJSON_CreateNumber(rf->faction->no));
+        for (qli = qli_init(f->allies.factions); qli_more(qli);) {
+            faction *rf = (faction *)qli_next(&qli);
+            cJSON_AddItemToArray(json, cJSON_CreateNumber(rf->no));
         }
     }
     cJSON_AddItemToObject(json, "regions", chld = cJSON_CreateArray());

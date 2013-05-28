@@ -16,10 +16,9 @@
 struct strlist;
 struct battle;
 
-typedef struct rfaction {
-    struct rfaction *next;
-    struct faction *faction;
-    int factionno;
+typedef union {
+    struct quicklist *factions; // a set
+    int *fnos;
 } rfaction;
 
 typedef struct faction {
@@ -33,12 +32,12 @@ typedef struct faction {
     bool showdata[MAXSPELLS];
     struct quicklist *accept;
     struct quicklist *admit;
-    struct rfaction *allies;
+    rfaction allies;
     struct strlist *mistakes;
     struct strlist *messages;
     struct battle *battles;
     struct strlist *events;
-	bool alive;
+    bool alive;
     bool attacking;
     bool seesbattle;
     char dh;
