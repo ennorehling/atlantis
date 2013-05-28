@@ -7,6 +7,8 @@
 #include "unit.h"
 #include "json.h"
 
+#include "rtl.h"
+
 #include <stream.h>
 #include <memstream.h>
 #include <filestream.h>
@@ -206,15 +208,17 @@ static void test_form(CuTest * tc)
     r = create_region(0, 0, T_PLAIN);
     u = make_unit(f, r, 1);
     ql_push(&u->orders, _strdup("ENTERTAIN"));
-    ql_push(&u->orders, _strdup("FORM 1"));
+    ql_push(&u->orders, _strdup("FORM 42"));
     ql_push(&u->orders, _strdup("WORK"));
     ql_push(&u->orders, _strdup("END"));
     process_form(u, r);
     CuAssertPtrNotNull(tc, r->units->next);
     CuAssertIntEquals(tc, 1, ql_length(u->orders));
+    CuAssertIntEquals(tc, 0, u->alias);
     CuAssertPtrEquals(tc, u, r->units);
     u = r->units->next;
     CuAssertIntEquals(tc, 1, ql_length(u->orders));
+    CuAssertIntEquals(tc, 42, u->alias);
 }
 
 static void test_orders(CuTest * tc)

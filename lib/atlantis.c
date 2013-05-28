@@ -4318,7 +4318,6 @@ void process_form(unit *u, region *r) {
 
         if (igetkeyword(s) == K_FORM) {
             ql_delete(&oli.l, oli.i);
-            free(s);
 
             u2 = create_unit(u->faction, 0);
             region_addunit(r, u2);
@@ -4332,6 +4331,7 @@ void process_form(unit *u, region *r) {
             u2->behind = u->behind;
             u2->guard = u->guard;
 
+            free(s);
             while (qli_more(oli)) {
                 char *s = (char *)ql_get(oli.l, oli.i);
                 ql_delete(&oli.l, oli.i);
