@@ -4310,6 +4310,38 @@ void process_combat(void)
     free(fa);
 }
 
+void process_form(unit *u, region *r) {
+    ql_iter oli;
+    for (oli = qli_init(u->orders); qli_more(oli); ) {
+        const char *s = (const char *)qli_next(&oli);
+        unit *u2;
+
+        if (igetkeyword(s) == K_FORM) {
+            u2 = create_unit(u->faction, 0);
+            region_addunit(r, u2);
+
+            u2->alias = geti();
+            if (u2->alias == 0)
+                u2->alias = geti();
+
+            u2->building = u->building;
+            u2->ship = u->ship;
+            u2->behind = u->behind;
+            u2->guard = u->guard;
+
+            while (qli_more(oli)) {
+                char *s = (char *)ql_get(oli.l, oli.i);
+                ql_delete(&oli.l, oli.i);
+                if (igetkeyword(s) == K_END) {
+                    break;
+                } else {
+                    ql_push(&u2->orders, s);
+                }
+            }
+        }
+    }
+}
+
 void processorders(void)
 {
     int i, j, k;
@@ -4333,35 +4365,7 @@ void processorders(void)
 
     for (r = regions; r; r = r->next) {
         for (u = r->units; u; u = u->next) {
-            ql_iter oli;
-            for (oli = qli_init(u->orders); qli_more(oli); ) {
-                const char *s = (const char *)qli_next(&oli);
-                unit *u2;
-
-                if (igetkeyword(s) == K_FORM) {
-                    u2 = create_unit(u->faction, 0);
-                    region_addunit(r, u2);
-
-                    u2->alias = geti();
-                    if (u2->alias == 0)
-                        u2->alias = geti();
-
-                    u2->building = u->building;
-                    u2->ship = u->ship;
-                    u2->behind = u->behind;
-                    u2->guard = u->guard;
-
-                    while (qli_more(oli)) {
-                        char *s = (char *)ql_get(oli.l, oli.i);
-                        ql_delete(&oli.l, oli.i);
-                        if (igetkeyword(s) == K_END) {
-                            break;
-                        } else {
-                            ql_push(&u2->orders, s);
-                        }
-                    }
-                }
-            }
+            process_form(u, r);
         }
     }
     /* Instant orders - diplomacy etc. */

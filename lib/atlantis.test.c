@@ -194,6 +194,28 @@ static void test_password_cmd(CuTest * tc)
     mstream_done(&strm);
 }
 
+static void test_form(CuTest * tc)
+{
+    unit *u;
+    region *r;
+    faction *f;
+
+    cleargame();
+    f = create_faction(1);
+    r = create_region(0, 0, T_PLAIN);
+    u = make_unit(f, r, 1);
+    ql_push(&u->orders, _strdup("ENTERTAIN"));
+    ql_push(&u->orders, _strdup("FORM 1"));
+    ql_push(&u->orders, _strdup("WORK"));
+    ql_push(&u->orders, _strdup("END"));
+    process_form(u, r);
+    CuAssertPtrNotNull(tc, r->units->next);
+    CuAssertIntEquals(tc, 1, ql_length(u->orders));
+    CuAssertPtrEquals(tc, u, r->units);
+    u = r->units->next;
+    CuAssertIntEquals(tc, 1, ql_length(u->orders));
+}
+
 static void test_orders(CuTest * tc)
 {
     region * r;
@@ -695,6 +717,7 @@ int main(void)
     CuString *output = CuStringNew();
     CuSuite *suite = CuSuiteNew();
 
+    SUITE_ADD_TEST(suite, test_form);
     SUITE_ADD_TEST(suite, test_wrapmap);
     SUITE_ADD_TEST(suite, test_addplayer);
     SUITE_ADD_TEST(suite, test_orders);

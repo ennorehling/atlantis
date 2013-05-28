@@ -46,6 +46,7 @@ void addlist(void *l1, void *p1);
 
 void read_orders(struct stream * strm);
 void processorders(void);
+void process_form(struct unit *u, struct region *r);
 void reports(void);
 void initgame(void);
 void cleargame(void);
