@@ -36,11 +36,11 @@ typedef struct faction {
     rfaction allies;
     struct strlist *mistakes;
     struct strlist *messages;
-    struct battle *battles;
+    struct quicklist *battles;
     struct strlist *events;
     bool alive;
     bool attacking;
-    bool seesbattle;
+    struct battle *thisbattle;
     char dh;
     int nunits;
     int number;

@@ -5,6 +5,12 @@
 #include <quicklist.h>
 #include <stdlib.h>
 
+battle *create_battle(struct region *r) {
+    battle * b = (battle *)calloc(1, sizeof(battle));
+    b->region = r;
+    return b;
+}
+
 void free_battle(battle * b) {
     int i;
     ql_foreach(b->events, free);

@@ -12,6 +12,7 @@ typedef struct battle {
     struct quicklist * events;
 } battle;
 
+struct battle *create_battle(struct region *r);
 void free_battle(struct battle * b);
 
 #endif

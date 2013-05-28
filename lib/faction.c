@@ -38,8 +38,6 @@ void free_faction(faction *f) {
     free(f->addr_);
     free(f->pwhash_);
 /*
-    ql_foreach(f->battles, (void (*)(void *))free_battle);
-    ql_free(f->battles);
     ql_foreach(f->messages, free);
     ql_free(f->messages);
     ql_foreach(f->events, free);
@@ -49,14 +47,11 @@ void free_faction(faction *f) {
     ql_foreach(f->allies.factions, free);
     ql_free(f->allies.factions);
 */
+    ql_foreach(f->battles, (void (*)(void *))free_battle);
+    ql_free(f->battles);
     freestrlist(&f->events);
     freestrlist(&f->messages);
     freestrlist(&f->mistakes);
-    while (f->battles) {
-        battle * b = f->battles;
-        f->battles = b->next;
-        free_battle(b);
-    }
 
     ql_free(f->allies.factions);
     ql_foreach(f->accept, free);

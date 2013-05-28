@@ -2386,8 +2386,8 @@ void battlerecord(char *s)
     faction *f;
 
     for (f = factions; f; f = f->next) {
-        if (f->seesbattle) {
-            addbattle(f->battles, s);
+        if (f->thisbattle) {
+            addbattle(f->thisbattle, s);
         }
     }
     if (s[0])
@@ -2425,9 +2425,8 @@ void battle_report_unit(const unit * u)
     faction *f;
 
     for (f = factions; f; f = f->next) {
-        if (f->seesbattle) {
-            battle * b = f->battles;
-            battle_add_unit(b, u);
+        if (f->thisbattle) {
+            battle_add_unit(f->thisbattle, u);
         }
     }
 }
@@ -3257,12 +3256,13 @@ void report(faction * f)
     centrestrlist(F, "Messages", f->messages);
 
     if (f->battles || f->events) {
-        battle * b;
+        ql_iter bli;
         rnl(F);
         centre(F, "Events During Turn");
         rnl(F);
 
-        for (b = f->battles; b; b = b->next) {
+        for (bli = qli_init(f->battles); qli_more(bli); ) {
+            battle * b = (battle *)qli_next(&bli);
             ql_iter qli = qli_init(b->events);
             int i;
             char * s = (char *)qli_next(&qli);
@@ -3927,12 +3927,11 @@ void process_combat(void)
                             /* Initial attack message */
 
                             for (f2 = factions; f2; f2 = f2->next) {
-                                f2->seesbattle = ispresent(f2, r);
-                                if (f2->seesbattle) {
-                                    battle * b = (battle *)calloc(1, sizeof(battle));
-                                    b->next = f2->battles;
-                                    b->region = r;
-                                    f2->battles = b;
+                                if (ispresent(f2, r)) {
+                                    f2->thisbattle = create_battle(r);
+                                    ql_push(&f2->battles, f2->thisbattle);
+                                } else {
+                                    f2->thisbattle = 0;
                                 }
                             }
 
@@ -3942,8 +3941,8 @@ void process_combat(void)
                                 strcpy(buf2, "the peasants");
                             }
                             for (f2 = factions; f2; f2 = f2->next) {
-                                if (f2->seesbattle) {
-                                    battle * b = f2->battles;
+                                if (f2->thisbattle) {
+                                    battle * b = f2->thisbattle;
                                     sprintf(buf, "%s attacks %s in %s!", unitid(u),
                                             buf2, regionid(r, f2));
                                     ql_push(&b->events, _strdup(buf));
@@ -3966,9 +3965,8 @@ void process_combat(void)
                                                         "Peasants", 0, 0, false);
                                 u3->side = 1;
                                 for (f2 = factions; f2; f2 = f2->next) {
-                                    if (f2->seesbattle) {
-                                        battle * b = f2->battles;
-                                        battle_add_unit(b, u3);
+                                    if (f2->thisbattle) {
+                                        battle_add_unit(f2->thisbattle, u3);
                                     }
                                 }
                             }
@@ -4261,12 +4259,12 @@ void process_combat(void)
                                     }
 
                                     if (!u3->faction->dh) {
-                                        addbattle(u3->faction->battles, "");
+                                        addbattle(u3->faction->thisbattle, "");
                                         u3->faction->dh = 1;
                                     }
 
                                     scat(".");
-                                    addbattle(u3->faction->battles, buf);
+                                    addbattle(u3->faction->thisbattle, buf);
                                 }
                             }
 
