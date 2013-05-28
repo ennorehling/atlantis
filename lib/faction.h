@@ -13,6 +13,7 @@
 #include "spells.h"
 #include "bool.h"
 
+struct quicklist;
 struct strlist;
 struct battle;
 

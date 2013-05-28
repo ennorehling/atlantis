@@ -2071,9 +2071,9 @@ void addevent(faction * f, const char *s)
     sparagraph(&f->events, s, 0, 0);
 }
 
-void addbattle(faction * f, char *s)
+void addbattle(battle * b, const char *s)
 {
-    sparagraph(&f->battles->events, s, 0, 0);
+    ql_push(&b->events, _strdup(s));
 }
 
 void reportevent(region * r, char *s)
@@ -2387,7 +2387,7 @@ void battlerecord(char *s)
 
     for (f = factions; f; f = f->next) {
         if (f->seesbattle) {
-            sparagraph(&f->battles->events, s, 0, 0);
+            addbattle(f->battles, s);
         }
     }
     if (s[0])
@@ -3263,8 +3263,10 @@ void report(faction * f)
         rnl(F);
 
         for (b = f->battles; b; b = b->next) {
+            ql_iter qli = qli_init(b->events);
             int i;
-            rps(b->events->s);
+            char * s = (char *)qli_next(&qli);
+            rps(s);
             rnl(F);
             rps("");
             rnl(F);
@@ -3276,8 +3278,11 @@ void report(faction * f)
                 rps("");
                 rnl(F);
             }
-            for (S=b->events->next;S;S=S->next) {
-                rps(S->s);
+            while (qli_more(qli)) {
+                strlist *S;
+                char * s = (char *)qli_next(&qli);
+                sparagraph(&S, s, 0, 0);
+                rpstrlist(F, S);
                 rnl(F);
             }
         }
@@ -3941,7 +3946,7 @@ void process_combat(void)
                                     battle * b = f2->battles;
                                     sprintf(buf, "%s attacks %s in %s!", unitid(u),
                                             buf2, regionid(r, f2));
-                                    sparagraph(&b->events, buf, 0, 0);
+                                    ql_push(&b->events, _strdup(buf));
                                 }
                             }
 
@@ -4256,12 +4261,12 @@ void process_combat(void)
                                     }
 
                                     if (!u3->faction->dh) {
-                                        addbattle(u3->faction, "");
+                                        addbattle(u3->faction->battles, "");
                                         u3->faction->dh = 1;
                                     }
 
                                     scat(".");
-                                    addbattle(u3->faction, buf);
+                                    addbattle(u3->faction->battles, buf);
                                 }
                             }
 

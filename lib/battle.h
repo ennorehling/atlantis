@@ -1,7 +1,7 @@
 #ifndef ATL_BATTLE_H
 #define ATL_BATTLE_H
 
-struct strlist;
+struct quicklist;
 struct region;
 struct unit;
 
@@ -9,7 +9,7 @@ typedef struct battle {
     struct battle * next; 
     struct unit * units[2];
     struct region * region;
-    struct strlist * events;
+    struct quicklist * events;
 } battle;
 
 void free_battle(struct battle * b);
