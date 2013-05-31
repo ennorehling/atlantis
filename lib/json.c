@@ -9,6 +9,7 @@
 #include "items.h"
 #include "keywords.h"
 #include "spells.h"
+#include "parser.h"
 
 #include <stream.h>
 #include <quicklist.h>
@@ -43,7 +44,7 @@ static cJSON * show_ship(const faction *f, const ship * s) {
     cJSON *json;
     const char * str;
     
-	DBG_UNREFERENCED_PARAMETER(f);
+    DBG_UNREFERENCED_PARAMETER(f);
     json = cJSON_CreateObject();
     cJSON_AddNumberToObject(json, "id", s->no);
     cJSON_AddStringToObject(json, "type", shiptypenames[s->type]);
@@ -65,7 +66,7 @@ static cJSON * show_building(const faction *f, const building * b) {
     cJSON *json;
     const char * str;
     
-	DBG_UNREFERENCED_PARAMETER(f);
+    DBG_UNREFERENCED_PARAMETER(f);
     json = cJSON_CreateObject();
     cJSON_AddNumberToObject(json, "id", b->no);
     cJSON_AddNumberToObject(json, "size", b->size);
@@ -90,7 +91,7 @@ static cJSON * show_skill(const unit * u, skill_t sk) {
 
 static cJSON * show_item(const unit * u, int i) {
     cJSON *json = cJSON_CreateObject();
-    cJSON_AddStringToObject(json, "name", itemnames[0][i]);
+    cJSON_AddStringToObject(json, "name", itemnames[i][0]);
     cJSON_AddNumberToObject(json, "count", u->items[i]);
     return json;
 }
@@ -166,7 +167,7 @@ static cJSON * show_exit(const faction *f, const region * r, int d) {
     cJSON *json;
     region * rn = r->connect[d];
 
-	DBG_UNREFERENCED_PARAMETER(f);
+    DBG_UNREFERENCED_PARAMETER(f);
     json = cJSON_CreateObject();
     strncpy(buf, keywords[directions[d]], sizeof(buf));
     cJSON_AddStringToObject(json, "direction", rtl_strlwr(buf));
@@ -180,8 +181,8 @@ static cJSON * show_region(const faction *f, const region * r) {
     unit * u;
     const char * str;
     
-    x = (r->x - f->origin_x + world.width) % world.width;
-    y = (r->y - f->origin_y + world.height) % world.height;
+    x = (r->x - f->origin_x + config.width) % config.width;
+    y = (r->y - f->origin_y + config.height) % config.height;
     json = cJSON_CreateObject();
     if (r->terrain != T_OCEAN) {
         if ((str = region_getname(r))!=0) {
@@ -254,9 +255,10 @@ cJSON * json_report(const faction * f) {
         cJSON_AddItemToObject(json, "messages", show_strlist(f->messages));
     }
     if (f->battles) {
-        battle * b;
+        ql_iter bli;
         cJSON_AddItemToObject(json, "battles", chld = cJSON_CreateArray());
-        for (b=f->battles;b;b=b->next) {
+        for (bli = qli_init(f->battles);qli_more(bli);) {
+            battle * b = (battle *)qli_next(&bli);
             cJSON *jbtl, *jsd;
             int i;
 

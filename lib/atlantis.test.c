@@ -6,6 +6,7 @@
 #include "building.h"
 #include "unit.h"
 #include "json.h"
+#include "parser.h"
 
 #include "rtl.h"
 
@@ -72,13 +73,11 @@ static void test_wrapmap(CuTest * tc)
     makeblock(0, 0);
     makeworld();
 
-    CuAssertIntEquals(tc, 0, world.left);
-    CuAssertIntEquals(tc, 0, world.top);
-    CuAssertIntEquals(tc, BLOCKSIZE+2*BLOCKBORDER, world.width);
-    CuAssertIntEquals(tc, BLOCKSIZE+2*BLOCKBORDER, world.height);
+    CuAssertIntEquals(tc, BLOCKSIZE+2*BLOCKBORDER, config.width);
+    CuAssertIntEquals(tc, BLOCKSIZE+2*BLOCKBORDER, config.height);
     r = findregion(0, 0);
-    CuAssertIntEquals(tc, world.height-world.top-1, r->connect[0]->y); /* NORTH */
-    CuAssertIntEquals(tc, world.height-world.top-1, r->connect[3]->x); /* WEST */
+    CuAssertIntEquals(tc, config.height-1, r->connect[0]->y); /* NORTH */
+    CuAssertIntEquals(tc, config.height-1, r->connect[3]->x); /* WEST */
 }
 
 static void test_good_password(CuTest * tc)

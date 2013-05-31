@@ -9,6 +9,12 @@
 #ifndef ATL_SETTINGS_H
 #define ATL_SETTINGS_H
 
+typedef struct settings {
+    int width, height;
+} settings;
+
+extern struct settings config;
+
 #define NAMESIZE 81
 #define DISPLAYSIZE 161
 #define MAXDIRECTIONS 6

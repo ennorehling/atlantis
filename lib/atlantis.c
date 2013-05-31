@@ -18,6 +18,9 @@
 #include "spells.h"
 #include "skills.h"
 #include "items.h"
+#include "parser.h"
+#include "report.h"
+#include "combat.h"
 
 #include "json.h"
 #include "rtl.h"
@@ -54,7 +57,6 @@ int ignore_password = 0;
 
 #define addlist2(l,p) (*l = p, l = &p->next)
 #define xisdigit(c) ((c) == '-' || ((c) >= '0' && (c) <= '9'))
-#define addptr(p,i) ((void *)(((char *)p) + i))
 
 static void (*store_init)(struct storage *, FILE *) = binstore_init;
 static void (*store_done)(struct storage *) = binstore_done;
@@ -69,30 +71,6 @@ typedef struct order {
     int qty;
 } order;
 
-typedef struct troop {
-    struct troop *next;
-    struct unit *unit;
-    int lmoney;
-    int status;
-    int side;
-    bool attacked;
-    item_t weapon;
-    bool missile;
-    int skill;
-    int armor;
-    bool behind;
-    int inside;
-    int reload;
-    bool canheal;
-    char runesword;
-    bool invulnerable;
-    char power;
-    char shieldstone;
-    char demoralized;
-    char dazzled;
-} troop;
-
-char buf[10240];
 char buf2[256];
 
 int turn;
@@ -519,74 +497,6 @@ int shipcost[] = {
     300,
 };
 
-const char *skillnames[] = {
-    "mining",
-    "lumberjack",
-    "quarrying",
-    "horse training",
-    "weaponsmith",
-    "armorer",
-    "building",
-    "shipbuilding",
-    "entertainment",
-    "stealth",
-    "observation",
-    "tactics",
-    "riding",
-    "sword",
-    "crossbow",
-    "longbow",
-    "magic",
-};
-
-const char *itemnames[2][MAXITEMS] = {
-    {
-        "iron",
-        "wood",
-        "stone",
-        "horse",
-        "sword",
-        "crossbow",
-        "longbow",
-        "chain mail",
-        "plate armor",
-        "Amulet of Darkness",
-        "Amulet of Death",
-        "Amulet of Healing",
-        "Amulet of True Seeing",
-        "Cloak of Invulnerability",
-        "Ring of Invisibility",
-        "Ring of Power",
-        "Runesword",
-        "Shieldstone",
-        "Staff of Fire",
-        "Staff of Lightning",
-        "Wand of Teleportation",
-    }, {
-        "iron",
-        "wood",
-        "stone",
-        "horses",
-        "swords",
-        "crossbows",
-        "longbows",
-        "chain mail",
-        "plate armor",
-        "Amulets of Darkness",
-        "Amulets of Death",
-        "Amulets of Healing",
-        "Amulets of True Seeing",
-        "Cloaks of Invulnerability",
-        "Rings of Invisibility",
-        "Rings of Power",
-        "Runeswords",
-        "Shieldstones",
-        "Staffs of Fire",
-        "Staffs of Lightning",
-        "Wands of Teleportation",
-    }
-};
-
 char itemskill[] = {
     SK_MINING,
     SK_LUMBERJACK,
@@ -609,33 +519,6 @@ char rawmaterial[] = {
     I_WOOD,
     I_IRON,
     I_IRON,
-};
-
-const char *spellnames[] = {
-    "Black Wind",
-    "Cause Fear",
-    "Contaminate Water",
-    "Dazzling Light",
-    "Fireball",
-    "Hand of Death",
-    "Heal",
-    "Inspire Courage",
-    "Lightning Bolt",
-    "Make Amulet of Darkness",
-    "Make Amulet of Death",
-    "Make Amulet of Healing",
-    "Make Amulet of True Seeing",
-    "Make Cloak of Invulnerability",
-    "Make Ring of Invisibility",
-    "Make Ring of Power",
-    "Make Runesword",
-    "Make Shieldstone",
-    "Make Staff of Fire",
-    "Make Staff of Lightning",
-    "Make Wand of Teleportation",
-    "Shield",
-    "Sunfire",
-    "Teleport",
 };
 
 int spelllevel[] = {
@@ -862,7 +745,7 @@ const char *spelldata[] = {
     "to cast.",
 };
 
-rect world = { 0, 0, 0, 0 };
+struct settings config;
 
 int atoip(const char *s)
 {
@@ -882,19 +765,6 @@ void nstrcpy(char *to, const char *from, size_t n)
     while (--n);
 
     *to = 0;
-}
-
-void scat(const char *s)
-{
-    strcat(buf, s);
-}
-
-void icat(int n)
-{
-    char s[20];
-
-    sprintf(s, "%d", n);
-    scat(s);
 }
 
 void rnd_seed(unsigned long x)
@@ -1013,39 +883,6 @@ FILE * cfopen(const char *filename, const char *mode)
     return F;
 }
 
-char * fgetbuf(FILE * F)
-{
-    int i;
-    int c;
-
-    i = 0;
-
-    for (;;) {
-        c = fgetc(F);
-
-        if (c == EOF) {
-            buf[i] = 0;
-            return buf;
-        }
-
-        if (c == '\n') {
-            buf[i] = 0;
-            return buf;
-        }
-
-        if (i == sizeof buf - 1) {
-            buf[i] = 0;
-            while (c != EOF && c != '\n')
-                c = fgetc(F);
-            if (c == EOF)
-                buf[i] = 0;
-            return buf;
-        }
-
-        buf[i++] = (char) c;
-    }
-}
-
 int transform(int *x, int *y, int direction)
 {
     keyword_t kwd;
@@ -1076,11 +913,11 @@ int transform(int *x, int *y, int direction)
     else {
         return EINVAL;
     }
-    if (world.width && world.height) {
-        if (*x<world.left) *x+=world.width;
-        if (*y<world.top) *y+=world.height;
-        if (*x>=world.left+world.width) *x-=world.width;
-        if (*y>=world.top+world.height) *y-=world.height;
+    if (config.width && config.height) {
+        if (*x<0) *x+=config.width;
+        if (*y<0) *y+=config.height;
+        if (*x>=config.width) *x-=config.width;
+        if (*y>=config.height) *y-=config.height;
     }
     return 0;
 }
@@ -1102,17 +939,6 @@ int effskill(const unit * u, int i)
     }
 
     return result;
-}
-
-bool ispresent(const faction * f, const region * r)
-{
-    unit *u;
-
-    for (u = r->units; u; u = u->next)
-        if (u->faction == f)
-            return true;
-
-    return false;
 }
 
 int cansee(const faction * f, const region * r, const unit * u)
@@ -1147,40 +973,6 @@ int cansee(const faction * f, const region * r, const unit * u)
     }
 
     return cansee;
-}
-
-char *igetstr(const char *s1)
-{
-    int i;
-    static const char *s;
-    static char buf[256];
-
-    if (s1)
-        s = s1;
-    while (*s == ' ')
-        s++;
-    i = 0;
-
-    while (*s && *s != ' ') {
-        buf[i] = *s;
-        if (*s == '_')
-            buf[i] = ' ';
-        s++;
-        i++;
-    }
-
-    buf[i] = 0;
-    return buf;
-}
-
-char *getstr(void)
-{
-    return igetstr(0);
-}
-
-int geti(void)
-{
-    return atoip(getstr());
 }
 
 faction *findfaction(int n)
@@ -1228,11 +1020,13 @@ building *getbuilding(region * r)
     int n;
     building *b;
 
-    n = geti();
+    n = atoi(getstr());
 
-    for (b = r->buildings; b; b = b->next)
-        if (b->no == n)
+    for (b = r->buildings; b; b = b->next) {
+        if (b->no == n) {
             return b;
+        }
+    }
 
     return 0;
 }
@@ -1255,11 +1049,13 @@ ship *getship(region * r)
     int n;
     ship *sh;
 
-    n = geti();
+    n = atoi(getstr());
 
-    for (sh = r->ships; sh; sh = sh->next)
-        if (sh->no == n)
+    for (sh = r->ships; sh; sh = sh->next) {
+        if (sh->no == n) {
             return sh;
+        }
+    }
 
     return 0;
 }
@@ -1269,174 +1065,15 @@ unit *findunitg(int n)
     region *r;
     unit *u;
 
-    for (r = regions; r; r = r->next)
-        for (u = r->units; u; u = u->next)
-            if (u->no == n)
+    for (r = regions; r; r = r->next) {
+        for (u = r->units; u; u = u->next) {
+            if (u->no == n) {
                 return u;
-
-    return 0;
-}
-
-unit *getnewunit(region * r, unit * u)
-{
-    int n;
-    unit *u2;
-
-    n = geti();
-
-    if (n == 0)
-        return 0;
-
-    for (u2 = r->units; u2; u2 = u2->next)
-        if (u2->faction == u->faction && u2->alias == n)
-            return u2;
-
-    return 0;
-}
-
-unit *getunitg(region * r, unit * u)
-{
-    const char *s;
-
-    s = getstr();
-
-    if (!_strcmpl(s, "new"))
-        return getnewunit(r, u);
-
-    return findunitg(atoi(s));
-}
-
-int getunit0;
-int getunitpeasants;
-
-unit *getunit(region * r, unit * u)
-{
-    int n;
-    const char *s;
-    unit *u2;
-
-    getunit0 = 0;
-    getunitpeasants = 0;
-
-    s = getstr();
-
-    if (!_strcmpl(s, "new"))
-        return getnewunit(r, u);
-
-    if (r->terrain != T_OCEAN && !_strcmpl(s, "peasants")) {
-        getunitpeasants = 1;
-        return 0;
+            }
+        }
     }
 
-    n = atoi(s);
-
-    if (n == 0) {
-        getunit0 = 1;
-        return 0;
-    }
-
-    for (u2 = r->units; u2; u2 = u2->next)
-        if (u2->no == n && cansee(u->faction, r, u2) && !u2->isnew)
-            return u2;
-
     return 0;
-}
-
-int strpcmp(const void *s1, const void *s2)
-{
-    return _strcmpl(*(char **) s1, *(char **) s2);
-}
-
-int findkeyword(const char *s)
-{
-    const char **sp;
-
-    if (!_strcmpl(s, "describe"))
-        return K_DISPLAY;
-    if (!_strcmpl(s, "n"))
-        return K_NORTH;
-    if (!_strcmpl(s, "s"))
-        return K_SOUTH;
-    if (!_strcmpl(s, "e"))
-        return K_EAST;
-    if (!_strcmpl(s, "w"))
-        return K_WEST;
-    if (!_strcmpl(s, "m"))
-        return K_MIR;
-    if (!_strcmpl(s, "y"))
-        return K_YDD;
-
-    sp = (const char **)bsearch(&s, keywords, MAXKEYWORDS, sizeof s, strpcmp);
-    if (sp == 0)
-        return -1;
-    return sp - keywords;
-}
-
-int igetkeyword(const char *s)
-{
-    return findkeyword(igetstr(s));
-}
-
-int getkeyword(void)
-{
-    return findkeyword(getstr());
-}
-
-int findstr(const char **v, const char *s, int n)
-{
-    int i;
-
-    for (i = 0; i != n; i++)
-        if (!_strcmpl(v[i], s))
-            return i;
-
-    return -1;
-}
-
-int findskill(const char *s)
-{
-    if (!_strcmpl(s, "horse"))
-        return SK_HORSE_TRAINING;
-    if (!_strcmpl(s, "entertain"))
-        return SK_ENTERTAINMENT;
-
-    return findstr(skillnames, s, MAXSKILLS);
-}
-
-int getskill(void)
-{
-    return findskill(getstr());
-}
-
-int finditem(const char *s)
-{
-    int i;
-
-    if (!_strcmpl(s, "chain"))
-        return I_CHAIN_MAIL;
-    if (!_strcmpl(s, "plate"))
-        return I_PLATE_ARMOR;
-
-    i = findstr(itemnames[0], s, MAXITEMS);
-    if (i >= 0)
-        return i;
-
-    return findstr(itemnames[1], s, MAXITEMS);
-}
-
-int getitem(void)
-{
-    return finditem(getstr());
-}
-
-spell_t findspell(const char *s)
-{
-    return (spell_t) findstr(spellnames, s, MAXSPELLS);
-}
-
-spell_t getspell(void)
-{
-    return findspell(getstr());
 }
 
 unit *createunit(region * r1, faction * f)
@@ -1466,33 +1103,6 @@ unit *createunit(region * r1, faction * f)
                 return u;
             }
     }
-}
-
-int scramblecmp(const void *p1, const void *p2)
-{
-    return *((long *) p1) - *((long *) p2);
-}
-
-void scramble(void *v1, int n, int width)
-{
-    int i;
-    void *v;
-
-    v = malloc(n * (width + 4));
-
-    for (i = 0; i != n; i++) {
-        *(long *) addptr(v, i * (width + 4)) = rnd();
-        memcpy(addptr(v, i * (width + 4) + 4), addptr(v1, i * width),
-               width);
-    }
-
-    qsort(v, n, width + 4, scramblecmp);
-
-    for (i = 0; i != n; i++)
-        memcpy(addptr(v1, i * width), addptr(v, i * (width + 4) + 4),
-               width);
-
-    free(v);
 }
 
 faction * createfaction(int no)
@@ -1539,6 +1149,7 @@ faction * addplayer(region * r, const char * email, int no)
 void addplayers(region *r, stream *strm)
 {
     int no = 0;
+    char buf[1024];
     for (;;) {
         faction *f;
         if (strm->api->readln(strm->handle, buf, sizeof(buf))!=0) {
@@ -1722,6 +1333,7 @@ int autoworld(const char * playerfile)
     char *name, *email;
     FILE *F = fopen(playerfile, "r");
     int no = 1, bx = 0, by = 0, block = 0;
+    char buf[1024];
 
     if (!F) {
         return -1;
@@ -1826,55 +1438,6 @@ char *gamedate(void)
     else
         sprintf(buf, "%s, Year %d", monthnames[(turn - 1) % 12],
                 ((turn - 1) / 12) + 1);
-    return buf;
-}
-
-char *factionid(faction * f)
-{
-    static char buf[NAMESIZE + 20];
-
-    sprintf(buf, "%s (%d)", faction_getname(f), f->no);
-    return buf;
-}
-
-const char *regionid(const region * r, const faction * f)
-{
-    int x, y;
-    static char buf[NAMESIZE + 20];
-    assert(f);
-    assert(r);
-    x = (r->x - f->origin_x + world.width) % world.width;
-    y = (r->y - f->origin_y + world.height) % world.height;
-    if (r->terrain == T_OCEAN) {
-        sprintf(buf, "(%d,%d)", x, y);
-    }
-    else {
-        sprintf(buf, "%s (%d,%d)", region_getname(r), x, y);
-    }
-    return buf;
-}
-
-char *buildingid(building * b)
-{
-    static char buf[NAMESIZE + 20];
-
-    sprintf(buf, "%s (%d)", building_getname(b), b->no);
-    return buf;
-}
-
-char *shipid(ship * sh)
-{
-    static char buf[NAMESIZE + 20];
-
-    sprintf(buf, "%s (%d)", ship_getname(sh), sh->no);
-    return buf;
-}
-
-char *unitid(unit * u)
-{
-    static char buf[NAMESIZE + 20];
-
-    sprintf(buf, "%s (%d)", unit_getname(u), u->no);
     return buf;
 }
 
@@ -1995,11 +1558,11 @@ void spunit(strlist ** SP, faction * f, region * r, unit * u, int indent,
             }
 
             if (u->items[i] == 1)
-                scat(itemnames[0][i]);
+                scat(itemnames[i][0]);
             else {
                 icat(u->items[i]);
                 scat(" ");
-                scat(itemnames[1][i]);
+                scat(itemnames[i][1]);
             }
         }
 
@@ -2045,35 +1608,9 @@ void spunit(strlist ** SP, faction * f, region * r, unit * u, int indent,
     sparagraph(SP, buf, indent, (u->faction == f) ? '*' : '-');
 }
 
-void mistake(faction * f, const char *s, const char *comment)
-{
-    static char buf[512];
-
-    sprintf(buf, "%s: %s.", s, comment);
-    sparagraph(&f->mistakes, buf, 0, 0);
-}
-
-void mistakes(unit * u, const char *str, const char *comment)
-{
-    static char buf[512];
-
-    sprintf(buf, "%s: %s - %s.", unitid(u), str, comment);
-    sparagraph(&u->faction->mistakes, buf, 0, 0);
-}
-
-void mistakeu(unit * u, const char *comment)
-{
-    mistakes(u, u->thisorder, comment);
-}
-
 void addevent(faction * f, const char *s)
 {
     sparagraph(&f->events, s, 0, 0);
-}
-
-void addbattle(battle * b, const char *s)
-{
-    ql_push(&b->events, _strdup(s));
 }
 
 void reportevent(region * r, char *s)
@@ -2274,457 +1811,6 @@ void getmoney(region * r, unit * u, int n)
         }
 }
 
-int ntroops;
-troop *ta;
-troop attacker, defender;
-int initial[2];
-int left[2];
-int infront[2];
-int toattack[2];
-int shields[2];
-int runeswords[2];
-
-troop **maketroops(troop ** tp, unit * u, int terrain)
-{
-    int i;
-    troop *t;
-    static int skills[MAXSKILLS];
-    static int items[MAXITEMS];
-
-    for (i = 0; i != MAXSKILLS; i++)
-        skills[i] = effskill(u, i);
-    memcpy(items, u->items, sizeof items);
-
-    left[u->side] += u->number;
-    if (!u->behind)
-        infront[u->side] += u->number;
-
-    for (i = u->number; i; i--) {
-        t = (troop *)malloc(sizeof(troop));
-        memset(t, 0, sizeof(troop));
-
-        t->unit = u;
-        t->side = u->side;
-        t->skill = -2;
-        t->behind = u->behind;
-
-        if (u->combatspell >= 0)
-            t->missile = true;
-        else if (items[I_RUNESWORD] && skills[SK_SWORD]) {
-            t->weapon = I_SWORD;
-            t->skill = skills[SK_SWORD] + 2;
-            t->runesword = 1;
-            items[I_RUNESWORD]--;
-            runeswords[u->side]++;
-
-            if (items[I_HORSE] && skills[SK_RIDING] >= 2
-                && terrain == T_PLAIN) {
-                t->skill += 2;
-                items[I_HORSE]--;
-            }
-        } else if (items[I_LONGBOW] && skills[SK_LONGBOW]) {
-            t->weapon = I_LONGBOW;
-            t->missile = true;
-            t->skill = skills[SK_LONGBOW];
-            items[I_LONGBOW]--;
-        } else if (items[I_CROSSBOW] && skills[SK_CROSSBOW]) {
-            t->weapon = I_CROSSBOW;
-            t->missile = true;
-            t->skill = skills[SK_CROSSBOW];
-            items[I_CROSSBOW]--;
-        } else if (items[I_SWORD] && skills[SK_SWORD]) {
-            t->weapon = I_SWORD;
-            t->skill = skills[SK_SWORD];
-            items[I_SWORD]--;
-
-            if (items[I_HORSE] && skills[SK_RIDING] >= 2
-                && terrain == T_PLAIN) {
-                t->skill += 2;
-                items[I_HORSE]--;
-            }
-        }
-
-        if (u->spells[SP_HEAL] || items[I_AMULET_OF_HEALING] > 0) {
-            t->canheal = true;
-            items[I_AMULET_OF_HEALING]--;
-        }
-
-        if (items[I_RING_OF_POWER]) {
-            t->power = 1;
-            items[I_RING_OF_POWER]--;
-        }
-
-        if (items[I_SHIELDSTONE]) {
-            t->shieldstone = 1;
-            items[I_SHIELDSTONE]--;
-        }
-
-        if (items[I_CLOAK_OF_INVULNERABILITY]) {
-            t->invulnerable = 1;
-            items[I_CLOAK_OF_INVULNERABILITY]--;
-        } else if (items[I_PLATE_ARMOR]) {
-            t->armor = 2;
-            items[I_PLATE_ARMOR]--;
-        } else if (items[I_CHAIN_MAIL]) {
-            t->armor = 1;
-            items[I_CHAIN_MAIL]--;
-        }
-
-        if (u->building && u->building->sizeleft) {
-            t->inside = 2;
-            u->building->sizeleft--;
-        }
-
-        addlist2(tp, t);
-    }
-
-    return tp;
-}
-
-void battlerecord(char *s)
-{
-    faction *f;
-
-    for (f = factions; f; f = f->next) {
-        if (f->thisbattle) {
-            addbattle(f->thisbattle, s);
-        }
-    }
-    if (s[0])
-        puts(s);
-}
-
-unit * battle_create_unit(faction * f, int no, int number,
-                          const char * name, const char * display,
-                          const int items[], bool behind)
-{
-    unit * u = create_unit(f, no);
-    u->number = number;
-    u->behind = behind;
-    unit_setname(u, name);
-    unit_setdisplay(u, display);
-    if (items) {
-        memcpy(u->items, items, sizeof(u->items));
-    }
-    return u;
-}
-
-void battle_add_unit(battle * b, const unit * u)
-{
-    unit * u2;
-    assert(u->side>=0);
-    u2 = battle_create_unit(u->faction, u->no, u->number,
-                            unit_getname(u), unit_getdisplay(u), 
-                            u->items, u->behind);
-    u2->next = b->units[u->side];
-    addlist(b->units+u->side, u2);
-}
-
-void battle_report_unit(const unit * u)
-{
-    faction *f;
-
-    for (f = factions; f; f = f->next) {
-        if (f->thisbattle) {
-            battle_add_unit(f->thisbattle, u);
-        }
-    }
-}
-
-int contest(int a, int d)
-{
-    int i;
-    static char table[] = { 10, 25, 40 };
-
-    i = a - d + 1;
-    if (i < 0)
-        return rnd() % 100 < 1;
-    if (i > 2)
-        return rnd() % 100 < 49;
-    return rnd() % 100 < table[i];
-}
-
-int hits(void)
-{
-    int k;
-
-    if (defender.weapon == I_CROSSBOW || defender.weapon == I_LONGBOW)
-        defender.skill = -2;
-    defender.skill += defender.inside;
-    attacker.skill -= (attacker.demoralized + attacker.dazzled);
-    defender.skill -= (defender.demoralized + defender.dazzled);
-
-    switch (attacker.weapon) {
-    case I_CROSSBOW:
-        k = contest(attacker.skill, 0);
-        break;
-
-    case I_LONGBOW:
-        k = contest(attacker.skill, 2);
-        break;
-
-    default:
-        k = contest(attacker.skill, defender.skill);
-        break;
-
-    }
-
-    if (defender.invulnerable && rnd() % 10000)
-        k = 0;
-
-    if (rnd() % 3 < defender.armor)
-        k = 0;
-
-    return k;
-}
-
-int validtarget(int i)
-{
-    return !ta[i].status &&
-        ta[i].side == defender.side &&
-        (!ta[i].behind || !infront[defender.side]);
-}
-
-int canbedemoralized(int i)
-{
-    return validtarget(i) && !ta[i].demoralized;
-}
-
-int canbedazzled(int i)
-{
-    return validtarget(i) && !ta[i].dazzled;
-}
-
-int canberemoralized(int i)
-{
-    return !ta[i].status &&
-        ta[i].side == attacker.side && ta[i].demoralized;
-}
-
-int selecttarget(void)
-{
-    int i;
-
-    do
-        i = rnd() % ntroops;
-    while (!validtarget(i));
-
-    return i;
-}
-
-void terminate(int i)
-{
-    if (!ta[i].attacked) {
-        ta[i].attacked = 1;
-        toattack[defender.side]--;
-    }
-
-    ta[i].status = 1;
-    left[defender.side]--;
-    if (infront[defender.side])
-        infront[defender.side]--;
-    if (ta[i].runesword)
-        runeswords[defender.side]--;
-}
-
-int lovar(int n)
-{
-    n /= 2;
-    return (rnd() % n + 1) + (rnd() % n + 1);
-}
-
-void dozap(int n)
-{
-    static char buf2[40];
-
-    n = lovar(n * (1 + attacker.power));
-    n = MIN(n, left[defender.side]);
-
-    sprintf(buf2, ", inflicting %d %s", n,
-            (n == 1) ? "casualty" : "casualties");
-    scat(buf2);
-
-    while (--n >= 0)
-        terminate(selecttarget());
-}
-
-void docombatspell(int i)
-{
-    int j;
-    int z;
-    int n, m;
-
-    z = ta[i].unit->combatspell;
-    sprintf(buf, "%s casts %s", unitid(ta[i].unit), spellnames[z]);
-
-    if (shields[defender.side])
-        if (rnd() & 1) {
-            scat(", and gets through the shield");
-            shields[defender.side] -= 1 + attacker.power;
-        } else {
-            scat(", but the spell is deflected by the shield!");
-            battlerecord(buf);
-            return;
-        }
-
-    switch (z) {
-    case SP_BLACK_WIND:
-        dozap(1250);
-        break;
-
-    case SP_CAUSE_FEAR:
-        if (runeswords[defender.side] && (rnd() & 1))
-            break;
-
-        n = lovar(100 * (1 + attacker.power));
-
-        m = 0;
-        for (j = 0; j != ntroops; j++)
-            if (canbedemoralized(j))
-                m++;
-
-        n = MIN(n, m);
-
-        sprintf(buf2, ", affecting %d %s", n,
-                (n == 1) ? "person" : "people");
-        scat(buf2);
-
-        while (--n >= 0) {
-            do
-                j = rnd() % ntroops;
-            while (!canbedemoralized(j));
-
-            ta[j].demoralized = 1;
-        }
-
-        break;
-
-    case SP_DAZZLING_LIGHT:
-        n = lovar(50 * (1 + attacker.power));
-
-        m = 0;
-        for (j = 0; j != ntroops; j++)
-            if (canbedazzled(j))
-                m++;
-
-        n = MIN(n, m);
-
-        sprintf(buf2, ", dazzling %d %s", n,
-                (n == 1) ? "person" : "people");
-        scat(buf2);
-
-        while (--n >= 0) {
-            do
-                j = rnd() % ntroops;
-            while (!canbedazzled(j));
-
-            ta[j].dazzled = 1;
-        }
-
-        break;
-
-    case SP_FIREBALL:
-        dozap(50);
-        break;
-
-    case SP_HAND_OF_DEATH:
-        dozap(250);
-        break;
-
-    case SP_INSPIRE_COURAGE:
-        n = lovar(100 * (1 + attacker.power));
-
-        m = 0;
-        for (j = 0; j != ntroops; j++)
-            if (canberemoralized(j))
-                m++;
-
-        n = MIN(n, m);
-
-        sprintf(buf2, ", affecting %d %s", n,
-                (n == 1) ? "person" : "people");
-        scat(buf2);
-
-        while (--n >= 0) {
-            do
-                j = rnd() % ntroops;
-            while (!canberemoralized(j));
-
-            ta[j].demoralized = 0;
-        }
-
-        break;
-
-    case SP_LIGHTNING_BOLT:
-        dozap(10);
-        break;
-
-    case SP_SHIELD:
-        shields[attacker.side] += 1 + attacker.power;
-        break;
-
-    case SP_SUNFIRE:
-        dozap(6250);
-        break;
-
-    default:
-        assert(0);
-    }
-
-    scat("!");
-    battlerecord(buf);
-}
-
-void doshot(void)
-{
-    int ai, di;
-
-    /* Select attacker */
-
-    do
-        ai = rnd() % ntroops;
-    while (ta[ai].attacked);
-
-    attacker = ta[ai];
-    ta[ai].attacked = 1;
-    toattack[attacker.side]--;
-    defender.side = 1 - attacker.side;
-
-    ta[ai].dazzled = 0;
-
-    if (attacker.unit) {
-        if (attacker.behind && infront[attacker.side] && !attacker.missile)
-            return;
-
-        if (attacker.shieldstone)
-            shields[attacker.side] += 1 + attacker.power;
-
-        if (attacker.unit->combatspell >= 0) {
-            docombatspell(ai);
-            return;
-        }
-
-        if (attacker.reload) {
-            ta[ai].reload--;
-            return;
-        }
-
-        if (attacker.weapon == I_CROSSBOW)
-            ta[ai].reload = 2;
-    }
-
-    /* Select defender */
-
-    di = selecttarget();
-    defender = ta[di];
-    assert(defender.side == 1 - attacker.side);
-
-    /* If attack succeeds */
-
-    if (hits())
-        terminate(di);
-}
-
 bool isallied(const unit * u, const unit * u2)
 {
     if (!u2)
@@ -2801,11 +1887,11 @@ int mayboard(region * r, unit * u, ship * sh)
     return u2 == 0 || admits(u2, u);
 }
 
-int getbuf(stream * strm)
+int getbuf(stream * strm, char *buf, size_t size)
 {
     int err;
     do {
-        err = strm->api->readln(strm->handle, buf, sizeof(buf));
+        err = strm->api->readln(strm->handle, buf, size);
     } while (err==0 && buf[0]=='#');
     return err;
 }
@@ -2816,14 +1902,15 @@ void read_orders(stream * strm)
     faction *f;
     region *r;
     unit *u;
+    char buf[1024];
 
-    while (getbuf(strm)==0) {
+    while (getbuf(strm, buf, sizeof(buf))==0) {
         int kwd = igetkeyword(buf);
         const char * passwd;
         if (kwd == K_FACTION) {
             bool check;
 NEXTPLAYER:
-            i = geti();
+            i = atoi(getstr());
             f = findfaction(i);
             if (!f) {
                 printf("Invalid faction %d.\n", i);
@@ -2852,7 +1939,7 @@ NEXTPLAYER:
 
                 for (;;) {
                     int kwd;
-                    if (getbuf(strm)!=0) {
+                    if (getbuf(strm, buf, sizeof(buf))!=0) {
                         break;
                     }
                     kwd = igetkeyword(buf);
@@ -2861,13 +1948,13 @@ NEXTPLAYER:
                     }
                     if (kwd == K_UNIT) {
 NEXTUNIT:
-                        i = geti();
-                        u = findunitg(i);
+                        i = atoi(getstr());
+                        u = (i>0) ? findunitg(i) : 0;
 
                         if (u && u->faction == f) {
 
                             for (;;) {
-                                if (getbuf(strm)!=0) {
+                                if (getbuf(strm, buf, sizeof(buf))!=0) {
                                     break;
                                 } else {
                                     kwd = igetkeyword(buf);
@@ -2967,10 +2054,21 @@ NEXTUNIT:
 }
 
 void update_world(int minx, int miny, int maxx, int maxy) {
-    world.left = minx;
-    world.top = miny;
-    world.width = maxx - minx + 1;
-    world.height = maxy - miny + 1;
+
+    config.width = maxx-minx+1;
+    config.height = maxy-miny+1;
+    if (minx!=0 || miny!=0) {
+        region *r;
+        faction *f;
+        for (r = regions; r; r=r->next) {
+            r->x -= minx;
+            r->y -= miny;
+        }
+        for (f = factions; f; f=f->next) {
+            f->origin_x -= minx;
+            f->origin_y -= miny;
+        }
+    }
 }
 
 void makeworld(void)
@@ -2992,7 +2090,7 @@ void makeworld(void)
 
     for (x=minx-BLOCKBORDER;x<=maxx+BLOCKBORDER;++x) {
         for (y=miny-BLOCKBORDER;y<=maxy+BLOCKBORDER;++y) {
-            r = findregion(x, y);
+            region * r = findregion(x, y);
             if (!r) {
                 r = create_region(x, y, T_OCEAN);
             }
@@ -3006,6 +2104,7 @@ void writemap(FILE * F)
 {
     int x, y, minx, miny, maxx, maxy;
     region *r;
+    char buf[1024];
 
     minx = INT_MAX;
     maxx = INT_MIN;
@@ -3279,7 +2378,7 @@ void report(faction * f)
                 rnl(F);
             }
             while (qli_more(qli)) {
-                strlist *S;
+                strlist *S = 0;
                 char * s = (char *)qli_next(&qli);
                 sparagraph(&S, s, 0, 0);
                 rpstrlist(F, S);
@@ -3496,29 +2595,37 @@ void reports(void)
     fclose(F);
 }
 
-int reportcasualtiesdh;
-
-void reportcasualties(unit * u)
-{
-    if (!u->dead)
-        return;
-
-    if (!reportcasualtiesdh) {
-        battlerecord("");
-        reportcasualtiesdh = 1;
-    }
-
-    if (u->number == 1)
-        sprintf(buf, "%s is dead.", unitid(u));
-    else if (u->dead == u->number)
-        sprintf(buf, "%s is wiped out.", unitid(u));
-    else
-        sprintf(buf, "%s loses %d.", unitid(u), u->dead);
-    battlerecord(buf);
-}
-
 int norders;
 order *oa;
+
+int scramblecmp(const void *p1, const void *p2)
+{
+    return *((long *) p1) - *((long *) p2);
+}
+
+#define addptr(p,i) ((void *)(((char *)p) + i))
+
+void scramble(void *v1, int n, int width)
+{
+    int i;
+    void *v;
+
+    v = malloc(n * (width + 4));
+
+    for (i = 0; i != n; i++) {
+        *(long *) addptr(v, i * (width + 4)) = genrand_int32();
+        memcpy(addptr(v, i * (width + 4) + 4), addptr(v1, i * width),
+               width);
+    }
+
+    qsort(v, n, width + 4, scramblecmp);
+
+    for (i = 0; i != n; i++)
+        memcpy(addptr(v1, i * width), addptr(v, i * (width + 4) + 4),
+               width);
+
+    free(v);
+}
 
 void expandorders(region * r, order * orders)
 {
@@ -3729,590 +2836,6 @@ region *movewhere(region * r)
     return 0;
 }
 
-troop * get_troop(troop *ta, int ntroops, int side, int mask) {
-    int j;
-    do {
-        j = rnd() % ntroops;
-    } while (ta[j].status & mask || ta[j].side ==side);
-    return ta+j;
-}
-
-const char * getname(unit * u, const char *ord) {
-    const char *s2 = getstr();
-    int i;
-
-    if (!s2[0]) {
-        mistake(u->faction, ord, "No name given");
-        return 0;
-    }
-    
-    for (i = 0; s2[i]; i++) {
-        if (s2[i] == '(') {
-            mistake(u->faction, ord, "Names cannot contain parentheses");
-            return 0;
-        }
-    }
-    return s2;
-}
-
-void count_casualties(region *r, troop *ta, int ntroops, int *peasants) {
-    unit *u;
-    int i, deadpeasants = 0;
-    /* Count the casualties */
-    for (u = r->units; u; u = u->next) {
-        u->dead = 0;
-    }
-    for (i = 0; i != ntroops; i++) {
-        if (ta[i].unit) {
-            ta[i].unit->dead += ta[i].status;
-        } else {
-            deadpeasants += ta[i].status;
-        }
-    }
-    if (peasants) {
-        *peasants = deadpeasants;
-    }
-}
-void process_combat(void)
-{
-    faction **fa;
-    region *r;
-    int nfactions;
-    /* Combat */
-
-    puts("Processing ATTACK orders...");
-
-    nfactions = listlen(factions);
-    fa = (faction **)malloc(nfactions * sizeof(faction *));
-
-    for (r = regions; r; r = r->next) {
-        faction *f;
-        int i, fno;
-        
-        /* Create randomly sorted list of factions */
-
-        for (f = factions, i = 0; f; f = f->next, i++)
-            fa[i] = f;
-        scramble(fa, nfactions, sizeof(faction *));
-
-        /* Handle each faction's attack orders */
-
-        for (fno = 0; fno != nfactions; fno++) {
-            unit *u;
-
-            f = fa[fno];
-
-            for (u = r->units; u; u = u->next) {
-                if (u->faction == f) {
-                    ql_iter oli;
-                    for (oli = qli_init(u->orders); qli_more(oli);) {
-                        char *s = (char *)qli_next(&oli);
-                        if (igetkeyword(s) == K_ATTACK) {
-                            int leader[2];
-                            troop *t, *troops, **tp;
-                            int ntroops;
-                            int maxtactics[2];
-                            int winnercasualties = 0, deadpeasants = 0, lmoney = 0;
-                            int litems[MAXITEMS];
-                            int n, k, j;
-                            faction *f2;
-                            building *b;
-                            unit *u2, *u3, *u4;
-                            u2 = getunit(r, u);
-
-                            if (!u2 && !getunitpeasants) {
-                                mistakes(u, s, "Unit not found");
-                                continue;
-                            }
-
-                            if (u2 && u2->faction == f) {
-                                mistakes(u, s, "One of your units");
-                                continue;
-                            }
-
-                            if (isallied(u, u2)) {
-                                mistakes(u, s, "An allied unit");
-                                continue;
-                            }
-
-                            /* Draw up troops for the battle */
-
-                            for (b = r->buildings; b; b = b->next) {
-                                b->sizeleft = b->size;
-                            }
-
-                            troops = 0;
-                            tp = &troops;
-                            left[0] = left[1] = 0;
-                            infront[0] = infront[1] = 0;
-
-                            /* If peasants are defenders */
-
-                            if (!u2) {
-                                for (i = r->peasants; i; i--) {
-                                    t = (troop *)calloc(1, sizeof(troop));
-                                    addlist2(tp, t);
-                                }
-
-                                left[0] = r->peasants;
-                                infront[0] = r->peasants;
-                            }
-
-                            /* What units are involved? */
-
-                            for (f2 = factions; f2; f2 = f2->next) {
-                                f2->attacking = false;
-                            }
-                            for (u3 = r->units; u3; u3 = u3->next) {
-                                ql_iter oli;
-                                for (oli = qli_init(u3->orders); qli_more(oli);) {
-                                    char *s = (char *)qli_next(&oli);
-                                    if (igetkeyword(s) == K_ATTACK) {
-                                        u4 = getunit(r, u3);
-
-                                        if ((getunitpeasants && !u2) ||
-                                            (u4
-                                             && u4->faction == u2->faction
-                                             && !isallied(u3, u4))) {
-                                            u3->faction->attacking = true;
-                                            s[0] = 0;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                            for (u3 = r->units; u3; u3 = u3->next) {
-                                u3->side = -1;
-
-                                if (!u3->number)
-                                    continue;
-
-                                if (u3->faction->attacking) {
-                                    u3->side = 0;
-                                    tp = maketroops(tp, u3, r->terrain);
-                                } else if (isallied(u3, u2)) {
-                                    u3->side = 1;
-                                    tp = maketroops(tp, u3, r->terrain);
-                                }
-                            }
-
-                            *tp = 0;
-
-                            /* If only one side shows up, cancel */
-
-                            if (!left[0] || !left[1]) {
-                                freelist(troops);
-                                continue;
-                            }
-
-                            /* Set up array of troops */
-
-                            ntroops = listlen(troops);
-                            ta = (troop *)malloc(ntroops * sizeof(troop));
-                            for (t = troops, i = 0; t; t = t->next, i++)
-                                ta[i] = *t;
-                            freelist(troops);
-                            scramble(ta, ntroops, sizeof(troop));
-
-                            initial[0] = left[0];
-                            initial[1] = left[1];
-                            shields[0] = 0;
-                            shields[1] = 0;
-                            runeswords[0] = 0;
-                            runeswords[1] = 0;
-
-                            lmoney = 0;
-                            memset(litems, 0, sizeof litems);
-
-                            /* Initial attack message */
-
-                            for (f2 = factions; f2; f2 = f2->next) {
-                                if (ispresent(f2, r)) {
-                                    f2->thisbattle = create_battle(r);
-                                    ql_push(&f2->battles, f2->thisbattle);
-                                } else {
-                                    f2->thisbattle = 0;
-                                }
-                            }
-
-                            if (u2) {
-                                strcpy(buf2, unitid(u2));
-                            } else {
-                                strcpy(buf2, "the peasants");
-                            }
-                            for (f2 = factions; f2; f2 = f2->next) {
-                                if (f2->thisbattle) {
-                                    battle * b = f2->thisbattle;
-                                    sprintf(buf, "%s attacks %s in %s!", unitid(u),
-                                            buf2, regionid(r, f2));
-                                    ql_push(&b->events, _strdup(buf));
-                                }
-                            }
-
-                            /* List sides */
-                            battle_report_unit(u);
-
-                            for (u3 = r->units; u3; u3 = u3->next) {
-                                if (u3->side == 0 && u3 != u) {
-                                    battle_report_unit(u3);
-                                }
-                            }
-
-                            if (u2) {
-                                battle_report_unit(u2);
-                            } else {
-                                u3 = battle_create_unit(u->faction, 0, r->peasants,
-                                                        "Peasants", 0, 0, false);
-                                u3->side = 1;
-                                for (f2 = factions; f2; f2 = f2->next) {
-                                    if (f2->thisbattle) {
-                                        battle_add_unit(f2->thisbattle, u3);
-                                    }
-                                }
-                            }
-
-                            for (u3 = r->units; u3; u3 = u3->next) {
-                                if (u3->side == 1 && u3 != u2) {
-                                    battle_report_unit(u3);
-                                }
-                            }
-
-                            /* Does one side have an advantage in tactics? */
-
-                            maxtactics[0] = 0;
-                            maxtactics[1] = 0;
-
-                            for (i = 0; i != ntroops; i++) {
-                                if (ta[i].unit) {
-                                    j = effskill(ta[i].unit, SK_TACTICS);
-
-                                    if (maxtactics[ta[i].side] < j) {
-                                        leader[ta[i].side] = i;
-                                        maxtactics[ta[i].side] = j;
-                                    }
-                                }
-                            }
-                            attacker.side = -1;
-                            if (maxtactics[0] > maxtactics[1]) {
-                                attacker.side = 0;
-                            }
-                            else if (maxtactics[1] > maxtactics[0]) {
-                                attacker.side = 1;
-                            }
-
-                            /* Better leader gets free round of attacks */
-
-                            if (attacker.side >= 0) {
-                                /* Note the fact in the battle report */
-
-                                if (attacker.side) {
-                                    sprintf(buf,
-                                            "%s gets a free round of attacks!",
-                                            unitid(u));
-                                } else if (u2) {
-                                    sprintf(buf,
-                                            "%s gets a free round of attacks!",
-                                            unitid(u2));
-                                } else {
-                                    sprintf(buf,
-                                            "The peasants get a free round of attacks!");
-                                }
-                                battlerecord(buf);
-
-                                /* Number of troops to attack */
-
-                                toattack[attacker.side] = 0;
-
-                                for (i = 0; i != ntroops; i++) {
-                                    ta[i].attacked = 1;
-
-                                    if (ta[i].side == attacker.side) {
-                                        ta[i].attacked = 0;
-                                        toattack[attacker.side]++;
-                                    }
-                                }
-
-                                /* Do round of attacks */
-
-                                do {
-                                    doshot();
-                                } while (toattack[attacker.side]
-                                         && left[defender.side]);
-                            }
-
-                            /* Handle main body of battle */
-
-                            toattack[0] = 0;
-                            toattack[1] = 0;
-
-                            while (left[defender.side]) {
-                                /* End of a round */
-
-                                if (toattack[0] == 0 && toattack[1] == 0)
-                                    for (i = 0; i != ntroops; i++) {
-                                        ta[i].attacked = 1;
-
-                                        if (!ta[i].status) {
-                                            ta[i].attacked = 0;
-                                            toattack[ta[i].side]++;
-                                        }
-                                    }
-
-                                doshot();
-                            }
-
-                            /* Report on winner */
-
-                            if (attacker.side==0) {
-                                sprintf(buf, "%s wins the battle!",
-                                        unitid(u));
-                            } else if (u2) {
-                                sprintf(buf, "%s wins the battle!",
-                                        unitid(u2));
-                            } else {
-                                sprintf(buf,
-                                        "The peasants win the battle!");
-                            }
-                            battlerecord(buf);
-
-                            /* Has winner suffered any casualties? */
-
-                            winnercasualties = 0;
-
-                            for (i = 0; i != ntroops; i++) {
-                                if (ta[i].side == attacker.side
-                                    && ta[i].status) {
-                                    winnercasualties = 1;
-                                    break;
-                                }
-                            }
-                            /* Can wounded be healed? */
-
-                            n = 0;
-
-                            for (i = 0; i != ntroops &&
-                                 n != initial[attacker.side] -
-                                 left[attacker.side]; i++) {
-                                if (!ta[i].status && ta[i].canheal) {
-                                    int k = lovar(50 * (1 + ta[i].power));
-                                    k = MIN(k, initial[attacker.side] -
-                                            left[attacker.side] - n);
-                                    sprintf(buf, "%s heals %d wounded.",
-                                            unitid(ta[i].unit), k);
-                                    battlerecord(buf);
-
-                                    n += k;
-                                }
-                            }
-                            while (--n >= 0) {
-                                do {
-                                    i = rnd() % ntroops;
-                                } while (!ta[i].status
-                                         || ta[i].side != attacker.side);
-
-                                ta[i].status = 0;
-                            }
-
-                            count_casualties(r, ta, ntroops, &deadpeasants);
-                            /* Report the casualties */
-
-                            reportcasualtiesdh = 0;
-
-                            if (attacker.side) {
-                                reportcasualties(u);
-
-                                for (u3 = r->units; u3; u3 = u3->next) {
-                                    if (u3->side == 1 && u3 != u) {
-                                        reportcasualties(u3);
-                                    }
-                                }
-                            } else {
-                                if (u2) {
-                                    reportcasualties(u2);
-                                } else if (deadpeasants) {
-                                    battlerecord("");
-                                    reportcasualtiesdh = 1;
-                                    sprintf(buf, "The peasants lose %d.",
-                                            deadpeasants);
-                                    battlerecord(buf);
-                                }
-
-                                for (u3 = r->units; u3; u3 = u3->next) {
-                                    if (u3->side == 0 && u3 != u2) {
-                                        reportcasualties(u3);
-                                    }
-                                }
-                            }
-
-                            /* Dead peasants */
-
-                            k = r->peasants - deadpeasants;
-
-                            j = distribute(r->peasants, k, r->money);
-                            lmoney += r->money - j;
-                            r->money = j;
-
-                            r->peasants = k;
-
-                            /* Adjust units */
-
-                            for (u3 = r->units; u3; u3 = u3->next) {
-                                k = u3->number - u3->dead;
-
-                                /* Redistribute items and skills */
-
-                                if (u3->side == defender.side) {
-                                    j = distribute(u3->number, k,
-                                                   u3->money);
-                                    lmoney += u3->money - j;
-                                    u3->money = j;
-
-                                    for (i = 0; i != MAXITEMS; i++) {
-                                        j = distribute(u3->number, k,
-                                                       u3->items[i]);
-                                        litems[i] += u3->items[i] - j;
-                                        u3->items[i] = j;
-                                    }
-                                }
-
-                                for (i = 0; i != MAXSKILLS; i++) {
-                                    u3->skills[i] =
-                                      distribute(u3->number, k,
-                                                 u3->skills[i]);
-                                }
-                                /* Adjust unit numbers */
-
-                                u3->number = k;
-
-                                /* Need this flag cleared for reporting of loot */
-
-                                u3->n = 0;
-                            }
-
-                            /* Distribute loot */
-
-                            for (n = lmoney; n; n--) {
-                                troop *t = get_troop(ta, ntroops, defender.side, 0xFF);
-                                if (t->unit) {
-                                    t->unit->money++;
-                                    t->unit->n++;
-                                } else {
-                                    r->money++;
-                                }
-                            }
-
-                            for (i = 0; i != MAXITEMS; i++) {
-                                for (n = litems[i]; n; n--) {
-                                    if (i <= I_STONE || rnd() & 1) {
-                                        do {
-                                            j = rnd() % ntroops;
-                                        } while (ta[j].status || ta[j].side != attacker.side);
-
-                                        if (ta[j].unit) {
-                                            if (!ta[j].unit->litems) {
-                                                ta[j].unit->litems =
-                                                  (int *)calloc(MAXITEMS, sizeof(int));
-                                            }
-                                            ta[j].unit->items[i]++;
-                                            ta[j].unit->litems[i]++;
-                                        }
-                                    }
-                                }
-                            }
-                            /* Report loot */
-
-                            for (f2 = factions; f2; f2 = f2->next) {
-                                f2->dh = 0;
-                            }
-                            for (u3 = r->units; u3; u3 = u3->next) {
-                                if (u3->n || u3->litems) {
-                                    int dh = 0;
-
-                                    sprintf(buf, "%s finds ", unitid(u3));
-
-                                    if (u3->n) {
-                                        scat("$");
-                                        icat(u3->n);
-                                        dh = 1;
-                                    }
-
-                                    if (u3->litems) {
-                                        for (i = 0; i != MAXITEMS; i++) {
-                                            if (u3->litems[i]) {
-                                                if (dh) {
-                                                    scat(", ");
-                                                }
-                                                dh = 1;
-
-                                                icat(u3->litems[i]);
-                                                scat(" ");
-
-                                                if (u3->litems[i] == 1) {
-                                                    scat(itemnames[0][i]);
-                                                } else {
-                                                    scat(itemnames[1][i]);
-                                                }
-                                            }
-                                        }
-                                        free(u3->litems);
-                                        u3->litems = 0;
-                                    }
-
-                                    if (!u3->faction->dh) {
-                                        addbattle(u3->faction->thisbattle, "");
-                                        u3->faction->dh = 1;
-                                    }
-
-                                    scat(".");
-                                    addbattle(u3->faction->thisbattle, buf);
-                                }
-                            }
-
-                            /* Does winner get combat experience? */
-                            if (winnercasualties) {
-                                if (maxtactics[attacker.side] &&
-                                    !ta[leader[attacker.side]].status) {
-                                    ta[leader[attacker.side]].
-                                      unit->skills[SK_TACTICS] +=
-                                      COMBATEXP;
-                                }
-                                for (i = 0; i != ntroops; i++) {
-                                    if (ta[i].unit &&
-                                        !ta[i].status &&
-                                        ta[i].side == attacker.side) {
-                                        switch (ta[i].weapon) {
-                                        case I_SWORD:
-                                            ta[i].unit->skills[SK_SWORD] +=
-                                                COMBATEXP;
-                                            break;
-
-                                        case I_CROSSBOW:
-                                            ta[i].unit->
-                                                skills[SK_CROSSBOW] +=
-                                                COMBATEXP;
-                                            break;
-
-                                        case I_LONGBOW:
-                                            ta[i].unit->
-                                                skills[SK_LONGBOW] +=
-                                                COMBATEXP;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-
-                            free(ta);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    free(fa);
-}
-
 void process_form(unit *u, region *r) {
     ql_iter oli;
     for (oli = qli_init(u->orders); qli_more(oli); ) {
@@ -4325,9 +2848,9 @@ void process_form(unit *u, region *r) {
             u2 = create_unit(u->faction, 0);
             region_addunit(r, u2);
 
-            u2->alias = geti();
+            u2->alias = atoi(getstr());
             if (u2->alias == 0)
-                u2->alias = geti();
+                u2->alias = atoi(getstr());
 
             u2->building = u->building;
             u2->ship = u->ship;
@@ -4349,6 +2872,41 @@ void process_form(unit *u, region *r) {
             qli_next(&oli);
         }
     }
+}
+
+static const char * getname(unit * u, const char *ord) {
+    const char *s2 = getstr();
+    int i;
+
+    if (!s2[0]) {
+        mistake(u->faction, ord, "No name given");
+        return 0;
+    }
+    
+    for (i = 0; s2[i]; i++) {
+        if (s2[i] == '(') {
+            mistake(u->faction, ord, "Names cannot contain parentheses");
+            return 0;
+        }
+    }
+    return s2;
+}
+
+int getseen(const region *r, const faction *f, unit **uptr) {
+    unit *u = 0;
+    int j = getunit(r, f, &u);
+    if (u && !cansee(f, r, u)) {
+        j = U_NOTFOUND;
+        u = 0;
+    }
+    *uptr = u;
+    return j;
+}
+
+int lovar(int n)
+{
+    n /= 2;
+    return (genrand_int32() % n + 1) + (genrand_int32() % n + 1);
 }
 
 void processorders(void)
@@ -4431,7 +2989,7 @@ void processorders(void)
                     if (f == u->faction)
                         break;
 
-                    if (geti()) {
+                    if (atoi(getstr())>0) {
                         ql_set_insert(&u->faction->allies.factions, f);
                     } else {
                         ql_set_remove(&u->faction->allies.factions, f);
@@ -4439,7 +2997,7 @@ void processorders(void)
                     break;
 
                 case K_BEHIND:
-                    u->behind = geti() != 0;
+                    u->behind = atoi(getstr()) != 0;
                     break;
 
                 case K_COMBAT:
@@ -4519,7 +3077,7 @@ void processorders(void)
                     break;
 
                 case K_GUARD:
-                    if (geti() == 0)
+                    if (atoi(getstr()) == 0)
                         u->guard = false;
                     break;
 
@@ -4616,6 +3174,7 @@ void processorders(void)
             ql_iter oli;
             for (oli = qli_init(u->orders); qli_more(oli); ) {
                 const char *s = (const char *)qli_next(&oli);
+
                 switch (igetkeyword(s)) {
                 case K_BOARD:
                     sh = getship(r);
@@ -4667,21 +3226,18 @@ void processorders(void)
                     break;
 
                 case K_PROMOTE:
-                    u2 = getunit(r, u);
-
-                    if (!u2) {
-                        mistakes(u, s, "Unit not found");
-                        break;
-                    }
-
                     if (!u->building && !u->ship) {
-                        mistakes(u, s,
-                                 "No building or ship to transfer ownership of");
+                        mistakes(u, s, "No building or ship to transfer ownership of");
                         break;
                     }
 
                     if (!u->owner) {
                         mistakes(u, s, "Not owned by you");
+                        break;
+                    }
+
+                    if (getseen(r, u->faction, &u2)!=U_UNIT) {
+                        mistakes(u, s, "Unit not found");
                         break;
                     }
 
@@ -4724,6 +3280,7 @@ void processorders(void)
 
             for (oli = qli_init(u->orders); qli_more(oli); ) {
                 const char *s = (const char *)qli_next(&oli);
+                int i, j, sp;
                 switch (igetkeyword(s)) {
                 case K_DEMOLISH:
                     if (!u->building) {
@@ -4752,53 +3309,51 @@ void processorders(void)
                     break;
 
                 case K_GIVE:
-                    u2 = getunit(r, u);
+                    j = getseen(r, u->faction, &u2);
 
-                    if (!u2 && !getunit0) {
+                    if (j!=U_UNIT && j!=U_NONE)  {
                         mistakes(u, s, "Unit not found");
                         break;
                     }
 
-                    if (u2 && !accepts(u2, u)) {
+                    if (j==U_UNIT && !accepts(u2, u)) {
                         mistakes(u, s, "Unit does not accept your gift");
                         break;
                     }
 
                     s = getstr();
-                    i = findspell(s);
+                    sp = findspell(s);
 
-                    if (i >= 0) {
-                        if (!u2) {
+                    if (sp >= 0) {
+                        if (j!=U_UNIT) {
                             mistakes(u, s, "Unit not found");
                             break;
                         }
 
-                        if (!u->spells[i]) {
+                        if (!u->spells[sp]) {
                             mistakes(u, s, "Spell not found");
                             break;
                         }
 
-                        if (spelllevel[i] >
-                            (effskill(u2, SK_MAGIC) + 1) / 2) {
-                            mistakes(u, s,
-                                     "Recipient is not able to learn that spell");
+                        if (spelllevel[sp] > (effskill(u2, SK_MAGIC) + 1) / 2) {
+                            mistakes(u, s, "Recipient is not able to learn that spell");
                             break;
                         }
 
-                        u2->spells[i] = 1;
+                        u2->spells[sp] = 1;
 
                         sprintf(buf, "%s gives ", unitid(u));
                         scat(unitid(u2));
                         scat(" the ");
-                        scat(spellnames[i]);
+                        scat(spellnames[sp]);
                         scat(" spell.");
                         addevent(u->faction, buf);
                         if (u->faction != u2->faction)
                             addevent(u2->faction, buf);
 
-                        if (!u2->faction->seendata[i]) {
-                            u2->faction->seendata[i] = true;
-                            u2->faction->showdata[i] = true;
+                        if (!u2->faction->seendata[sp]) {
+                            u2->faction->seendata[sp] = true;
+                            u2->faction->showdata[sp] = true;
                         }
                     } else {
                         n = atoip(s);
@@ -4819,13 +3374,13 @@ void processorders(void)
 
                         u->items[i] -= n;
 
-                        if (!u2) {
+                        if (j!=U_UNIT) {
                             if (n == 1)
                                 sprintf(buf, "%s discards 1 %s.",
-                                        unitid(u), itemnames[0][i]);
+                                        unitid(u), itemnames[i][0]);
                             else
                                 sprintf(buf, "%s discards %d %s.",
-                                        unitid(u), n, itemnames[1][i]);
+                                        unitid(u), n, itemnames[i][1]);
                             addevent(u->faction, buf);
                             break;
                         }
@@ -4837,34 +3392,35 @@ void processorders(void)
                         scat(" ");
                         if (n == 1) {
                             scat("1 ");
-                            scat(itemnames[0][i]);
+                            scat(itemnames[i][0]);
                         } else {
                             icat(n);
                             scat(" ");
-                            scat(itemnames[1][i]);
+                            scat(itemnames[i][1]);
                         }
                         scat(".");
                         addevent(u->faction, buf);
-                        if (u->faction != u2->faction)
+                        if (u->faction != u2->faction) {
                             addevent(u2->faction, buf);
+                        }
                     }
 
                     break;
 
                 case K_PAY:
-                    u2 = getunit(r, u);
+                    j = getseen(r, u->faction, &u2);
 
-                    if (!u2 && !getunit0 && !getunitpeasants) {
+                    if (j==U_NOTFOUND) {
                         mistakes(u, s, "Unit not found");
                         break;
                     }
 
-                    n = geti();
+                    n = atoi(getstr());
 
-                    if (n > u->money)
+                    if (n > u->money) {
                         n = u->money;
-
-                    if (n == 0) {
+                    }
+                    if (n <= 0) {
                         mistakes(u, s, "No money available");
                         break;
                     }
@@ -4881,14 +3437,14 @@ void processorders(void)
                         scat(".");
                         if (u->faction != u2->faction)
                             addevent(u2->faction, buf);
-                    } else if (getunitpeasants) {
+                    } else if (j==U_PEASANTS) {
                         r->money += n;
 
                         sprintf(buf, "%s pays the peasants $%d.",
                                 unitid(u), n);
-                    } else
+                    } else {
                         sprintf(buf, "%s discards $%d.", unitid(u), n);
-
+                    }
                     addevent(u->faction, buf);
                     break;
 
@@ -4924,33 +3480,34 @@ void processorders(void)
                 }
             }
         }
-        /* TRANSFER orders */
 
+        /* TRANSFER orders */
         for (u = r->units; u; u = u->next) {
             ql_iter oli;
             for (oli = qli_init(u->orders); qli_more(oli); ) {
                 const char *s = (const char *)qli_next(&oli);
+                int j;
+
                 switch (igetkeyword(s)) {
                 case K_TRANSFER:
-                    u2 = getunit(r, u);
+                    j = getseen(r, u->faction, &u2);
 
                     if (u2) {
                         if (!accepts(u2, u)) {
-                            mistakes(u, s,
-                                     "Unit does not accept your gift");
+                            mistakes(u, s, "Unit does not accept your gift");
                             break;
                         }
-                    } else if (!getunitpeasants) {
+                    } else if (j==U_PEASANTS) {
                         mistakes(u, s, "Unit not found");
                         break;
                     }
 
-                    n = atoip(getstr());
+                    n = atoi(getstr());
 
                     if (n > u->number)
                         n = u->number;
 
-                    if (n == 0) {
+                    if (n <= 0) {
                         mistakes(u, s, "No people available");
                         break;
                     }
@@ -5098,18 +3655,19 @@ void processorders(void)
                 const char *s = (const char *)qli_next(&oli);
                 switch (igetkeyword(s)) {
                 case K_GUARD:
-                    if (geti())
+                    if (atoi(getstr())) {
                         u->guard = true;
+                    }
                     break;
 
                 case K_RECRUIT:
                     if (availmoney < RECRUITCOST)
                         break;
 
-                    n = geti();
+                    n = atoi(getstr());
+                    if (n<=0) break;
 
-                    if (u->skills[SK_MAGIC]
-                        && magicians(u->faction) + n > 3) {
+                    if (u->skills[SK_MAGIC] && magicians(u->faction) + n > 3) {
                         mistakes(u, s, "Only 3 magicians per faction");
                         break;
                     }
@@ -5161,7 +3719,7 @@ void processorders(void)
                 const char *s = (const char *)qli_next(&oli);
                 switch (igetkeyword(s)) {
                 case K_QUIT:
-                    if (geti() != u->faction->no) {
+                    if (atoi(getstr()) != u->faction->no) {
                         mistakes(u, s, "Correct faction number not given");
                         break;
                     }
@@ -5523,10 +4081,10 @@ void processorders(void)
 
                     if (n == 1)
                         sprintf(buf, "%s produces 1 %s.", unitid(u),
-                                itemnames[0][i]);
+                                itemnames[i][0]);
                     else
                         sprintf(buf, "%s produces %d %s.", unitid(u), n,
-                                itemnames[1][i]);
+                                itemnames[i][1]);
                     addevent(u->faction, buf);
                 }
 
@@ -5539,17 +4097,16 @@ void processorders(void)
                     break;
                 }
 
-                i = geti();
+                i = atoi(getstr());
 
                 if (i > effskill(u, SK_MAGIC) / 2) {
-                    mistakeu(u,
-                             "Insufficient Magic skill - highest available level researched");
+                    mistakeu(u, "Insufficient Magic skill - highest available level researched");
                     i = 0;
                 }
 
-                if (i == 0)
+                if (i <= 0) {
                     i = effskill(u, SK_MAGIC) / 2;
-
+                }
                 k = 0;
 
                 for (j = 0; j != MAXSPELLS; j++)
@@ -5608,12 +4165,10 @@ void processorders(void)
             case K_TEACH:
                 teaching = u->number * 30 * TEACHNUMBER;
                 m = 0;
-
-                do
-                    uv[m++] = getunit(r, u);
-                while (!getunit0 && m != 100);
-
-                m--;
+                do {
+                    j = getseen(r, u->faction, uv+m);
+                } while (++m != 100 && j!=U_NONE);
+                --m;
 
                 for (j = 0; j != m; j++) {
                     u2 = uv[j];
@@ -5732,10 +4287,10 @@ void processorders(void)
                 if (u->n >= 0) {
                     if (u->n == 1)
                         sprintf(buf, "%s produces 1 %s.", unitid(u),
-                                itemnames[0][i]);
+                                itemnames[i][0]);
                     else
                         sprintf(buf, "%s produces %d %s.", unitid(u), u->n,
-                                itemnames[1][i]);
+                                itemnames[i][1]);
                     addevent(u->faction, buf);
                 }
         }
@@ -5870,7 +4425,7 @@ void processorders(void)
                         break;
 
                     case SP_TELEPORT:
-                        u2 = getunitg(r, u);
+                        u2 = getunitg(r, u->faction);
 
                         if (!u2) {
                             mistakeu(u, "Unit not found");
@@ -5901,24 +4456,21 @@ void processorders(void)
                         n *= 10000;
 
                         for (;;) {
-                            u3 = getunit(r, u);
-
-                            if (getunit0)
-                                break;
-
+                            j = getseen(r, u->faction, &u3);
                             if (!u3) {
                                 mistakeu(u, "Unit not found");
                                 continue;
                             }
+                            if (j!=U_UNIT) {
+                                break;
+                            }
 
                             if (!accepts(u3, u)) {
-                                mistakeu(u,
-                                         "Unit does not accept teleportation");
+                                mistakeu(u, "Unit does not accept teleportation");
                                 continue;
                             }
 
-                            i = itemweight(u3) + horseweight(u3) +
-                                (u->number * 10);
+                            i = itemweight(u3) + horseweight(u3) + (u->number * 10);
 
                             if (i > n) {
                                 mistakeu(u, "Unit too heavy");
@@ -6019,6 +4571,7 @@ void rstrlist(storage * store, strlist ** SP)
     store->api->r_int(store->handle, &n);
 
     while (--n >= 0) {
+        char buf[1023];
         if (store->api->r_str(store->handle, buf, sizeof(buf))==0) {
             S = makestrlist(buf);
             addlist2(SP, S);
@@ -6068,6 +4621,7 @@ int readgame(void)
     while (--n >= 0) {
         int no;
         strlist * junk;
+        char buf[NAMESIZE];
 
         store.api->r_int(store.handle, &no);
         f = create_faction(no);
@@ -6121,23 +4675,16 @@ int readgame(void)
     while (--n >= 0) {
         int x, y, n;
         char name[DISPLAYSIZE];
-        region dummy;
 
         store.api->r_int(store.handle, &x);
         store.api->r_int(store.handle, &y);
         store.api->r_int(store.handle, &n);
-        if (world.width && world.height && (x<world.left || y<world.top
-           || x>=world.left+world.width || y>=world.top+world.height)) {
-            r = &dummy;
-            memset(r, 0, sizeof(region));
-        } else {
-            r = create_region(x, y, (terrain_t)n);
-            minx = MIN(minx, r->x);
-            maxx = MAX(maxx, r->x);
-            miny = MIN(miny, r->y);
-            maxy = MAX(maxy, r->y);
-            addlist2(rp, r);
-        }
+        r = create_region(x, y, (terrain_t)n);
+        minx = MIN(minx, r->x);
+        maxx = MAX(maxx, r->x);
+        miny = MIN(miny, r->y);
+        maxy = MAX(maxy, r->y);
+        addlist2(rp, r);
         if (store.api->r_str(store.handle, name, sizeof(name))==0) {
             region_setname(r, name[0] ? name : 0);
         }
@@ -6312,23 +4859,6 @@ void freestrlist(strlist ** slist) {
     }
 }
 
-void cleargame(void)
-{
-    memset(&world, 0, sizeof(world));
-    while (regions) {
-        region * r = regions;
-        regions = r->next;
-        free_region(r);
-    }
-
-    while (factions) {
-        faction * f = factions;
-        factions = f->next;
-
-        free_faction(f);
-    }
-}
-
 int writegame(void)
 {
     storage store;
@@ -6458,6 +4988,7 @@ void initgame(void)
 void createcontinent(void)
 {
     int x, y;
+    char buf[16];
 
     printf("X? ");
     fgets(buf, sizeof(buf), stdin);

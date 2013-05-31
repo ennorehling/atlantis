@@ -14,8 +14,8 @@ ADD_EXECUTABLE (test_rtl rtl.c rtl.h rtl.test.c)
 TARGET_LINK_LIBRARIES (test_rtl ${CUTEST_LIBRARIES})
 ADD_TEST (rtl test_rtl)
 
-FILE (GLOB LIB_HDR rtl.h rtl.c bool.h atlantis.h json.h battle.h building.h ship.h unit.h region.h faction.h keywords.h settings.h skills.h)
-FILE (GLOB LIB_SRC atlantis.c json.c battle.c building.c ship.c unit.c region.c faction.c)
+FILE (GLOB LIB_HDR rtl.h rtl.c bool.h atlantis.h report.h parser.h game.h combat.h json.h battle.h building.h ship.h unit.h region.h faction.h keywords.h settings.h skills.h items.h)
+FILE (GLOB LIB_SRC atlantis.c report.c parser.c game.c combat.c json.c battle.c building.c ship.c unit.c region.c faction.c)
 
 ADD_LIBRARY (atlantis ${LIB_SRC} ${LIB_HDR})
 
