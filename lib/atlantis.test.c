@@ -218,6 +218,7 @@ static void test_form(CuTest * tc)
     u = r->units->next;
     CuAssertIntEquals(tc, 1, ql_length(u->orders));
     CuAssertIntEquals(tc, 42, u->alias);
+    CuAssertTrue(tc, u->no>0);
 }
 
 static void test_orders(CuTest * tc)

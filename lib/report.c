@@ -7,6 +7,8 @@
 #include "building.h"
 #include "unit.h"
 
+#include "rtl.h"
+
 #include <quicklist.h>
 
 #include <assert.h>
