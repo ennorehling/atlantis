@@ -1927,7 +1927,7 @@ NEXTPLAYER:
             }
             if (!faction_checkpassword(f, passwd)) {
                 sprintf(buf2, "Invalid password '%s'.", passwd);
-                addstrlist(&f->mistakes, buf2);
+                ql_push(&f->mistakes, _strdup(buf2));
             } else {
                 f->lastorders = turn;
                 for (r = regions; r; r = r->next)
@@ -2301,6 +2301,19 @@ void centrestrlist(FILE * F, const char *s, strlist * S)
     }
 }
 
+void centreqstrlist(FILE * F, const char *s, quicklist *ql)
+{
+    strlist *S = 0;
+    ql_iter qli;
+
+    for (qli = qli_init(ql);qli_more(qli);) {
+        const char * str = (const char *)qli_next(&qli);
+        sparagraph(&S, str, 0, 0);
+    }
+    centrestrlist(F, s, S);
+    freestrlist(&S);
+}
+
 void rparagraph(FILE * F, char const *s, int indent, int mark)
 {
     strlist *S;
@@ -2351,7 +2364,7 @@ void report(faction * f)
     centre(F, factionid(f));
     centre(F, gamedate());
 
-    centrestrlist(F, "Mistakes", f->mistakes);
+    centreqstrlist(F, "Mistakes", f->mistakes);
     centrestrlist(F, "Messages", f->messages);
 
     if (f->battles || f->events) {
@@ -4563,6 +4576,20 @@ void processorders(void)
     }
 }
 
+void rqstrlist(storage * store, quicklist ** qlp)
+{
+    int n;
+
+    store->api->r_int(store->handle, &n);
+
+    while (--n >= 0) {
+        char buf[1023];
+        if (store->api->r_str(store->handle, buf, sizeof(buf))==0) {
+            ql_push(qlp, _strdup(buf));
+        }
+    }
+}
+
 void rstrlist(storage * store, strlist ** SP)
 {
     int n;
@@ -4655,7 +4682,7 @@ int readgame(void)
             f->allies.fnos = 0;
         }
 
-        rstrlist(&store, &f->mistakes);
+        rqstrlist(&store, &f->mistakes);
         rstrlist(&store, &f->messages);
         rstrlist(&store, &junk);
         rstrlist(&store, &f->events);
@@ -4851,6 +4878,17 @@ void wstrlist(storage * store, strlist * S)
     }
 }
 
+void wqstrlist(storage * store, quicklist * ql)
+{
+    ql_iter qli;
+    store->api->w_int(store->handle, ql_length(ql));
+
+    for (qli = qli_init(ql); qli_more(qli);) {
+        const char * str = (const char *)qli_next(&qli);
+        store->api->w_str(store->handle, str);
+    }
+}
+
 void freestrlist(strlist ** slist) {
     while (*slist) {
         strlist * sl = *slist;
@@ -4902,7 +4940,7 @@ int writegame(void)
             store.api->w_int(store.handle, rf->no);
         }
 
-        wstrlist(&store, f->mistakes);
+        wqstrlist(&store, f->mistakes);
         wstrlist(&store, f->messages);
         wstrlist(&store, 0);
         wstrlist(&store, f->events);

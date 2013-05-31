@@ -51,7 +51,8 @@ void free_faction(faction *f) {
     ql_free(f->battles);
     freestrlist(&f->events);
     freestrlist(&f->messages);
-    freestrlist(&f->mistakes);
+    ql_foreach(f->mistakes, free);
+    ql_free(f->mistakes);
 
     ql_free(f->allies.factions);
     ql_foreach(f->accept, free);

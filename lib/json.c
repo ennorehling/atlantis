@@ -249,7 +249,7 @@ cJSON * json_report(const faction * f) {
     }
     
     if (f->mistakes) {
-        cJSON_AddItemToObject(json, "mistakes", show_strlist(f->mistakes));
+        cJSON_AddItemToObject(json, "mistakes", show_qstrlist(f->mistakes));
     }
     if (f->messages) {
         cJSON_AddItemToObject(json, "messages", show_strlist(f->messages));

@@ -2,6 +2,8 @@
 #include "region.h"
 #include "faction.h"
 
+#include <string.h>
+
 void cleargame(void)
 {
     memset(&config, 0, sizeof(config));

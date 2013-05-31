@@ -7,6 +7,8 @@
 #include "building.h"
 #include "unit.h"
 
+#include <quicklist.h>
+
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -80,7 +82,7 @@ void mistake(faction * f, const char *s, const char *comment)
     static char buf[512];
 
     sprintf(buf, "%s: %s.", s, comment);
-    sparagraph(&f->mistakes, buf, 0, 0);
+    ql_push(&f->mistakes, _strdup(buf));
 }
 
 void mistakes(unit * u, const char *str, const char *comment)
@@ -88,7 +90,7 @@ void mistakes(unit * u, const char *str, const char *comment)
     static char buf[512];
 
     sprintf(buf, "%s: %s - %s.", unitid(u), str, comment);
-    sparagraph(&u->faction->mistakes, buf, 0, 0);
+    ql_push(&u->faction->mistakes, _strdup(buf));
 }
 
 void mistakeu(unit * u, const char *comment)
