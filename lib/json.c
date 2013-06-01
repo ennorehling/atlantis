@@ -252,7 +252,7 @@ cJSON * json_report(const faction * f) {
         cJSON_AddItemToObject(json, "mistakes", show_qstrlist(f->mistakes));
     }
     if (f->messages) {
-        cJSON_AddItemToObject(json, "messages", show_strlist(f->messages));
+        cJSON_AddItemToObject(json, "messages", show_qstrlist(f->messages));
     }
     if (f->battles) {
         ql_iter bli;
@@ -278,7 +278,7 @@ cJSON * json_report(const faction * f) {
         }
     }
     if (f->events) {
-        cJSON_AddItemToObject(json, "events", show_strlist(f->events));
+        cJSON_AddItemToObject(json, "events", show_qstrlist(f->events));
     }
     /* spells */
     if (f->allies.factions) {
