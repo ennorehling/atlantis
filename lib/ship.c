@@ -13,10 +13,12 @@ const char *shiptypenames[] = {
 
 ship *create_ship(int no, ship_t type) {
     ship *s = (ship *)calloc(1, sizeof(ship));
-    assert(no);
-    s->type = type;
-    s->left = 0;
-    s->no = no;
+    if (s) {
+        assert(no);
+        s->type = type;
+        s->left = 0;
+        s->no = no;
+    }
     return s;
 }
 

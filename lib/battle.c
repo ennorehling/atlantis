@@ -7,7 +7,9 @@
 
 battle *create_battle(struct region *r) {
     battle * b = (battle *)calloc(1, sizeof(battle));
-    b->region = r;
+    if (b) {
+        b->region = r;
+    }
     return b;
 }
 

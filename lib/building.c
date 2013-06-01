@@ -14,7 +14,9 @@ const char *buildingtypenames[] = {
 building *create_building(int no) {
     building *b = (building *)calloc(1, sizeof(building));
     assert(no);
-    b->no = no;
+    if (b) {
+        b->no = no;
+    }
     return b;
 }
 

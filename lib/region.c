@@ -15,13 +15,15 @@ region * create_region(int x, int y, terrain_t t)
     region * r;
 
     r = (region *)malloc(sizeof(region));
-    memset(r, 0, sizeof(region));
+    if (r) {
+        memset(r, 0, sizeof(region));
 
-    r->x = x;
-    r->y = y;
-    r->terrain = t;
+        r->x = x;
+        r->y = y;
+        r->terrain = t;
 
-    addlist(&regions, r);
+        addlist(&regions, r);
+    }
     return r;
 }
 

@@ -25,11 +25,13 @@ faction *factions;
 faction * create_faction(int no)
 {
     faction * f = (faction *)calloc(1, sizeof(faction));
-    faction **iter;
+    if (f) {
+        faction **iter;
 
-    f->no = no;
-    for (iter=&factions; *iter; iter=&(*iter)->next);
-    *iter = f;
+        f->no = no;
+        for (iter=&factions; *iter; iter=&(*iter)->next);
+        *iter = f;
+    }
     return f;
 }
 

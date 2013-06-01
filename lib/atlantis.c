@@ -847,8 +847,10 @@ strlist *makestrlist(char *s)
     strlist *S;
 
     S = (strlist *)malloc(sizeof(strlist) + strlen(s));
-    S->next = 0;
-    strcpy(S->s, s);
+    if (S) {
+        S->next = 0;
+        strcpy(S->s, s);
+    }
     return S;
 }
 
@@ -1467,7 +1469,7 @@ void sparagraph(strlist ** SP, const char *s, int indent, int mark)
         for (j = 0; j != indent; j++)
             buf[j] = ' ';
 
-        if (firstline && mark)
+        if (firstline && mark && indent > 2)
             buf[indent - 2] = (char) mark;
 
         for (j = 0; j != i - 1; j++)
@@ -2622,20 +2624,21 @@ void scramble(void *v1, int n, int width)
     void *v;
 
     v = malloc(n * (width + 4));
+    if (v) {
+        for (i = 0; i != n; i++) {
+            *(long *) addptr(v, i * (width + 4)) = genrand_int32();
+            memcpy(addptr(v, i * (width + 4) + 4), addptr(v1, i * width),
+                   width);
+        }
 
-    for (i = 0; i != n; i++) {
-        *(long *) addptr(v, i * (width + 4)) = genrand_int32();
-        memcpy(addptr(v, i * (width + 4) + 4), addptr(v1, i * width),
-               width);
+        qsort(v, n, width + 4, scramblecmp);
+
+        for (i = 0; i != n; i++)
+            memcpy(addptr(v1, i * width), addptr(v, i * (width + 4) + 4),
+                   width);
+
+        free(v);
     }
-
-    qsort(v, n, width + 4, scramblecmp);
-
-    for (i = 0; i != n; i++)
-        memcpy(addptr(v1, i * width), addptr(v, i * (width + 4) + 4),
-               width);
-
-    free(v);
 }
 
 void expandorders(region * r, order * orders)
@@ -2653,19 +2656,20 @@ void expandorders(region * r, order * orders)
         norders += o->qty;
 
     oa = (order *)malloc(norders * sizeof(order));
+    if (oa) {
+        i = 0;
 
-    i = 0;
+        for (o = orders; o; o = o->next)
+            for (j = o->qty; j; j--) {
+                oa[i].unit = o->unit;
+                oa[i].unit->n = 0;
+                i++;
+            }
 
-    for (o = orders; o; o = o->next)
-        for (j = o->qty; j; j--) {
-            oa[i].unit = o->unit;
-            oa[i].unit->n = 0;
-            i++;
-        }
+        freelist(orders);
 
-    freelist(orders);
-
-    scramble(oa, norders, sizeof(order));
+        scramble(oa, norders, sizeof(order));
+    }
 }
 
 void removenullfactions(void)
@@ -3710,8 +3714,6 @@ void processorders(void)
             oa[i].unit->n++;
         }
 
-        free(oa);
-
         for (u = r->units; u; u = u->next) {
             if (u->n >= 0) {
                 sprintf(buf, "%s recruits %d.", unitid(u), u->n);
@@ -3939,32 +3941,35 @@ void processorders(void)
 
                     if (!b) {
                         b = (building *)malloc(sizeof(building));
-                        memset(b, 0, sizeof(building));
+                        if (b) {
+                            memset(b, 0, sizeof(building));
 
-                        do {
-                            b->no++;
-                            sprintf(buf2, "Building %d", b->no);
-                            building_setname(b, buf2);
+                            do {
+                                b->no++;
+                                sprintf(buf2, "Building %d", b->no);
+                                building_setname(b, buf2);
+                            }
+                            while (findbuilding(b->no));
+
+                            addlist(&r->buildings, b);
                         }
-                        while (findbuilding(b->no));
-
-                        addlist(&r->buildings, b);
-
                         leave(r, u);
                         u->building = b;
                         u->owner = 1;
                     }
 
-                    n = u->number * effskill(u, SK_BUILDING);
-                    n = MIN(n, u->items[I_STONE]);
-                    b->size += n;
-                    u->items[I_STONE] -= n;
+                    if (b) {
+                        n = u->number * effskill(u, SK_BUILDING);
+                        n = MIN(n, u->items[I_STONE]);
+                        b->size += n;
+                        u->items[I_STONE] -= n;
 
-                    u->skills[SK_BUILDING] += n * 10;
+                        u->skills[SK_BUILDING] += n * 10;
 
-                    sprintf(buf, "%s adds %d to %s.", unitid(u), n,
-                            buildingid(b));
-                    addevent(u->faction, buf);
+                        sprintf(buf, "%s adds %d to %s.", unitid(u), n,
+                                buildingid(b));
+                        addevent(u->faction, buf);
+                    }
                     break;
 
                 case K_SHIP:

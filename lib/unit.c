@@ -13,10 +13,12 @@ unit * create_unit(struct faction *f, int no)
     char name[NAMESIZE];
     unit * self = (unit *)calloc(1, sizeof(unit));
 
-    self->faction = f;
-    self->no = no;
-    sprintf(name, "Unit %d", no);
-    unit_setname(self, name);
+    if (self) {
+        self->faction = f;
+        self->no = no;
+        sprintf(name, "Unit %d", no);
+        unit_setname(self, name);
+    }
     return self;
 }
 

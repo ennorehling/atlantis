@@ -579,522 +579,523 @@ void process_combat(void)
     for (f=factions;f;f=f->next) ++nfactions;
     fa = (faction **)malloc(nfactions * sizeof(faction *));
 
-    for (r = regions; r; r = r->next) {
-        int i, fno;
+    if (fa && factions) {
+        for (r = regions; r; r = r->next) {
+            int i, fno;
         
-        /* Create randomly sorted list of factions */
-        fa[0] = factions;
-        for (f = factions->next, i = 1; f; ++i, f = f->next) {
-            int j = genrand_int31() % i;
-            fa[i] = fa[j];
-            fa[j] = f;
-        }
+            /* Create randomly sorted list of factions */
+            fa[0] = factions;
+            for (f = factions->next, i = 1; f; ++i, f = f->next) {
+                int j = genrand_int31() % i;
+                fa[i] = fa[j];
+                fa[j] = f;
+            }
 
-        /* Handle each faction's attack orders */
+            /* Handle each faction's attack orders */
 
-        for (fno = 0; fno != nfactions; fno++) {
-            unit *u;
+            for (fno = 0; fno != nfactions; fno++) {
+                unit *u;
 
-            f = fa[fno];
+                f = fa[fno];
 
-            for (u = r->units; u; u = u->next) {
-                if (u->faction == f) {
-                    ql_iter oli;
-                    for (oli = qli_init(u->orders); qli_more(oli);) {
-                        char *s = (char *)qli_next(&oli);
-                        if (igetkeyword(s) == K_ATTACK) {
-                            int leader[2];
-                            troop *t;
-                            quicklist *troops = 0;
-                            int maxtactics[2];
-                            int winnercasualties = 0, deadpeasants = 0, lmoney = 0;
-                            int litems[MAXITEMS];
-                            int n, k, j;
-                            faction *f2;
-                            building *b;
-                            unit *u2, *u3, *u4;
+                for (u = r->units; u; u = u->next) {
+                    if (u->faction == f) {
+                        ql_iter oli;
+                        for (oli = qli_init(u->orders); qli_more(oli);) {
+                            char *s = (char *)qli_next(&oli);
+                            if (igetkeyword(s) == K_ATTACK) {
+                                int leader[2];
+                                troop *t;
+                                quicklist *troops = 0;
+                                int maxtactics[2];
+                                int winnercasualties = 0, deadpeasants = 0, lmoney = 0;
+                                int litems[MAXITEMS];
+                                int n, k, j;
+                                faction *f2;
+                                building *b;
+                                unit *u2, *u3, *u4;
                             
-                            j = getseen(r, u->faction, &u2);
+                                j = getseen(r, u->faction, &u2);
 
-                            if (j!=U_UNIT && j!=U_PEASANTS) {
-                                mistakes(u, s, "Unit not found");
-                                continue;
-                            }
-
-                            if (u2 && u2->faction == f) {
-                                mistakes(u, s, "One of your units");
-                                continue;
-                            }
-
-                            if (isallied(u, u2)) {
-                                mistakes(u, s, "An allied unit");
-                                continue;
-                            }
-
-                            /* Draw up troops for the battle */
-
-                            for (b = r->buildings; b; b = b->next) {
-                                b->sizeleft = b->size;
-                            }
-
-                            left[0] = left[1] = 0;
-                            infront[0] = infront[1] = 0;
-
-                            /* If peasants are defenders */
-
-                            if (!u2) {
-                                for (i = r->peasants; i; i--) {
-                                    t = (troop *)calloc(1, sizeof(troop));
-                                    ql_push(&troops, t);
+                                if (j!=U_UNIT && j!=U_PEASANTS) {
+                                    mistakes(u, s, "Unit not found");
+                                    continue;
                                 }
 
-                                left[0] = r->peasants;
-                                infront[0] = r->peasants;
-                            }
+                                if (u2 && u2->faction == f) {
+                                    mistakes(u, s, "One of your units");
+                                    continue;
+                                }
 
-                            /* What units are involved? */
+                                if (isallied(u, u2)) {
+                                    mistakes(u, s, "An allied unit");
+                                    continue;
+                                }
 
-                            for (f2 = factions; f2; f2 = f2->next) {
-                                f2->attacking = false;
-                            }
-                            for (u3 = r->units; u3; u3 = u3->next) {
-                                ql_iter oli;
-                                for (oli = qli_init(u3->orders); qli_more(oli);) {
-                                    char *s = (char *)qli_next(&oli);
-                                    if (igetkeyword(s) == K_ATTACK) {
-                                        int j = getseen(r, u3->faction, &u4);
+                                /* Draw up troops for the battle */
 
-                                        if ((!u2) || (j==U_UNIT && u4->faction == u2->faction && !isallied(u3, u4))) {
-                                            u3->faction->attacking = true;
-                                            s[0] = 0;
-                                            break;
+                                for (b = r->buildings; b; b = b->next) {
+                                    b->sizeleft = b->size;
+                                }
+
+                                left[0] = left[1] = 0;
+                                infront[0] = infront[1] = 0;
+
+                                /* If peasants are defenders */
+
+                                if (!u2) {
+                                    for (i = r->peasants; i; i--) {
+                                        t = (troop *)calloc(1, sizeof(troop));
+                                        ql_push(&troops, t);
+                                    }
+
+                                    left[0] = r->peasants;
+                                    infront[0] = r->peasants;
+                                }
+
+                                /* What units are involved? */
+
+                                for (f2 = factions; f2; f2 = f2->next) {
+                                    f2->attacking = false;
+                                }
+                                for (u3 = r->units; u3; u3 = u3->next) {
+                                    ql_iter oli;
+                                    for (oli = qli_init(u3->orders); qli_more(oli);) {
+                                        char *s = (char *)qli_next(&oli);
+                                        if (igetkeyword(s) == K_ATTACK) {
+                                            int j = getseen(r, u3->faction, &u4);
+
+                                            if ((!u2) || (j==U_UNIT && u4->faction == u2->faction && !isallied(u3, u4))) {
+                                                u3->faction->attacking = true;
+                                                s[0] = 0;
+                                                break;
+                                            }
                                         }
                                     }
                                 }
-                            }
-                            for (u3 = r->units; u3; u3 = u3->next) {
-                                u3->side = -1;
+                                for (u3 = r->units; u3; u3 = u3->next) {
+                                    u3->side = -1;
 
-                                if (!u3->number)
+                                    if (!u3->number)
+                                        continue;
+
+                                    if (u3->faction->attacking) {
+                                        u3->side = 0;
+                                        maketroops(&troops, u3, r->terrain);
+                                    } else if (isallied(u3, u2)) {
+                                        u3->side = 1;
+                                        maketroops(&troops, u3, r->terrain);
+                                    }
+                                }
+
+                                /* If only one side shows up, cancel */
+
+                                if (!left[0] || !left[1]) {
+                                    ql_foreach(troops, free);
+                                    ql_free(troops);
                                     continue;
-
-                                if (u3->faction->attacking) {
-                                    u3->side = 0;
-                                    maketroops(&troops, u3, r->terrain);
-                                } else if (isallied(u3, u2)) {
-                                    u3->side = 1;
-                                    maketroops(&troops, u3, r->terrain);
                                 }
-                            }
 
-                            /* If only one side shows up, cancel */
+                                /* Set up array of troops */
 
-                            if (!left[0] || !left[1]) {
-                                ql_foreach(troops, free);
+                                ntroops = ql_length(troops);
+                                ta = (troop **)malloc(ntroops * sizeof(troop*));
+                                fisher_yates_ql(troops, (void **)ta, ntroops);
                                 ql_free(troops);
-                                continue;
-                            }
 
-                            /* Set up array of troops */
+                                initial[0] = left[0];
+                                initial[1] = left[1];
+                                shields[0] = 0;
+                                shields[1] = 0;
+                                runeswords[0] = 0;
+                                runeswords[1] = 0;
 
-                            ntroops = ql_length(troops);
-                            ta = (troop **)malloc(ntroops * sizeof(troop*));
-                            fisher_yates_ql(troops, (void **)ta, ntroops);
-                            ql_free(troops);
+                                lmoney = 0;
+                                memset(litems, 0, sizeof litems);
 
-                            initial[0] = left[0];
-                            initial[1] = left[1];
-                            shields[0] = 0;
-                            shields[1] = 0;
-                            runeswords[0] = 0;
-                            runeswords[1] = 0;
+                                /* Initial attack message */
 
-                            lmoney = 0;
-                            memset(litems, 0, sizeof litems);
+                                for (f2 = factions; f2; f2 = f2->next) {
+                                    if (ispresent(f2, r)) {
+                                        f2->thisbattle = create_battle(r);
+                                        ql_push(&f2->battles, f2->thisbattle);
+                                    } else {
+                                        f2->thisbattle = 0;
+                                    }
+                                }
 
-                            /* Initial attack message */
-
-                            for (f2 = factions; f2; f2 = f2->next) {
-                                if (ispresent(f2, r)) {
-                                    f2->thisbattle = create_battle(r);
-                                    ql_push(&f2->battles, f2->thisbattle);
+                                if (u2) {
+                                    strcpy(buf2, unitid(u2));
                                 } else {
-                                    f2->thisbattle = 0;
+                                    strcpy(buf2, "the peasants");
                                 }
-                            }
-
-                            if (u2) {
-                                strcpy(buf2, unitid(u2));
-                            } else {
-                                strcpy(buf2, "the peasants");
-                            }
-                            for (f2 = factions; f2; f2 = f2->next) {
-                                if (f2->thisbattle) {
-                                    battle * b = f2->thisbattle;
-                                    sprintf(buf, "%s attacks %s in %s!", unitid(u),
-                                            buf2, regionid(r, f2));
-                                    ql_push(&b->events, _strdup(buf));
-                                }
-                            }
-
-                            /* List sides */
-                            battle_report_unit(u);
-
-                            for (u3 = r->units; u3; u3 = u3->next) {
-                                if (u3->side == 0 && u3 != u) {
-                                    battle_report_unit(u3);
-                                }
-                            }
-
-                            if (u2) {
-                                battle_report_unit(u2);
-                            } else {
-                                u3 = battle_create_unit(u->faction, 0, r->peasants,
-                                                        "Peasants", 0, 0, false);
-                                u3->side = 1;
                                 for (f2 = factions; f2; f2 = f2->next) {
                                     if (f2->thisbattle) {
-                                        battle_add_unit(f2->thisbattle, u3);
+                                        battle * b = f2->thisbattle;
+                                        sprintf(buf, "%s attacks %s in %s!", unitid(u),
+                                                buf2, regionid(r, f2));
+                                        ql_push(&b->events, _strdup(buf));
                                     }
                                 }
-                            }
 
-                            for (u3 = r->units; u3; u3 = u3->next) {
-                                if (u3->side == 1 && u3 != u2) {
-                                    battle_report_unit(u3);
-                                }
-                            }
+                                /* List sides */
+                                battle_report_unit(u);
 
-                            /* Does one side have an advantage in tactics? */
-
-                            maxtactics[0] = 0;
-                            maxtactics[1] = 0;
-
-                            for (i = 0; i != ntroops; i++) {
-                                if (ta[i]->unit) {
-                                    j = effskill(ta[i]->unit, SK_TACTICS);
-
-                                    if (maxtactics[ta[i]->side] < j) {
-                                        leader[ta[i]->side] = i;
-                                        maxtactics[ta[i]->side] = j;
+                                for (u3 = r->units; u3; u3 = u3->next) {
+                                    if (u3->side == 0 && u3 != u) {
+                                        battle_report_unit(u3);
                                     }
                                 }
-                            }
-                            attacker_side = -1;
-                            if (maxtactics[0] > maxtactics[1]) {
-                                attacker_side = 0;
-                            }
-                            else if (maxtactics[1] > maxtactics[0]) {
-                                attacker_side = 1;
-                            }
 
-                            /* Better leader gets free round of attacks */
-
-                            if (attacker_side >= 0) {
-                                /* Note the fact in the battle report */
-
-                                if (attacker_side) {
-                                    sprintf(buf,
-                                            "%s gets a free round of attacks!",
-                                            unitid(u));
-                                } else if (u2) {
-                                    sprintf(buf,
-                                            "%s gets a free round of attacks!",
-                                            unitid(u2));
+                                if (u2) {
+                                    battle_report_unit(u2);
                                 } else {
-                                    sprintf(buf,
-                                            "The peasants get a free round of attacks!");
+                                    u3 = battle_create_unit(u->faction, 0, r->peasants,
+                                                            "Peasants", 0, 0, false);
+                                    u3->side = 1;
+                                    for (f2 = factions; f2; f2 = f2->next) {
+                                        if (f2->thisbattle) {
+                                            battle_add_unit(f2->thisbattle, u3);
+                                        }
+                                    }
                                 }
-                                battlerecord(buf);
 
-                                /* Number of troops to attack */
+                                for (u3 = r->units; u3; u3 = u3->next) {
+                                    if (u3->side == 1 && u3 != u2) {
+                                        battle_report_unit(u3);
+                                    }
+                                }
 
-                                toattack[attacker_side] = 0;
+                                /* Does one side have an advantage in tactics? */
+
+                                maxtactics[0] = 0;
+                                maxtactics[1] = 0;
 
                                 for (i = 0; i != ntroops; i++) {
-                                    ta[i]->attacked = 1;
+                                    if (ta[i]->unit) {
+                                        j = effskill(ta[i]->unit, SK_TACTICS);
 
-                                    if (ta[i]->side == attacker->side) {
-                                        ta[i]->attacked = 0;
-                                        toattack[attacker_side]++;
+                                        if (maxtactics[ta[i]->side] < j) {
+                                            leader[ta[i]->side] = i;
+                                            maxtactics[ta[i]->side] = j;
+                                        }
                                     }
                                 }
+                                attacker_side = -1;
+                                if (maxtactics[0] > maxtactics[1]) {
+                                    attacker_side = 0;
+                                }
+                                else if (maxtactics[1] > maxtactics[0]) {
+                                    attacker_side = 1;
+                                }
 
-                                /* Do round of attacks */
+                                /* Better leader gets free round of attacks */
 
-                                do {
-                                    doshot();
-                                } while (toattack[attacker_side]
-                                         && left[1-attacker_side]);
-                            }
+                                if (attacker_side >= 0) {
+                                    /* Note the fact in the battle report */
 
-                            /* Handle main body of battle */
+                                    if (attacker_side) {
+                                        sprintf(buf,
+                                                "%s gets a free round of attacks!",
+                                                unitid(u));
+                                    } else if (u2) {
+                                        sprintf(buf,
+                                                "%s gets a free round of attacks!",
+                                                unitid(u2));
+                                    } else {
+                                        sprintf(buf,
+                                                "The peasants get a free round of attacks!");
+                                    }
+                                    battlerecord(buf);
 
-                            toattack[0] = 0;
-                            toattack[1] = 0;
+                                    /* Number of troops to attack */
 
-                            while (left[0] && left[1]) {
-                                /* End of a round */
+                                    toattack[attacker_side] = 0;
 
-                                if (toattack[0] == 0 && toattack[1] == 0)
                                     for (i = 0; i != ntroops; i++) {
                                         ta[i]->attacked = 1;
 
-                                        if (!ta[i]->status) {
+                                        if (ta[i]->side == attacker->side) {
                                             ta[i]->attacked = 0;
-                                            toattack[ta[i]->side]++;
+                                            toattack[attacker_side]++;
                                         }
                                     }
 
-                                doshot();
-                            }
+                                    /* Do round of attacks */
 
-                            /* Report on winner */
-
-                            if (attacker->side==0) {
-                                sprintf(buf, "%s wins the battle!",
-                                        unitid(u));
-                            } else if (u2) {
-                                sprintf(buf, "%s wins the battle!",
-                                        unitid(u2));
-                            } else {
-                                sprintf(buf,
-                                        "The peasants win the battle!");
-                            }
-                            battlerecord(buf);
-
-                            /* Has winner suffered any casualties? */
-
-                            winnercasualties = 0;
-
-                            for (i = 0; i != ntroops; i++) {
-                                if (ta[i]->side == attacker->side
-                                    && ta[i]->status) {
-                                    winnercasualties = 1;
-                                    break;
-                                }
-                            }
-                            /* Can wounded be healed? */
-
-                            n = 0;
-
-                            for (i = 0; i != ntroops &&
-                                 n != initial[attacker->side] -
-                                 left[attacker->side]; i++) {
-                                if (!ta[i]->status && ta[i]->canheal) {
-                                    int k = lovar(50 * (1 + ta[i]->power));
-                                    k = MIN(k, initial[attacker->side] -
-                                            left[attacker->side] - n);
-                                    sprintf(buf, "%s heals %d wounded.",
-                                            unitid(ta[i]->unit), k);
-                                    battlerecord(buf);
-
-                                    n += k;
-                                }
-                            }
-                            while (--n >= 0) {
-                                do {
-                                    i = genrand_int32() % ntroops;
-                                } while (!ta[i]->status
-                                         || ta[i]->side != attacker->side);
-
-                                ta[i]->status = 0;
-                            }
-
-                            count_casualties(r, ta, ntroops, &deadpeasants);
-                            /* Report the casualties */
-
-                            reportcasualtiesdh = 0;
-
-                            if (attacker->side) {
-                                reportcasualties(u);
-
-                                for (u3 = r->units; u3; u3 = u3->next) {
-                                    if (u3->side == 1 && u3 != u) {
-                                        reportcasualties(u3);
-                                    }
-                                }
-                            } else {
-                                if (u2) {
-                                    reportcasualties(u2);
-                                } else if (deadpeasants) {
-                                    battlerecord("");
-                                    reportcasualtiesdh = 1;
-                                    sprintf(buf, "The peasants lose %d.",
-                                            deadpeasants);
-                                    battlerecord(buf);
+                                    do {
+                                        doshot();
+                                    } while (toattack[attacker_side]
+                                             && left[1-attacker_side]);
                                 }
 
-                                for (u3 = r->units; u3; u3 = u3->next) {
-                                    if (u3->side == 0 && u3 != u2) {
-                                        reportcasualties(u3);
-                                    }
-                                }
-                            }
+                                /* Handle main body of battle */
 
-                            /* Dead peasants */
+                                toattack[0] = 0;
+                                toattack[1] = 0;
 
-                            k = r->peasants - deadpeasants;
+                                while (left[0] && left[1]) {
+                                    /* End of a round */
 
-                            j = distribute(r->peasants, k, r->money);
-                            lmoney += r->money - j;
-                            r->money = j;
+                                    if (toattack[0] == 0 && toattack[1] == 0)
+                                        for (i = 0; i != ntroops; i++) {
+                                            ta[i]->attacked = 1;
 
-                            r->peasants = k;
+                                            if (!ta[i]->status) {
+                                                ta[i]->attacked = 0;
+                                                toattack[ta[i]->side]++;
+                                            }
+                                        }
 
-                            /* Adjust units */
-
-                            for (u3 = r->units; u3; u3 = u3->next) {
-                                k = u3->number - u3->dead;
-
-                                /* Redistribute items and skills */
-
-                                if (u3->side == defender->side) {
-                                    j = distribute(u3->number, k,
-                                                   u3->money);
-                                    lmoney += u3->money - j;
-                                    u3->money = j;
-
-                                    for (i = 0; i != MAXITEMS; i++) {
-                                        j = distribute(u3->number, k,
-                                                       u3->items[i]);
-                                        litems[i] += u3->items[i] - j;
-                                        u3->items[i] = j;
-                                    }
+                                    doshot();
                                 }
 
-                                for (i = 0; i != MAXSKILLS; i++) {
-                                    u3->skills[i] =
-                                      distribute(u3->number, k,
-                                                 u3->skills[i]);
-                                }
-                                /* Adjust unit numbers */
+                                /* Report on winner */
 
-                                u3->number = k;
-
-                                /* Need this flag cleared for reporting of loot */
-
-                                u3->n = 0;
-                            }
-
-                            /* Distribute loot */
-
-                            for (n = lmoney; n; n--) {
-                                troop *t = get_troop(ta, ntroops, defender->side, 0xFF);
-                                if (t->unit) {
-                                    t->unit->money++;
-                                    t->unit->n++;
+                                if (attacker->side==0) {
+                                    sprintf(buf, "%s wins the battle!",
+                                            unitid(u));
+                                } else if (u2) {
+                                    sprintf(buf, "%s wins the battle!",
+                                            unitid(u2));
                                 } else {
-                                    r->money++;
+                                    sprintf(buf,
+                                            "The peasants win the battle!");
                                 }
-                            }
+                                battlerecord(buf);
 
-                            for (i = 0; i != MAXITEMS; i++) {
-                                for (n = litems[i]; n; n--) {
-                                    if (i <= I_STONE || genrand_int32() & 1) {
-                                        do {
-                                            j = genrand_int32() % ntroops;
-                                        } while (ta[j]->status || ta[j]->side != attacker->side);
+                                /* Has winner suffered any casualties? */
 
-                                        if (ta[j]->unit) {
-                                            if (!ta[j]->unit->litems) {
-                                                ta[j]->unit->litems =
-                                                  (int *)calloc(MAXITEMS, sizeof(int));
-                                            }
-                                            ta[j]->unit->items[i]++;
-                                            ta[j]->unit->litems[i]++;
-                                        }
-                                    }
-                                }
-                            }
-                            /* Report loot */
+                                winnercasualties = 0;
 
-                            for (f2 = factions; f2; f2 = f2->next) {
-                                f2->dh = 0;
-                            }
-                            for (u3 = r->units; u3; u3 = u3->next) {
-                                if (u3->n || u3->litems) {
-                                    int dh = 0;
-
-                                    sprintf(buf, "%s finds ", unitid(u3));
-
-                                    if (u3->n) {
-                                        scat("$");
-                                        icat(u3->n);
-                                        dh = 1;
-                                    }
-
-                                    if (u3->litems) {
-                                        for (i = 0; i != MAXITEMS; i++) {
-                                            if (u3->litems[i]) {
-                                                if (dh) {
-                                                    scat(", ");
-                                                }
-                                                dh = 1;
-
-                                                icat(u3->litems[i]);
-                                                scat(" ");
-
-                                                if (u3->litems[i] == 1) {
-                                                    scat(itemnames[i][0]);
-                                                } else {
-                                                    scat(itemnames[i][1]);
-                                                }
-                                            }
-                                        }
-                                        free(u3->litems);
-                                        u3->litems = 0;
-                                    }
-
-                                    if (!u3->faction->dh) {
-                                        addbattle(u3->faction->thisbattle, "");
-                                        u3->faction->dh = 1;
-                                    }
-
-                                    scat(".");
-                                    addbattle(u3->faction->thisbattle, buf);
-                                }
-                            }
-
-                            /* Does winner get combat experience? */
-                            if (winnercasualties) {
-                                if (maxtactics[attacker->side] &&
-                                    !ta[leader[attacker->side]]->status) {
-                                    ta[leader[attacker->side]]->unit->skills[SK_TACTICS] += COMBATEXP;
-                                }
                                 for (i = 0; i != ntroops; i++) {
-                                    if (ta[i]->unit &&
-                                        !ta[i]->status &&
-                                        ta[i]->side == attacker->side) {
-                                        switch (ta[i]->weapon) {
-                                        case I_SWORD:
-                                            ta[i]->unit->skills[SK_SWORD] +=
-                                                COMBATEXP;
-                                            break;
+                                    if (ta[i]->side == attacker->side
+                                        && ta[i]->status) {
+                                        winnercasualties = 1;
+                                        break;
+                                    }
+                                }
+                                /* Can wounded be healed? */
 
-                                        case I_CROSSBOW:
-                                            ta[i]->unit->
-                                                skills[SK_CROSSBOW] +=
-                                                COMBATEXP;
-                                            break;
+                                n = 0;
 
-                                        case I_LONGBOW:
-                                            ta[i]->unit->
-                                                skills[SK_LONGBOW] +=
-                                                COMBATEXP;
-                                            break;
+                                for (i = 0; i != ntroops &&
+                                     n != initial[attacker->side] -
+                                     left[attacker->side]; i++) {
+                                    if (!ta[i]->status && ta[i]->canheal) {
+                                        int k = lovar(50 * (1 + ta[i]->power));
+                                        k = MIN(k, initial[attacker->side] -
+                                                left[attacker->side] - n);
+                                        sprintf(buf, "%s heals %d wounded.",
+                                                unitid(ta[i]->unit), k);
+                                        battlerecord(buf);
+
+                                        n += k;
+                                    }
+                                }
+                                while (--n >= 0) {
+                                    do {
+                                        i = genrand_int32() % ntroops;
+                                    } while (!ta[i]->status
+                                             || ta[i]->side != attacker->side);
+
+                                    ta[i]->status = 0;
+                                }
+
+                                count_casualties(r, ta, ntroops, &deadpeasants);
+                                /* Report the casualties */
+
+                                reportcasualtiesdh = 0;
+
+                                if (attacker->side) {
+                                    reportcasualties(u);
+
+                                    for (u3 = r->units; u3; u3 = u3->next) {
+                                        if (u3->side == 1 && u3 != u) {
+                                            reportcasualties(u3);
+                                        }
+                                    }
+                                } else {
+                                    if (u2) {
+                                        reportcasualties(u2);
+                                    } else if (deadpeasants) {
+                                        battlerecord("");
+                                        reportcasualtiesdh = 1;
+                                        sprintf(buf, "The peasants lose %d.",
+                                                deadpeasants);
+                                        battlerecord(buf);
+                                    }
+
+                                    for (u3 = r->units; u3; u3 = u3->next) {
+                                        if (u3->side == 0 && u3 != u2) {
+                                            reportcasualties(u3);
                                         }
                                     }
                                 }
-                            }
 
-                            free(ta);
+                                /* Dead peasants */
+
+                                k = r->peasants - deadpeasants;
+
+                                j = distribute(r->peasants, k, r->money);
+                                lmoney += r->money - j;
+                                r->money = j;
+
+                                r->peasants = k;
+
+                                /* Adjust units */
+
+                                for (u3 = r->units; u3; u3 = u3->next) {
+                                    k = u3->number - u3->dead;
+
+                                    /* Redistribute items and skills */
+
+                                    if (u3->side == defender->side) {
+                                        j = distribute(u3->number, k,
+                                                       u3->money);
+                                        lmoney += u3->money - j;
+                                        u3->money = j;
+
+                                        for (i = 0; i != MAXITEMS; i++) {
+                                            j = distribute(u3->number, k,
+                                                           u3->items[i]);
+                                            litems[i] += u3->items[i] - j;
+                                            u3->items[i] = j;
+                                        }
+                                    }
+
+                                    for (i = 0; i != MAXSKILLS; i++) {
+                                        u3->skills[i] =
+                                          distribute(u3->number, k,
+                                                     u3->skills[i]);
+                                    }
+                                    /* Adjust unit numbers */
+
+                                    u3->number = k;
+
+                                    /* Need this flag cleared for reporting of loot */
+
+                                    u3->n = 0;
+                                }
+
+                                /* Distribute loot */
+
+                                for (n = lmoney; n; n--) {
+                                    troop *t = get_troop(ta, ntroops, defender->side, 0xFF);
+                                    if (t->unit) {
+                                        t->unit->money++;
+                                        t->unit->n++;
+                                    } else {
+                                        r->money++;
+                                    }
+                                }
+
+                                for (i = 0; i != MAXITEMS; i++) {
+                                    for (n = litems[i]; n; n--) {
+                                        if (i <= I_STONE || genrand_int32() & 1) {
+                                            do {
+                                                j = genrand_int32() % ntroops;
+                                            } while (ta[j]->status || ta[j]->side != attacker->side);
+
+                                            if (ta[j]->unit) {
+                                                if (!ta[j]->unit->litems) {
+                                                    ta[j]->unit->litems =
+                                                      (int *)calloc(MAXITEMS, sizeof(int));
+                                                }
+                                                ta[j]->unit->items[i]++;
+                                                ta[j]->unit->litems[i]++;
+                                            }
+                                        }
+                                    }
+                                }
+                                /* Report loot */
+
+                                for (f2 = factions; f2; f2 = f2->next) {
+                                    f2->dh = 0;
+                                }
+                                for (u3 = r->units; u3; u3 = u3->next) {
+                                    if (u3->n || u3->litems) {
+                                        int dh = 0;
+
+                                        sprintf(buf, "%s finds ", unitid(u3));
+
+                                        if (u3->n) {
+                                            scat("$");
+                                            icat(u3->n);
+                                            dh = 1;
+                                        }
+
+                                        if (u3->litems) {
+                                            for (i = 0; i != MAXITEMS; i++) {
+                                                if (u3->litems[i]) {
+                                                    if (dh) {
+                                                        scat(", ");
+                                                    }
+                                                    dh = 1;
+
+                                                    icat(u3->litems[i]);
+                                                    scat(" ");
+
+                                                    if (u3->litems[i] == 1) {
+                                                        scat(itemnames[i][0]);
+                                                    } else {
+                                                        scat(itemnames[i][1]);
+                                                    }
+                                                }
+                                            }
+                                            free(u3->litems);
+                                            u3->litems = 0;
+                                        }
+
+                                        if (!u3->faction->dh) {
+                                            addbattle(u3->faction->thisbattle, "");
+                                            u3->faction->dh = 1;
+                                        }
+
+                                        scat(".");
+                                        addbattle(u3->faction->thisbattle, buf);
+                                    }
+                                }
+
+                                /* Does winner get combat experience? */
+                                if (winnercasualties) {
+                                    if (maxtactics[attacker->side] &&
+                                        !ta[leader[attacker->side]]->status) {
+                                        ta[leader[attacker->side]]->unit->skills[SK_TACTICS] += COMBATEXP;
+                                    }
+                                    for (i = 0; i != ntroops; i++) {
+                                        if (ta[i]->unit &&
+                                            !ta[i]->status &&
+                                            ta[i]->side == attacker->side) {
+                                            switch (ta[i]->weapon) {
+                                            case I_SWORD:
+                                                ta[i]->unit->skills[SK_SWORD] +=
+                                                    COMBATEXP;
+                                                break;
+
+                                            case I_CROSSBOW:
+                                                ta[i]->unit->
+                                                    skills[SK_CROSSBOW] +=
+                                                    COMBATEXP;
+                                                break;
+
+                                            case I_LONGBOW:
+                                                ta[i]->unit->
+                                                    skills[SK_LONGBOW] +=
+                                                    COMBATEXP;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                free(ta);
+                            }
                         }
                     }
                 }
             }
         }
+        free(fa);
     }
-
-    free(fa);
 }
