@@ -1825,10 +1825,7 @@ bool isallied(const unit * u, const unit * u2)
 
 bool accepts(const unit * u, const unit * u2)
 {
-
-    if (u->skills[SK_MAGIC] || u2->skills[SK_MAGIC]) {
-        return false;
-    } else if (isallied(u, u2)) {
+    if (isallied(u, u2)) {
         return true;
     }
     return !!ql_set_find(&u->faction->accept, 0, u2->faction);
@@ -3508,7 +3505,7 @@ void processorders(void)
                     j = getseen(r, u->faction, &u2);
 
                     if (u2) {
-                        if (!accepts(u2, u)) {
+                        if (u->skills[SK_MAGIC] || u2->skills[SK_MAGIC] || !accepts(u2, u)) {
                             mistakes(u, s, "Unit does not accept your gift");
                             break;
                         }

@@ -250,8 +250,14 @@ int getunit(const region * r, const faction *f, unit **uptr)
     s = getstr();
 
     if (!_strcmpl(s, "new")) {
-        *uptr = getnewunit(r, f);
-        return U_UNIT;
+        u = getnewunit(r, f);
+        if (u) {
+            *uptr = u;
+            return U_UNIT;
+        } else {
+            *uptr = 0;
+            return U_NOTFOUND;
+        }
     }
 
     if (r->terrain != T_OCEAN && !_strcmpl(s, "peasants")) {
