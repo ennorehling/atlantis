@@ -3,4 +3,6 @@
 
 void cleargame(void);
 
+extern int nextunitid;
+
 #endif

@@ -21,6 +21,7 @@
 #include "parser.h"
 #include "report.h"
 #include "combat.h"
+#include "game.h"
 
 #include "json.h"
 #include "rtl.h"
@@ -2858,7 +2859,8 @@ void process_form(unit *u, region *r) {
         if (igetkeyword(s) == K_FORM) {
             ql_delete(&oli.l, oli.i);
 
-            u2 = create_unit(u->faction, 0);
+            while (findunitg(nextunitid)) ++nextunitid;
+            u2 = create_unit(u->faction, nextunitid++);
             region_addunit(r, u2);
 
             u2->alias = atoi(getstr());
@@ -4776,7 +4778,7 @@ int readgame(void)
             store.api->r_int(store.handle, &no);
             store.api->r_int(store.handle, &fno);
             u = create_unit(findfaction(fno), no);
-
+            if (u->no>nextunitid) nextunitid = no+1;
             if (store.api->r_str(store.handle, temp, sizeof(temp))==0) {
                 unit_setname(u, temp[0] ? temp : 0);
             }
