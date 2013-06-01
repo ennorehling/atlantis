@@ -854,6 +854,16 @@ strlist *makestrlist(char *s)
     return S;
 }
 
+void addevent(faction * f, const char *s)
+{
+    ql_push(&f->events, _strdup(s));
+}
+
+void addmessage(faction * f, const char *s)
+{
+    ql_push(&f->messages, _strdup(s));
+}
+
 void addstrlist(strlist ** SP, char *s)
 {
     addlist(SP, makestrlist(s));
@@ -1137,7 +1147,7 @@ faction * addplayer(region * r, const char * email, int no)
     buf2[16] = 0;
     faction_setpassword(f, buf2);
     sprintf(msg, "Your password is '%s'.", buf2);
-    addstrlist(&f->messages, msg);
+    addmessage(f, msg);
 
     u = createunit(r, f);
     u->number = 1;
@@ -1609,11 +1619,6 @@ void spunit(strlist ** SP, faction * f, region * r, unit * u, int indent,
         scat(".");
 
     sparagraph(SP, buf, indent, (u->faction == f) ? '*' : '-');
-}
-
-void addevent(faction * f, const char *s)
-{
-    sparagraph(&f->events, s, 0, 0);
 }
 
 void reportevent(region * r, char *s)
@@ -2344,7 +2349,6 @@ void report(faction * f)
     building *b;
     ship *sh;
     unit *u;
-    strlist *S;
     stream strm;
     cJSON * json;
 
@@ -2365,16 +2369,16 @@ void report(faction * f)
     centre(F, gamedate());
 
     centreqstrlist(F, "Mistakes", f->mistakes);
-    centrestrlist(F, "Messages", f->messages);
+    centreqstrlist(F, "Messages", f->messages);
 
     if (f->battles || f->events) {
-        ql_iter bli;
+        ql_iter iter;
         rnl(F);
         centre(F, "Events During Turn");
         rnl(F);
 
-        for (bli = qli_init(f->battles); qli_more(bli); ) {
-            battle * b = (battle *)qli_next(&bli);
+        for (iter = qli_init(f->battles); qli_more(iter); ) {
+            battle * b = (battle *)qli_next(&iter);
             ql_iter qli = qli_init(b->events);
             int i;
             char * s = (char *)qli_next(&qli);
@@ -2402,10 +2406,7 @@ void report(faction * f)
         if (f->battles && f->events)
             rnl(F);
 
-        for (S = f->events; S; S = S->next) {
-            rps(S->s);
-            rnl(F);
-        }
+        centreqstrlist(F, "Events", f->events);
     }
 
     for (i = 0; i != MAXSPELLS; i++)
@@ -2973,7 +2974,7 @@ void processorders(void)
                     s = getstr();
                     faction_setpassword(u->faction, s);
                     sprintf(buf2, "The faction's password was changed to '%s'.", s);
-                    addstrlist(&u->faction->messages, buf2);
+                    addmessage(u->faction, buf2);
                     break;
 
                 case K_ADDRESS:
@@ -3174,7 +3175,7 @@ void processorders(void)
 
                     sprintf(buf, "The address of %s is %s.", factionid(f),
                             faction_getaddr(f));
-                    sparagraph(&u->faction->messages, buf, 0, 0);
+                    ql_push(&u->faction->messages, buf);
                     break;
                 }
             }
@@ -4247,16 +4248,16 @@ void processorders(void)
         /* Entertainment */
 
         expandorders(r, entertainorders);
+        if (oa) {
+            for (i = 0, n = r->money / ENTERTAINFRACTION; i != norders && n;
+                 i++, n--) {
+                oa[i].unit->money++;
+                r->money--;
+                oa[i].unit->n++;
+            }
 
-        for (i = 0, n = r->money / ENTERTAINFRACTION; i != norders && n;
-             i++, n--) {
-            oa[i].unit->money++;
-            r->money--;
-            oa[i].unit->n++;
+            free(oa);
         }
-
-        free(oa);
-
         for (u = r->units; u; u = u->next)
             if (u->n >= 0) {
                 sprintf(buf, "%s earns $%d entertaining.", unitid(u),
@@ -4269,16 +4270,16 @@ void processorders(void)
         /* Food production */
 
         expandorders(r, workorders);
+        if (oa) {
+            for (i = 0, n = maxfoodoutput[r->terrain]; i != norders && n;
+                 i++, n--) {
+                oa[i].unit->money++;
+                oa[i].unit->n++;
+            }
 
-        for (i = 0, n = maxfoodoutput[r->terrain]; i != norders && n;
-             i++, n--) {
-            oa[i].unit->money++;
-            oa[i].unit->n++;
+            free(oa);
+            r->money += MIN(n, r->peasants * foodproductivity[r->terrain]);
         }
-
-        free(oa);
-
-        r->money += MIN(n, r->peasants * foodproductivity[r->terrain]);
 
         for (u = r->units; u; u = u->next)
             if (u->n >= 0) {
@@ -4574,8 +4575,7 @@ void processorders(void)
 
     for (f = factions; f; f = f->next) {
         if (turn - f->lastorders == ORDERGAP) {
-            addstrlist(&f->messages,
-                       "Please send orders next turn if you wish to continue playing.");
+            addmessage(f, "Please send orders next turn if you wish to continue playing.");
         }
     }
 }
@@ -4589,7 +4589,7 @@ void rqstrlist(storage * store, quicklist ** qlp)
     while (--n >= 0) {
         char buf[1023];
         if (store->api->r_str(store->handle, buf, sizeof(buf))==0) {
-            ql_push(qlp, _strdup(buf));
+            if (qlp) ql_push(qlp, _strdup(buf));
         }
     }
 }
@@ -4651,7 +4651,6 @@ int readgame(void)
 
     while (--n >= 0) {
         int no;
-        strlist * junk;
         char buf[NAMESIZE];
 
         store.api->r_int(store.handle, &no);
@@ -4687,9 +4686,9 @@ int readgame(void)
         }
 
         rqstrlist(&store, &f->mistakes);
-        rstrlist(&store, &f->messages);
-        rstrlist(&store, &junk);
-        rstrlist(&store, &f->events);
+        rqstrlist(&store, &f->messages);
+        rqstrlist(&store, 0);
+        rqstrlist(&store, &f->events);
 
         f->alive = false;
         addlist2(fp, f);
@@ -4839,10 +4838,14 @@ int readgame(void)
     for (f = factions; f; f = f->next) {
         memset(f->showdata, 0, sizeof f->showdata);
 
-        freelist(f->mistakes);
-        freelist(f->messages);
-        freelist(f->battles);
-        freelist(f->events);
+        ql_foreach(f->mistakes, free);
+        ql_free(f->mistakes);
+        ql_foreach(f->messages, free);
+        ql_free(f->messages);
+        ql_foreach(f->events, free);
+        ql_free(f->events);
+        ql_foreach(f->battles, (ql_cb)free_battle);
+        ql_free(f->battles);
 
         f->mistakes = 0;
         f->messages = 0;
@@ -4945,9 +4948,9 @@ int writegame(void)
         }
 
         wqstrlist(&store, f->mistakes);
-        wstrlist(&store, f->messages);
-        wstrlist(&store, 0);
-        wstrlist(&store, f->events);
+        wqstrlist(&store, f->messages);
+        wqstrlist(&store, 0);
+        wqstrlist(&store, f->events);
     }
 
     /* Write regions */

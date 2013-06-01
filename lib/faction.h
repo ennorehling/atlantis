@@ -35,9 +35,9 @@ typedef struct faction {
     struct quicklist *admit;
     rfaction allies;
     struct quicklist *mistakes;
-    struct strlist *messages;
+    struct quicklist *messages;
     struct quicklist *battles;
-    struct strlist *events;
+    struct quicklist *events;
     bool alive;
     bool attacking;
     struct battle *thisbattle;
