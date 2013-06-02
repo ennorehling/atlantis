@@ -5,9 +5,9 @@
 #include <building.h>
 #include <unit.h>
 
-#include "json.h"
+#include <rtl.h>
 
-#include "rtl.h"
+#include "json.h"
 
 #include <stream.h>
 #include <memstream.h>

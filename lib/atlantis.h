@@ -21,11 +21,6 @@ struct unit;
 struct ship;
 struct building;
 
-typedef struct strlist {
-    struct strlist *next;
-    char s[1];
-} strlist;
-
 extern int turn;
 extern int ignore_password;
 extern const keyword_t directions[];
@@ -34,7 +29,6 @@ int distribute(int old, int nyu, int n);
 int getseen(const struct region *r, const struct faction *f, struct unit **uptr);
 
 /* untyped list bullshit */
-void freestrlist(struct strlist ** slist);
 void addlist(void *l1, void *p1);
 
 int effskill(const struct unit * u, int i);

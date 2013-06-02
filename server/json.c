@@ -19,16 +19,6 @@
 #include <stdlib.h>
 
 
-static cJSON * show_strlist(const strlist *slist) {
-    cJSON *json;
-    json = cJSON_CreateArray();
-    while (slist) {
-        cJSON_AddItemToArray(json, cJSON_CreateString(slist->s));
-        slist = slist->next;
-    }
-    return json;
-}
-
 static cJSON * show_qstrlist(quicklist *ql) {
     ql_iter qli;
     cJSON *json;

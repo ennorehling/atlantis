@@ -19,5 +19,5 @@ TARGET_LINK_LIBRARIES (test_server ${CUTEST_LIBRARIES} ${ATLANTIS_LIBRARIES})
 ADD_TEST (server test_server)
 
 IF (MSVC)
-    MSVC_CRT_SECURE_NO_WARNINGS (server)
+    MSVC_CRT_SECURE_NO_WARNINGS (server test_server)
 ENDIF (MSVC)

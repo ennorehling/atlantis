@@ -6,12 +6,13 @@
  * sold or used commercially without prior written permission from the author.
  */
 
-#include "atlantis.h"
-#include "region.h"
-#include "faction.h"
-#include "json.h"
+#include <atlantis.h>
+#include <region.h>
+#include <faction.h>
 
-#include "rtl.h"
+#include <rtl.h>
+
+#include "json.h"
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -745,7 +745,20 @@ const char *spelldata[] = {
     "to cast.",
 };
 
+typedef struct strlist {
+    struct strlist *next;
+    char s[1];
+} strlist;
+
 struct settings config;
+
+void freestrlist(strlist ** slist) {
+    while (*slist) {
+        strlist * sl = *slist;
+        *slist = sl->next;
+        free(sl);
+    }
+}
 
 int atoip(const char *s)
 {
@@ -4830,14 +4843,6 @@ void wqstrlist(storage * store, quicklist * ql)
     for (qli = qli_init(ql); qli_more(qli);) {
         const char * str = (const char *)qli_next(&qli);
         store->api->w_str(store->handle, str);
-    }
-}
-
-void freestrlist(strlist ** slist) {
-    while (*slist) {
-        strlist * sl = *slist;
-        *slist = sl->next;
-        free(sl);
     }
 }
 

@@ -14,7 +14,6 @@
 #include "bool.h"
 
 struct quicklist;
-struct strlist;
 struct battle;
 
 typedef union {
