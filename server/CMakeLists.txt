@@ -14,6 +14,10 @@ INCLUDE_DIRECTORIES (${ATLANTIS_INCLUDE_DIR})
 ADD_EXECUTABLE (server server.c json.c json.h)
 TARGET_LINK_LIBRARIES(server ${ATLANTIS_LIBRARIES})
 
+ADD_EXECUTABLE (test_server server.test.c json.c json.h)
+TARGET_LINK_LIBRARIES (test_server ${CUTEST_LIBRARIES} ${ATLANTIS_LIBRARIES})
+ADD_TEST (server test_server)
+
 IF (MSVC)
     MSVC_CRT_SECURE_NO_WARNINGS (server)
 ENDIF (MSVC)
