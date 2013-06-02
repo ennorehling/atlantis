@@ -868,22 +868,6 @@ void addstrlist(strlist ** SP, char *s)
     addlist(SP, makestrlist(s));
 }
 
-void catstrlist(strlist ** SP, strlist * S)
-{
-    strlist *S2;
-
-    while (*SP)
-        SP = &((*SP)->next);
-
-    while (S) {
-        S2 = makestrlist(S->s);
-        addlist2(SP, S2);
-        S = S->next;
-    }
-
-    *SP = 0;
-}
-
 FILE * cfopen(const char *filename, const char *mode)
 {
     FILE * F = fopen(filename, mode);
