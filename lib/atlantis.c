@@ -23,7 +23,6 @@
 #include "combat.h"
 #include "game.h"
 
-#include "json.h"
 #include "rtl.h"
 #include "bool.h"
 
@@ -1428,7 +1427,7 @@ void makeblock(int x1, int y1)
     }
 }
 
-char *gamedate(void)
+const char *gamedate(void)
 {
     static char buf[40];
     static char *monthnames[] = {
@@ -1496,7 +1495,7 @@ void sparagraph(strlist ** SP, const char *s, int indent, int mark)
     }
 }
 
-void spskill(unit * u, int i, int *dh, int days)
+void spskill(const unit * u, int i, int *dh, int days)
 {
     if (!u->skills[i])
         return;
@@ -1520,7 +1519,7 @@ void spskill(unit * u, int i, int *dh, int days)
     }
 }
 
-void spunit(strlist ** SP, faction * f, region * r, unit * u, int indent,
+void spunit(strlist ** SP, const faction * f, const region * r, const unit * u, int indent,
             bool battle)
 {
     const char * sc;
@@ -2329,7 +2328,7 @@ void rparagraph(FILE * F, char const *s, int indent, int mark)
     freelist(S);
 }
 
-void rpunit(FILE * F, faction * f, region * r, unit * u, int indent, bool battle)
+void rpunit(FILE * F, const faction * f, const region * r, const unit * u, int indent, bool battle)
 {
     strlist *S;
 
@@ -2339,7 +2338,7 @@ void rpunit(FILE * F, faction * f, region * r, unit * u, int indent, bool battle
     freelist(S);
 }
 
-void report(faction * f)
+void report(const faction * f)
 {
     FILE * F;
     int i;
@@ -2349,15 +2348,6 @@ void report(faction * f)
     building *b;
     ship *sh;
     unit *u;
-    stream strm;
-    cJSON * json;
-
-    sprintf(buf, "reports/%d-%d.json", turn, f->no);
-    fstream_init(&strm, cfopen(buf, "w"));
-    json = json_report(f);
-    json_write(json, &strm);
-    cJSON_Delete(json);
-    fstream_done(&strm);
 
     sprintf(buf, "reports/%d-%d.r", turn, f->no);
     F = cfopen(buf, "w");
@@ -2567,43 +2557,6 @@ void report(faction * f)
         rparagraph(F, "Unfortunately your faction has been wiped out. Please "
                    "contact the moderator if you wish to play again.", 0,
                    0);
-    }
-
-    fclose(F);
-}
-
-void reports(void)
-{
-    FILE * F;
-    faction *f;
-
-    _mkdir("reports");
-
-    for (f = factions; f; f = f->next)
-        report(f);
-
-    F = cfopen("send", "w");
-    puts("Writing send file...");
-
-    for (f = factions; f; f = f->next) {
-        const char * addr = faction_getaddr(f);
-        if (addr) {
-            fprintf(F, "mail %d-%d.r\n", turn, f->no);
-            fprintf(F, "in%%\"%s\"\n", addr);
-            fprintf(F, "Atlantis Report for %s\n", gamedate());
-        }
-    }
-
-    fclose(F);
-
-    F = cfopen("maillist", "w");
-    puts("Writing maillist file...");
-
-    for (f = factions; f; f = f->next) {
-        const char * addr = faction_getaddr(f);
-        if (addr) {
-            fprintf(F, "%s\n", addr);
-        }
     }
 
     fclose(F);

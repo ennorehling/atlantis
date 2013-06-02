@@ -9,6 +9,10 @@
 #include "atlantis.h"
 #include "region.h"
 #include "faction.h"
+#include "json.h"
+
+#include "rtl.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -16,6 +20,7 @@
 
 #include <stream.h>
 #include <filestream.h>
+#include <cJSON.h>
 
 static void fixme() {
     region * r;
@@ -24,6 +29,54 @@ static void fixme() {
             r->money = r->peasants * 3 / 2;
         }
     }
+}
+
+static void reports(void)
+{
+    FILE * F;
+    faction *f;
+
+    _mkdir("reports");
+
+    for (f = factions; f; f = f->next) {
+        cJSON * json;
+        char buf[256];
+        stream strm;
+
+        sprintf(buf, "reports/%d-%d.json", turn, f->no);
+        fstream_init(&strm, fopen(buf, "w"));
+        json = json_report(f);
+        json_write(json, &strm);
+        cJSON_Delete(json);
+        fstream_done(&strm);
+
+        report(f);
+    }
+    F = fopen("send", "w");
+    puts("Writing send file...");
+
+    for (f = factions; f; f = f->next) {
+        const char * addr = faction_getaddr(f);
+        if (addr) {
+            fprintf(F, "mail %d-%d.r\n", turn, f->no);
+            fprintf(F, "in%%\"%s\"\n", addr);
+            fprintf(F, "Atlantis Report for %s\n", gamedate());
+        }
+    }
+
+    fclose(F);
+
+    F = fopen("maillist", "w");
+    puts("Writing maillist file...");
+
+    for (f = factions; f; f = f->next) {
+        const char * addr = faction_getaddr(f);
+        if (addr) {
+            fprintf(F, "%s\n", addr);
+        }
+    }
+
+    fclose(F);
 }
 
 region *inputregion(void)

@@ -46,7 +46,9 @@ int cansee(const struct faction * f, const struct region * r, const struct unit 
 void read_orders(struct stream * strm);
 void processorders(void);
 void process_form(struct unit *u, struct region *r);
-void reports(void);
+void report(const struct faction * f);
+const char *gamedate(void);
+
 void initgame(void);
 void cleargame(void);
 int writegame(void);
