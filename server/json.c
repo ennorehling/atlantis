@@ -104,7 +104,7 @@ static cJSON * show_unit(const faction *f, const region * r, const unit * u) {
     json = cJSON_CreateObject();
     cJSON_AddNumberToObject(json, "id", u->no);
     if (cansee(f, r, u) == 2) {
-        cJSON_AddNumberToObject(json, "faction", f->no);
+        cJSON_AddNumberToObject(json, "faction", u->faction->no);
     }
     if ((str = unit_getname(u))!=0) {
         cJSON_AddStringToObject(json, "name", str);
