@@ -3,6 +3,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static int json_getint(cJSON *json, const char *key, int def) {
+  json = cJSON_GetObjectItem(json, key);
+  return json ? json->valueint : def;
+}
+
+static const char * json_getstr(cJSON *json, const char *key, const char *def) {
+  json = cJSON_GetObjectItem(json, key);
+  return json ? json->valuestring : def;
+}
+
 void print_template(cJSON *json, FILE *F) {
     int r;
     int fno = 0;
@@ -24,7 +34,7 @@ void print_template(cJSON *json, FILE *F) {
                 cJSON_GetObjectItem(region, "terrain")->valuestring,
                 cJSON_GetObjectItem(region, "x")->valueint,
                 cJSON_GetObjectItem(region, "y")->valueint,
-                cJSON_GetObjectItem(region, "money")->valueint);
+                json_getint(region, "money", 0));
         for (u = 0 ; u != cJSON_GetArraySize(units) ; ++u) {
             cJSON *chld, *unit = cJSON_GetArrayItem(units, u);
 
@@ -34,8 +44,8 @@ void print_template(cJSON *json, FILE *F) {
                 fprintf(F, ";%s, %d, $%d\n",
                         cJSON_GetObjectItem(unit, "name")->valuestring,
                         cJSON_GetObjectItem(unit, "number")->valueint,
-                        cJSON_GetObjectItem(unit, "money")->valueint);
-                fprintf(F, "    %s\n", cJSON_GetObjectItem(unit, "default")->valuestring);
+                        json_getint(unit, "money", 0));
+                fprintf(F, "    %s\n", json_getstr(unit, "default", ""));
             }
         }
         fputc('\n', F);
@@ -49,6 +59,9 @@ int main (int argc, char **argv) {
     cJSON *json;
     if (argc>=1) {
         F = fopen(argv[1], "rb");
+        if (!F) {
+            return -1;
+        }
         fseek(F,0,SEEK_END);
         len=ftell(F);
         fseek(F,0,SEEK_SET);
@@ -56,7 +69,7 @@ int main (int argc, char **argv) {
         if (data) {
             fread(data,1,len,F);
         }
-	fclose(F);
+        fclose(F);
 
         json = cJSON_Parse(data);
         print_template(json, stdout);
