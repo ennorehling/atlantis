@@ -570,7 +570,6 @@ void process_combat(void)
 {
     char buf2[256];
     faction **fa, *f;
-    region *r;
     int nfactions = 0;
     /* Combat */
 
@@ -580,7 +579,9 @@ void process_combat(void)
     fa = (faction **)malloc(nfactions * sizeof(faction *));
 
     if (fa && factions) {
-        for (r = regions; r; r = r->next) {
+        ql_iter rli;
+        for (rli = qli_init(regions); qli_more(rli);) {
+            region * r = (region *)qli_next(&rli);
             int i, fno;
         
             /* Create randomly sorted list of factions */

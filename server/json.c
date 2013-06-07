@@ -215,7 +215,7 @@ static cJSON * show_region(const faction *f, const region * r) {
 
 cJSON * json_report(const faction * f) {
     cJSON *json, *chld;
-    region *r;
+    ql_iter rli;
     int i;
     
     json = cJSON_CreateObject();
@@ -281,7 +281,8 @@ cJSON * json_report(const faction * f) {
     }
     cJSON_AddItemToObject(json, "regions", chld = cJSON_CreateArray());
     
-    for (r = regions; r; r = r->next) {
+    for (rli = qli_init(regions); qli_more(rli);) {
+        region * r = (region *)qli_next(&rli);
         unit * u;
 
         for (u = r->units; u; u = u->next) {

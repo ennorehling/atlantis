@@ -25,7 +25,6 @@ typedef enum {
 #define NUMTERRAINS 5
 
 typedef struct region {
-    struct region *next;
     int x, y;
     char * name_;
     struct region *connect[MAXDIRECTIONS];
@@ -38,7 +37,7 @@ typedef struct region {
     int immigrants;
 } region;
 
-extern struct region * regions;
+extern struct quicklist *regions;
 
 struct region * create_region(int x, int y, terrain_t t);
 void free_region(struct region *r);

@@ -29,7 +29,9 @@ faction * create_faction(int no)
         faction **iter;
 
         f->no = no;
-        for (iter=&factions; *iter; iter=&(*iter)->next);
+        for (iter=&factions; *iter; iter=&(*iter)->next) {
+            assert(f!=*iter);
+        }
         *iter = f;
     }
     return f;

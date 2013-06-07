@@ -23,9 +23,9 @@
 
 static unit *make_unit(faction *f, region *r, int no) {
     unit * u = create_unit(f, no);
-	u->number = 1;
+    u->number = 1;
     region_addunit(r, u);
-	return u;
+    return u;
 }
 
 static void test_wrapmap(CuTest * tc)
@@ -369,24 +369,26 @@ static void test_readwrite(CuTest * tc)
 static void test_fileops(CuTest * tc)
 {
     faction * f = 0;
-    region * r;
+    region * r = 0;
+    ql_iter rli;
     int x = 0, y = 0, fno;
 
     turn = -1;
     cleargame();
     initgame();
 
-    for (r=regions;r;r=r->next) {
-         if (r->terrain!=T_OCEAN) {
-             x = r->x, y = r->y;
-             f = addplayer(r, "enno@example.com", 0);
-             break;
-         }
+    for (rli = qli_init(regions); qli_more(rli);) {
+        r = (region *)qli_next(&rli);
+        if (r->terrain!=T_OCEAN) {
+            x = r->x, y = r->y;
+            f = addplayer(r, "enno@example.com", 0);
+            break;
+        }
     }
+    CuAssertPtrNotNull(tc, r);
     CuAssertPtrNotNull(tc, factions);
     CuAssertPtrNotNull(tc, f);
     fno = f->no;
-    CuAssertPtrNotNull(tc, r);
     writegame();
     cleargame();
     CuAssertPtrEquals(tc, 0, findregion(0, 0));

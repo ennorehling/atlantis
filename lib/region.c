@@ -4,11 +4,13 @@
 #include "ship.h"
 #include "building.h"
 
+#include <quicklist.h>
+
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 
-region *regions;
+quicklist *regions;
 
 region * create_region(int x, int y, terrain_t t)
 {
@@ -22,7 +24,7 @@ region * create_region(int x, int y, terrain_t t)
         r->y = y;
         r->terrain = t;
 
-        addlist(&regions, r);
+        ql_push(&regions, r);
     }
     return r;
 }

@@ -19,14 +19,16 @@
 #include <time.h>
 #include <ctype.h>
 
+#include <quicklist.h>
 #include <stream.h>
 #include <filestream.h>
 #include <cJSON.h>
 
 static void fixme() {
-    region * r;
     if (turn==0) { /* forgot to initialize regions with money */
-        for (r=regions;r;r=r->next) {
+        ql_iter rli;
+        for (rli = qli_init(regions); qli_more(rli);) {
+            region * r = (region *)qli_next(&rli);
             r->money = r->peasants * 3 / 2;
         }
     }
