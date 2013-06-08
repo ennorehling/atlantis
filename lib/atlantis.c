@@ -4643,6 +4643,8 @@ int readgame(void)
         if (store.api->r_str(store.handle, buf, sizeof(buf))==0) {
             faction_setpwhash(f, buf[0] ? buf : 0);
         }
+        /* erase the password to prevent memory bugs from exposing it */
+        memset(buf, 0, sizeof(buf));
         store.api->r_int(store.handle, &f->lastorders);
         store.api->r_int(store.handle, &f->origin_x);
         store.api->r_int(store.handle, &f->origin_y);
@@ -4728,7 +4730,7 @@ int readgame(void)
             sh = create_ship(no, SH_LONGBOAT);
 
             if (store.api->r_str(store.handle, name, sizeof(temp))==0) {
-                ship_setname(sh, temp);
+                ship_setname(sh, name);
             }
             if (store.api->r_str(store.handle, temp, sizeof(temp))==0) {
                 ship_setdisplay(sh, temp);
@@ -4748,7 +4750,7 @@ int readgame(void)
 
         while (--n2 >= 0) {
             char temp[DISPLAYSIZE];
-            int no, fno;
+            int no, fno, cs;
 
             store.api->r_int(store.handle, &no);
             store.api->r_int(store.handle, &fno);
@@ -4780,7 +4782,7 @@ int readgame(void)
             u->guard = no != 0;
 
             store.api->r_str(store.handle, u->lastorder, sizeof(u->lastorder));
-            store.api->r_int(store.handle, &u->combatspell);
+            store.api->r_int(store.handle, &cs);
 
             for (i = 0; i != MAXSKILLS; i++) {
                 store.api->r_int(store.handle, &no);
@@ -4794,11 +4796,14 @@ int readgame(void)
             for (i = 0; i != MAXSPELLS; i++) {
                 store.api->r_int(store.handle, &no);
                 u->spells[i] = (spell_t)no;
+                if (no==cs) {
+                    u->combatspell = cs;
+                }
                 if (u->spells[i]) {
                     u->faction->seendata[i] = true;
                 }
             }
-
+            
             addlist2(up, u);
         }
 

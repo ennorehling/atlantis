@@ -16,6 +16,7 @@ unit * create_unit(struct faction *f, int no)
     if (self) {
         self->faction = f;
         self->no = no;
+        self->combatspell = -1;
         sprintf(name, "Unit %d", no);
         unit_setname(self, name);
     }
