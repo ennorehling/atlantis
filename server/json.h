@@ -13,6 +13,6 @@ struct stream;
 struct faction;
 struct cJSON;
 
-struct cJSON * json_report(const struct faction *f);
+struct cJSON * json_report(struct faction *f);
 void json_write(struct cJSON *json, struct stream *out);
 #endif

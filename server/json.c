@@ -23,7 +23,7 @@ static cJSON * show_qstrlist(quicklist *ql) {
     ql_iter qli;
     cJSON *json;
     json = cJSON_CreateArray();
-    for (qli=qli_init(ql); qli_more(qli);) {
+    for (qli=qli_init(&ql); qli_more(qli);) {
         char * s = (char *)qli_next(&qli);
         cJSON_AddItemToArray(json, cJSON_CreateString(s));
     }
@@ -213,7 +213,7 @@ static cJSON * show_region(const faction *f, const region * r) {
     return json;
 }
 
-cJSON * json_report(const faction * f) {
+cJSON * json_report(faction * f) {
     cJSON *json, *chld;
     ql_iter rli;
     int i;
@@ -247,7 +247,7 @@ cJSON * json_report(const faction * f) {
     if (f->battles) {
         ql_iter bli;
         cJSON_AddItemToObject(json, "battles", chld = cJSON_CreateArray());
-        for (bli = qli_init(f->battles);qli_more(bli);) {
+        for (bli = qli_init(&f->battles);qli_more(bli);) {
             battle * b = (battle *)qli_next(&bli);
             cJSON *jbtl, *jsd;
             int i;
@@ -274,14 +274,14 @@ cJSON * json_report(const faction * f) {
     if (f->allies.factions) {
         ql_iter qli;
         cJSON_AddItemToObject(json, "allies", chld = cJSON_CreateArray());
-        for (qli = qli_init(f->allies.factions); qli_more(qli);) {
+        for (qli = qli_init(&f->allies.factions); qli_more(qli);) {
             faction *rf = (faction *)qli_next(&qli);
             cJSON_AddItemToArray(json, cJSON_CreateNumber(rf->no));
         }
     }
     cJSON_AddItemToObject(json, "regions", chld = cJSON_CreateArray());
     
-    for (rli = qli_init(regions); qli_more(rli);) {
+    for (rli = qli_init(&regions); qli_more(rli);) {
         region * r = (region *)qli_next(&rli);
         unit * u;
 

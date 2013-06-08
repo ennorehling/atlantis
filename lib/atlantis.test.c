@@ -225,7 +225,7 @@ static void test_addplayers(CuTest * tc)
     region * r;
     unit * u;
     stream strm;
-    faction * f;
+    ql_iter fli;
     int n;
 
     cleargame();
@@ -239,13 +239,14 @@ static void test_addplayers(CuTest * tc)
     addplayers(r, &strm);
     CuAssertPtrNotNull(tc, factions);
     CuAssertPtrNotNull(tc, r->units);
-    for (u=r->units,f=factions,n=0;f && u;f=f->next,u=u->next,++n) {
+    for (u=r->units,fli=qli_init(&factions),n=0;qli_more(fli) && u;u=u->next,++n) {
+        faction *f = (faction *)qli_next(&fli);
         CuAssertPtrEquals(tc, u->faction, f);
         CuAssertIntEquals(tc, 1, u->number);
     }
     CuAssertIntEquals(tc, 2, n);
     CuAssertPtrEquals(tc, 0, u);
-    CuAssertPtrEquals(tc, 0, f);
+    CuAssertTrue(tc, !qli_more(fli));
 }
 
 static void test_addplayer(CuTest * tc)
@@ -377,7 +378,7 @@ static void test_fileops(CuTest * tc)
     cleargame();
     initgame();
 
-    for (rli = qli_init(regions); qli_more(rli);) {
+    for (rli = qli_init(&regions); qli_more(rli);) {
         r = (region *)qli_next(&rli);
         if (r->terrain!=T_OCEAN) {
             x = r->x, y = r->y;
@@ -613,12 +614,12 @@ static void test_remove_empty(CuTest * tc)
     r = create_region(0, 0, T_PLAIN);
     f = create_faction(1);
     u = make_unit(f, r, 1);
-	u->number = 0;
+    u->number = 0;
     writegame();
     cleargame();
     readgame();
-	CuAssertPtrEquals(tc, 0, findunitg(1));
-	CuAssertPtrEquals(tc, 0, findfaction(1));
+    CuAssertPtrEquals(tc, 0, findunitg(1));
+    CuAssertPtrEquals(tc, 0, findfaction(1));
 }
 
 static void test_unit_display(CuTest * tc)

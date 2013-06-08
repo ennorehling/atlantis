@@ -46,7 +46,7 @@ typedef struct faction {
     int money;
 } faction;
 
-extern struct faction *factions;
+extern struct quicklist *factions;
 
 struct faction * create_faction(int no);
 void free_faction(struct faction *f);

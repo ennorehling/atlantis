@@ -14,12 +14,8 @@ void cleargame(void)
     ql_foreach(regions, (ql_cb)free_region);
     ql_free(regions);
     regions = 0;
-
-    while (factions) {
-        faction * f = factions;
-        factions = f->next;
-
-        free_faction(f);
-    }
+    ql_foreach(factions, (ql_cb)free_faction);
+    ql_free(factions);
+    factions = 0;
 }
 

@@ -20,19 +20,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-faction *factions;
+struct quicklist *factions;
 
 faction * create_faction(int no)
 {
     faction * f = (faction *)calloc(1, sizeof(faction));
     if (f) {
-        faction **iter;
-
         f->no = no;
-        for (iter=&factions; *iter; iter=&(*iter)->next) {
-            assert(f!=*iter);
-        }
-        *iter = f;
+        ql_push(&factions, f);
     }
     return f;
 }

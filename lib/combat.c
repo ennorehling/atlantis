@@ -169,9 +169,10 @@ static void addbattle(battle * b, const char *s)
 
 static void battlerecord(char *s)
 {
-    faction *f;
+    ql_iter fli;
 
-    for (f = factions; f; f = f->next) {
+    for (fli = qli_init(&factions); qli_more(fli);) {
+        faction *f = (faction *)qli_next(&fli);
         if (f->thisbattle) {
             addbattle(f->thisbattle, s);
         }
@@ -229,9 +230,10 @@ void battle_add_unit(battle * b, const unit * u)
 
 void battle_report_unit(const unit * u)
 {
-    faction *f;
+    ql_iter fli;
 
-    for (f = factions; f; f = f->next) {
+    for (fli = qli_init(&factions); qli_more(fli);) {
+        faction *f = (faction *)qli_next(&fli);
         if (f->thisbattle) {
             battle_add_unit(f->thisbattle, u);
         }
@@ -569,40 +571,44 @@ static bool ispresent(const faction * f, const region * r)
 void process_combat(void)
 {
     char buf2[256];
-    faction **fa, *f;
-    int nfactions = 0;
+    faction **fa;
+    int nfactions;
+
     /* Combat */
 
     puts("Processing ATTACK orders...");
 
-    for (f=factions;f;f=f->next) ++nfactions;
+    nfactions = ql_length(factions);
     fa = (faction **)malloc(nfactions * sizeof(faction *));
 
     if (fa && factions) {
         ql_iter rli;
-        for (rli = qli_init(regions); qli_more(rli);) {
+        for (rli = qli_init(&regions); qli_more(rli);) {
             region * r = (region *)qli_next(&rli);
+            ql_iter fli;
             int i, fno;
         
             /* Create randomly sorted list of factions */
-            fa[0] = factions;
-            for (f = factions->next, i = 1; f; ++i, f = f->next) {
+            fli = qli_init(&factions);
+            fa[0] = (faction *)qli_next(&fli);
+            for (i = 1; qli_more(fli); ++i) {
                 int j = genrand_int31() % i;
                 fa[i] = fa[j];
-                fa[j] = f;
+                fa[j] = (faction *)qli_next(&fli);
             }
 
             /* Handle each faction's attack orders */
 
             for (fno = 0; fno != nfactions; fno++) {
                 unit *u;
+                faction *f;
 
                 f = fa[fno];
 
                 for (u = r->units; u; u = u->next) {
                     if (u->faction == f) {
                         ql_iter oli;
-                        for (oli = qli_init(u->orders); qli_more(oli);) {
+                        for (oli = qli_init(&u->orders); qli_more(oli);) {
                             char *s = (char *)qli_next(&oli);
                             if (igetkeyword(s) == K_ATTACK) {
                                 int leader[2];
@@ -612,7 +618,6 @@ void process_combat(void)
                                 int winnercasualties = 0, deadpeasants = 0, lmoney = 0;
                                 int litems[MAXITEMS];
                                 int n, k, j;
-                                faction *f2;
                                 building *b;
                                 unit *u2, *u3, *u4;
                             
@@ -656,12 +661,13 @@ void process_combat(void)
 
                                 /* What units are involved? */
 
-                                for (f2 = factions; f2; f2 = f2->next) {
+                                for (fli = qli_init(&factions); qli_more(fli); ) {
+                                    faction *f2 = (faction *)qli_next(&fli);
                                     f2->attacking = false;
                                 }
                                 for (u3 = r->units; u3; u3 = u3->next) {
                                     ql_iter oli;
-                                    for (oli = qli_init(u3->orders); qli_more(oli);) {
+                                    for (oli = qli_init(&u3->orders); qli_more(oli);) {
                                         char *s = (char *)qli_next(&oli);
                                         if (igetkeyword(s) == K_ATTACK) {
                                             int j = getseen(r, u3->faction, &u4);
@@ -716,7 +722,8 @@ void process_combat(void)
 
                                 /* Initial attack message */
 
-                                for (f2 = factions; f2; f2 = f2->next) {
+                                for (fli = qli_init(&factions); qli_more(fli);) {
+                                    faction *f2 = (faction *)qli_next(&fli);
                                     if (ispresent(f2, r)) {
                                         f2->thisbattle = create_battle(r);
                                         ql_push(&f2->battles, f2->thisbattle);
@@ -730,7 +737,8 @@ void process_combat(void)
                                 } else {
                                     strcpy(buf2, "the peasants");
                                 }
-                                for (f2 = factions; f2; f2 = f2->next) {
+                                for (fli = qli_init(&factions); qli_more(fli); ) {
+                                    faction *f2 = (faction *)qli_next(&fli);
                                     if (f2->thisbattle) {
                                         battle * b = f2->thisbattle;
                                         sprintf(buf, "%s attacks %s in %s!", unitid(u),
@@ -754,7 +762,8 @@ void process_combat(void)
                                     u3 = battle_create_unit(u->faction, 0, r->peasants,
                                                             "Peasants", 0, 0, false);
                                     u3->side = 1;
-                                    for (f2 = factions; f2; f2 = f2->next) {
+                                    for (fli = qli_init(&factions); qli_more(fli); ) {
+                                        faction *f2 = (faction *)qli_next(&fli);
                                         if (f2->thisbattle) {
                                             battle_add_unit(f2->thisbattle, u3);
                                         }
@@ -1011,7 +1020,8 @@ void process_combat(void)
                                 }
                                 /* Report loot */
 
-                                for (f2 = factions; f2; f2 = f2->next) {
+                                for (fli = qli_init(&factions); qli_more(fli); ) {
+                                    faction *f2 = (faction *)qli_next(&fli);
                                     f2->dh = 0;
                                 }
                                 for (u3 = r->units; u3; u3 = u3->next) {

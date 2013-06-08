@@ -27,7 +27,7 @@
 static void fixme() {
     if (turn==0) { /* forgot to initialize regions with money */
         ql_iter rli;
-        for (rli = qli_init(regions); qli_more(rli);) {
+        for (rli = qli_init(&regions); qli_more(rli);) {
             region * r = (region *)qli_next(&rli);
             r->money = r->peasants * 3 / 2;
         }
@@ -37,11 +37,12 @@ static void fixme() {
 static void reports(void)
 {
     FILE * F;
-    faction *f;
+    ql_iter fli;
 
     _mkdir("reports");
 
-    for (f = factions; f; f = f->next) {
+    for (fli = qli_init(&factions); qli_more(fli);) {
+        faction * f = (faction *)qli_next(&fli);
         cJSON * json;
         char buf[256];
         stream strm;
@@ -58,7 +59,8 @@ static void reports(void)
     F = fopen("send", "w");
     puts("Writing send file...");
 
-    for (f = factions; f; f = f->next) {
+    for (fli = qli_init(&factions); qli_more(fli);) {
+        faction * f = (faction *)qli_next(&fli);
         const char * addr = faction_getaddr(f);
         if (addr) {
             fprintf(F, "mail %d-%d.r\n", turn, f->no);
@@ -72,7 +74,8 @@ static void reports(void)
     F = fopen("maillist", "w");
     puts("Writing maillist file...");
 
-    for (f = factions; f; f = f->next) {
+    for (fli = qli_init(&factions); qli_more(fli);) {
+        faction * f = (faction *)qli_next(&fli);
         const char * addr = faction_getaddr(f);
         if (addr) {
             fprintf(F, "%s\n", addr);
