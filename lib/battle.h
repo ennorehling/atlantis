@@ -6,7 +6,6 @@ struct region;
 struct unit;
 
 typedef struct battle {
-    struct battle * next; 
     struct unit * units[2];
     struct region * region;
     struct quicklist * events;

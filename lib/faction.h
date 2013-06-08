@@ -22,7 +22,6 @@ typedef union {
 } rfaction;
 
 typedef struct faction {
-    struct faction *next;
     int no, origin_x, origin_y;
     char * name_;
     char * addr_;
