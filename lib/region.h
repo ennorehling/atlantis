@@ -31,7 +31,7 @@ typedef struct region {
     terrain_t terrain;
     int peasants;
     int money;
-    struct building *buildings;
+    struct quicklist *buildings;
     struct ship *ships;
     struct unit *units;
     int immigrants;

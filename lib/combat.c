@@ -618,8 +618,8 @@ void process_combat(void)
                                 int winnercasualties = 0, deadpeasants = 0, lmoney = 0;
                                 int litems[MAXITEMS];
                                 int n, k, j;
-                                building *b;
                                 unit *u2, *u3, *u4;
+                                ql_iter qli;
                             
                                 j = getseen(r, u->faction, &u2);
 
@@ -640,7 +640,9 @@ void process_combat(void)
 
                                 /* Draw up troops for the battle */
 
-                                for (b = r->buildings; b; b = b->next) {
+                                for (qli=qli_init(&r->buildings);qli_more(qli);) {
+                                    building *b = (building *)qli_next(&qli);
+
                                     b->sizeleft = b->size;
                                 }
 

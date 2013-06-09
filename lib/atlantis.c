@@ -1015,15 +1015,17 @@ region *findregion(int x, int y)
 
 building *findbuilding(int n)
 {
-    building *b;
-
     ql_iter rli;
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        for (b = r->buildings; b; b = b->next)
+        ql_iter qli;
+
+        for (qli=qli_init(&r->buildings);qli_more(qli);) {
+            building *b = (building *)qli_next(&qli);
             if (b->no == n)
                 return b;
+        }
     }
     return 0;
 }
@@ -1031,11 +1033,12 @@ building *findbuilding(int n)
 building *getbuilding(region * r)
 {
     int n;
-    building *b;
+    ql_iter qli;
 
     n = atoi(getstr());
 
-    for (b = r->buildings; b; b = b->next) {
+    for (qli=qli_init(&r->buildings);qli_more(qli);) {
+        building *b = (building *)qli_next(&qli);
         if (b->no == n) {
             return b;
         }
@@ -2335,7 +2338,6 @@ void report(faction * f)
     int dh;
     int anyunits;
     ql_iter rli;
-    building *b;
     ship *sh;
     unit *u;
 
@@ -2435,6 +2437,8 @@ void report(faction * f)
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
         int d;
+        ql_iter qli;
+
         for (u = r->units; u; u = u->next)
             if (u->faction == f)
                 break;
@@ -2472,7 +2476,8 @@ void report(faction * f)
 
         dh = 0;
 
-        for (b = r->buildings; b; b = b->next) {
+        for (qli=qli_init(&r->buildings);qli_more(qli);) {
+            building *b = (building *)qli_next(&qli);
             sprintf(buf, "%s, size %d", buildingid(b), b->size);
 
             if (building_getdisplay(b)) {
@@ -4597,7 +4602,7 @@ int readgame(void)
     int i, n, n2;
     ql_iter fli;
     region *r;
-    building *b, **bp;
+    building *b;
     ship *sh, **shp;
     unit *u, **up;
     int minx, miny, maxx, maxy;
@@ -4699,7 +4704,6 @@ int readgame(void)
 
         store.api->r_int(store.handle, &n2);
         if (n2<0) return -4;
-        bp = &r->buildings;
 
         while (--n2 >= 0) {
             b = (building *)malloc(sizeof(building));
@@ -4713,10 +4717,8 @@ int readgame(void)
             }
             store.api->r_int(store.handle, &b->size);
 
-            addlist2(bp, b);
+            ql_push(&r->buildings, b);
         }
-
-        *bp = 0;
 
         store.api->r_int(store.handle, &n2);
         if (n2<0) return -5;
@@ -4880,7 +4882,6 @@ int writegame(void)
     storage store;
     int i;
     ql_iter rli, fli;
-    building *b;
     ship *sh;
     unit *u;
 
@@ -4930,6 +4931,8 @@ int writegame(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
+        ql_iter qli;
+
         store.api->w_int(store.handle, r->x);
         store.api->w_int(store.handle, r->y);
         store.api->w_int(store.handle, r->terrain);
@@ -4939,7 +4942,9 @@ int writegame(void)
 
         store.api->w_int(store.handle, listlen(r->buildings));
 
-        for (b = r->buildings; b; b = b->next) {
+        for (qli=qli_init(&r->buildings);qli_more(qli);) {
+            building *b = (building *)qli_next(&qli);
+
             store.api->w_int(store.handle, b->no);
             store.api->w_str(store.handle, building_getname(b));
             store.api->w_str(store.handle, building_getdisplay(b));

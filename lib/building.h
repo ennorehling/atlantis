@@ -10,7 +10,6 @@
 #define ATL_BUILDING_H
 
 typedef struct building {
-    struct building *next;
     int no;
     char *name_;
     char *display_;

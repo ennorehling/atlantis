@@ -165,11 +165,12 @@ static cJSON * show_exit(const faction *f, const region * r, int d) {
     return json;
 }
 
-static cJSON * show_region(const faction *f, const region * r) {
+static cJSON * show_region(const faction *f, region * r) {
     cJSON *json, *chld;
     int x, y, d;
     unit * u;
     const char * str;
+    ql_iter qli;
     
     x = (r->x - f->origin_x + config.width) % config.width;
     y = (r->y - f->origin_y + config.height) % config.height;
@@ -193,9 +194,9 @@ static cJSON * show_region(const faction *f, const region * r) {
         }
     }
     if (r->buildings) {
-        building *b;
         cJSON_AddItemToObject(json, "buildings", chld = cJSON_CreateArray());
-        for (b=r->buildings;b;b=b->next) {
+        for (qli=qli_init(&r->buildings);qli_more(qli);) {
+            building *b = (building *)qli_next(&qli);
             cJSON_AddItemToArray(chld, show_building(f, b));
         }
     }
