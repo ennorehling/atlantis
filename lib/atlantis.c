@@ -2186,7 +2186,7 @@ void writesummary(void)
     fprintf(F, "Regions: %d\n", ql_length(regions));
     fprintf(F, "Inhabited Regions: %d\n\n", inhabitedregions);
 
-    fprintf(F, "Factions: %d\n", listlen(factions));
+    fprintf(F, "Factions: %d\n", ql_length(factions));
     fprintf(F, "Units: %d\n\n", nunits);
 
     fprintf(F, "Player Population: %d\n", playerpop);
@@ -4901,7 +4901,7 @@ int writegame(void)
 
     /* Write factions */
 
-    store.api->w_int(store.handle, listlen(factions));
+    store.api->w_int(store.handle, ql_length(factions));
 
     for (fli = qli_init(&factions); qli_more(fli);) {
         faction *f = (faction *)qli_next(&fli);
