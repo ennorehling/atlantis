@@ -36,11 +36,9 @@ void free_region(region *r) {
         r->units = u->next;
         free_unit(u);
     }
-    while (r->ships) {
-        ship * s = r->ships;
-        r->ships = s->next;
-        free(s);
-    }
+    ql_foreach(r->ships, (ql_cb)free_ship);
+    ql_free(r->ships);
+    r->ships = 0;
     ql_foreach(r->buildings, (ql_cb)free_building);
     ql_free(r->buildings);
     r->buildings = 0;

@@ -1049,14 +1049,17 @@ building *getbuilding(region * r)
 
 ship *findship(int n)
 {
-    ship *sh;
     ql_iter rli;
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        for (sh = r->ships; sh; sh = sh->next)
+        ql_iter sli;
+
+        for (sli = qli_init(&r->ships); qli_more(sli);) {
+            ship *sh = (ship *)qli_next(&sli);
             if (sh->no == n)
                 return sh;
+        }
     }
     return 0;
 }
@@ -1064,11 +1067,12 @@ ship *findship(int n)
 ship *getship(region * r)
 {
     int n;
-    ship *sh;
+    ql_iter sli;
 
     n = atoi(getstr());
 
-    for (sh = r->ships; sh; sh = sh->next) {
+    for (sli = qli_init(&r->ships); qli_more(sli);) {
+        ship *sh = (ship *)qli_next(&sli);
         if (sh->no == n) {
             return sh;
         }
@@ -1666,7 +1670,6 @@ void leave(region * r, unit * u)
 void removeempty(void)
 {
     int i;
-    ship *sh, *sh2;
     unit *u, *u2, *u3;
     ql_iter rli;
 
@@ -1697,19 +1700,24 @@ void removeempty(void)
             u = u2;
         }
 
-        if (r->terrain == T_OCEAN)
-            for (sh = r->ships; sh;) {
-                sh2 = sh->next;
+        if (r->terrain == T_OCEAN) {
+            ql_iter sli;
+            for (sli = qli_init(&r->ships); qli_more(sli);) {
+                ship *sh = (ship *)ql_get(sli.l, sli.i);
 
-                for (u = r->units; u; u = u->next)
-                    if (u->ship == sh)
+                for (u = r->units; u; u = u->next) {
+                    if (u->ship == sh) {
                         break;
-
-                if (!u)
-                    removelist(&r->ships, sh);
-
-                sh = sh2;
+                    }
+                }
+                if (!u) {
+                    free_ship(sh);
+                    qli_delete(&sli);
+                } else {
+                    qli_next(&sli);
+                }
             }
+        }
     }
 }
 
@@ -1720,13 +1728,14 @@ void destroyfaction(faction * f)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        for (u = r->units; u; u = u->next)
+        for (u = r->units; u; u = u->next) {
             if (u->faction == f) {
                 if (r->terrain != T_OCEAN)
                     r->peasants += u->number;
 
                 u->number = 0;
             }
+        }
     }
 }
 
@@ -2338,7 +2347,6 @@ void report(faction * f)
     int dh;
     int anyunits;
     ql_iter rli;
-    ship *sh;
     unit *u;
 
     sprintf(buf, "reports/%d-%d.r", turn, f->no);
@@ -2505,7 +2513,8 @@ void report(faction * f)
                     rpunit(F, f, r, u, 8, 0);
         }
 
-        for (sh = r->ships; sh; sh = sh->next) {
+        for (qli = qli_init(&r->ships); qli_more(qli);) {
+            ship *sh = (ship *)qli_next(&qli);
             sprintf(buf, "%s, %s", shipid(sh), shiptypenames[sh->type]);
             if (sh->left)
                 scat(", under construction");
@@ -4603,7 +4612,7 @@ int readgame(void)
     ql_iter fli;
     region *r;
     building *b;
-    ship *sh, **shp;
+    ship *sh;
     unit *u, **up;
     int minx, miny, maxx, maxy;
     storage store;
@@ -4722,7 +4731,6 @@ int readgame(void)
 
         store.api->r_int(store.handle, &n2);
         if (n2<0) return -5;
-        shp = &r->ships;
 
         while (--n2 >= 0) {
             int no, type;
@@ -4741,10 +4749,8 @@ int readgame(void)
             sh->type = (ship_t)type;
             store.api->r_int(store.handle, &sh->left);
 
-            addlist2(shp, sh);
+            ql_push(&r->ships, sh);
         }
-
-        *shp = 0;
 
         store.api->r_int(store.handle, &n2);
         if (n2<0) return -7;
@@ -4882,7 +4888,6 @@ int writegame(void)
     storage store;
     int i;
     ql_iter rli, fli;
-    ship *sh;
     unit *u;
 
     sprintf(buf, "data/%d", turn);
@@ -4953,7 +4958,8 @@ int writegame(void)
 
         store.api->w_int(store.handle, listlen(r->ships));
 
-        for (sh = r->ships; sh; sh = sh->next) {
+        for (qli = qli_init(&r->ships); qli_more(qli);) {
+            ship *sh = (ship *)qli_next(&qli);
             store.api->w_int(store.handle, sh->no);
             store.api->w_str(store.handle, ship_getname(sh));
             store.api->w_str(store.handle, ship_getdisplay(sh));

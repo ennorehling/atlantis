@@ -201,9 +201,11 @@ static cJSON * show_region(const faction *f, region * r) {
         }
     }
     if (r->ships) {
-        ship *s;
+        ql_iter sli;
+
         cJSON_AddItemToObject(json, "ships", chld = cJSON_CreateArray());
-        for (s=r->ships;s;s=s->next) {
+        for (sli = qli_init(&r->ships); qli_more(sli);) {
+            ship *s = (ship *)qli_next(&sli);
             cJSON_AddItemToArray(chld, show_ship(f, s));
         }
     }
