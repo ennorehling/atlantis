@@ -56,7 +56,6 @@ int ignore_password = 0;
 #define VER_CURRENT VER_HEADER
 
 #define addlist2(l,p) (*l = p, l = &p->next)
-#define xisdigit(c) ((c) == '-' || ((c) >= '0' && (c) <= '9'))
 
 static void (*store_init)(struct storage *, FILE *) = binstore_init;
 static void (*store_done)(struct storage *) = binstore_done;
@@ -785,11 +784,6 @@ void rnd_seed(unsigned long x)
     init_genrand(x);
 }
 
-int rnd(void)
-{
-    return (int)genrand_int31();
-}
-
 void addlist(void *l1, void *p1)
 {
     list **l;
@@ -1195,8 +1189,8 @@ void transmute(int from, int to, int n, int count)
         i = 0;
 
         do {
-            x = rnd() % BLOCKSIZE;
-            y = rnd() % BLOCKSIZE;
+            x = genrand_int31() % BLOCKSIZE;
+            y = genrand_int31() % BLOCKSIZE;
             i += count;
         }
         while (i <= 10 &&
@@ -1219,8 +1213,8 @@ void seed(terrain_t to, int n)
     int x, y;
 
     do {
-        x = rnd() % BLOCKSIZE;
-        y = rnd() % BLOCKSIZE;
+        x = genrand_int31() % BLOCKSIZE;
+        y = genrand_int31() % BLOCKSIZE;
     }
     while (newblock[x][y] != T_PLAIN);
 
@@ -1258,10 +1252,10 @@ void initregion(region *r) {
             if (rname)
                 n++;
         }
-        i = rnd() % (sizeof regionnames / sizeof(char *));
+        i = genrand_int31() % (sizeof regionnames / sizeof(char *));
         if (n < sizeof regionnames / sizeof(char *))
             while (regionnameinuse(regionnames[i]))
-                i = rnd() % (sizeof regionnames /
+                i = genrand_int31() % (sizeof regionnames /
                                 sizeof(char *));
 
         region_setname(r, regionnames[i]);
@@ -1274,8 +1268,8 @@ faction * autoplayer(int bx, int by, int no, const char * email, const char * na
 {
     int d, x, y, maxtries = 10;
     do {
-        x = rnd() % BLOCKSIZE;
-        y = rnd() % BLOCKSIZE;
+        x = genrand_int31() % BLOCKSIZE;
+        y = genrand_int31() % BLOCKSIZE;
     } while (--maxtries && newblock[x][y]!=T_OCEAN);
     if (maxtries) {
         faction * f;
@@ -1290,7 +1284,7 @@ faction * autoplayer(int bx, int by, int no, const char * email, const char * na
             region * rc = r->connect[d];
             if (!rc) {
                 int cx = r->x, cy = r->y;
-                terrain_t t = (terrain_t)(rnd() % NUMTERRAINS);
+                terrain_t t = (terrain_t)(genrand_int31() % NUMTERRAINS);
                 transform(&cx, &cy, d);
                 rc = create_region(cx, cy, t);
                 r->connect[d] = rc;
@@ -1775,7 +1769,7 @@ int distribute(int old, int nyu, int n)
 
     t = (n / old) * nyu;
     for (i = (n % old); i; i--)
-        if (rnd() % old < nyu)
+        if (genrand_int31() % old < nyu)
             t++;
 
     return t;
@@ -4135,7 +4129,7 @@ void processorders(void)
                     }
 
                     do
-                        j = rnd() % MAXSPELLS;
+                        j = genrand_int31() % MAXSPELLS;
                     while (spelllevel[j] != i || u->spells[j] == 1);
 
                     if (!u->faction->seendata[j]) {
@@ -4517,7 +4511,7 @@ void processorders(void)
 
         if (r->terrain != T_OCEAN) {
             for (n = r->peasants; n; n--)
-                if (rnd() % 100 < POPGROWTH)
+                if (genrand_int31() % 100 < POPGROWTH)
                     r->peasants++;
 
             n = r->money / MAINTENANCE;
@@ -4525,8 +4519,8 @@ void processorders(void)
             r->money -= r->peasants * MAINTENANCE;
 
             for (n = r->peasants; n; n--) {
-                if (rnd() % 100 < PEASANTMOVE) {
-                    i = rnd() % MAXDIRECTIONS;
+                if (genrand_int31() % 100 < PEASANTMOVE) {
+                    i = genrand_int31() % MAXDIRECTIONS;
 
                     if (r->connect[i]->terrain != T_OCEAN) {
                         r->peasants--;
@@ -4586,24 +4580,6 @@ void rqstrlist(storage * store, quicklist ** qlp)
             if (qlp) ql_push(qlp, _strdup(buf));
         }
     }
-}
-
-void rstrlist(storage * store, strlist ** SP)
-{
-    int n;
-    strlist *S;
-
-    store->api->r_int(store->handle, &n);
-
-    while (--n >= 0) {
-        char buf[1023];
-        if (store->api->r_str(store->handle, buf, sizeof(buf))==0) {
-            S = makestrlist(buf);
-            addlist2(SP, S);
-        }
-    }
-
-    *SP = 0;
 }
 
 int readgame(void)
