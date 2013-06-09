@@ -22,7 +22,6 @@ typedef enum {
 } ship_t;
 
 typedef struct ship {
-    struct ship *next;
     int no;
     char *name_;
     char *display_;

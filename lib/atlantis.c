@@ -2377,8 +2377,9 @@ void report(faction * f)
             rps("");
             rnl(F);
             for (i = 0; i!=2; ++i) {
-                unit * u;
-                for (u=b->units[i];u;u=u->next) {
+                ql_iter uli;
+                for (uli=qli_init(b->units+i);qli_more(uli);) {
+                    unit *u = (unit *)qli_next(&uli);
                     rpunit(F, f, b->region, u, 4, true);
                 }
                 rps("");

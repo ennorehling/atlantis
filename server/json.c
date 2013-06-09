@@ -261,10 +261,11 @@ cJSON * json_report(faction * f) {
             cJSON_AddItemToObject(jbtl, "sides", jsd = cJSON_CreateArray());
             for (i=0;i!=2;++i) {
                 cJSON * jul;
-                unit * u;
+                ql_iter uli;
 
                 cJSON_AddItemToArray(jsd, jul = cJSON_CreateArray());
-                for (u=b->units[i];u;u=u->next) {
+                for (uli=qli_init(b->units+i);qli_more(uli);) {
+                    unit *u = (unit *)qli_next(&uli);
                     cJSON_AddItemToArray(jul, show_unit(f, b->region, u));
                 }
             }

@@ -224,8 +224,7 @@ void battle_add_unit(battle * b, const unit * u)
     u2 = battle_create_unit(u->faction, u->no, u->number,
                             unit_getname(u), unit_getdisplay(u), 
                             u->items, u->behind);
-    u2->next = b->units[u->side];
-    addlist(b->units+u->side, u2);
+    ql_push(b->units+u->side, u2);
 }
 
 void battle_report_unit(const unit * u)
@@ -257,8 +256,9 @@ int hits(void)
 {
     int k;
 
-    if (defender->weapon == I_CROSSBOW || defender->weapon == I_LONGBOW)
+    if (defender->weapon == I_CROSSBOW || defender->weapon == I_LONGBOW) {
         defender->skill = -2;
+    }
     defender->skill += defender->inside;
     attacker->skill -= (attacker->demoralized + attacker->dazzled);
     defender->skill -= (defender->demoralized + defender->dazzled);
