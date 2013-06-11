@@ -1662,6 +1662,7 @@ void removeempty(void)
                     if (u->ship == sh) {
                         break;
                     }
+                    u = 0;
                 }
                 if (!u) {
                     free_ship(sh);
@@ -1676,14 +1677,13 @@ void removeempty(void)
 
 void destroyfaction(faction * f)
 {
-    unit *u;
     ql_iter rli;
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
         ql_iter uli;
         for (uli=qli_init(&r->units);qli_more(uli);) {
-            u = (unit *)qli_next(&uli);
+            unit *u = (unit *)qli_next(&uli);
             if (u->faction == f) {
                 if (r->terrain != T_OCEAN)
                     r->peasants += u->number;
@@ -1893,7 +1893,7 @@ NEXTPLAYER:
                     region *r = (region *)qli_next(&rli);
                     ql_iter uli;
                     for (uli=qli_init(&r->units);qli_more(uli);) {
-                        u = (unit *)qli_next(&uli);
+                        unit *u = (unit *)qli_next(&uli);
                         if (u->faction == f) {
                             ql_free(u->orders);
                             u->orders = 0;
@@ -2136,7 +2136,7 @@ void writesummary(void)
             peasantmoney += r->money;
 
             for (uli=qli_init(&r->units);qli_more(uli);) {
-                u = (unit *)qli_next(&uli);
+                unit *u = (unit *)qli_next(&uli);
                 nunits++;
                 playerpop += u->number;
                 playermoney += u->money;
@@ -2418,6 +2418,7 @@ void report(faction * f)
             u = (unit *)qli_next(&qli);
             if (u->faction == f)
                 break;
+            u = 0;
         }
         if (!u) continue;
 
