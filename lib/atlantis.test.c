@@ -55,7 +55,7 @@ static void test_good_password(CuTest * tc)
     turn = 0;
     r = create_region(1, 1, T_PLAIN);
     f = addplayer(r, 0, 0);
-    u = r->units;
+    u = (unit *)ql_get(r->units, 0);
 
     faction_setpassword(f, "mypassword");
     CuAssertIntEquals(tc, 0, f->lastorders);
@@ -83,7 +83,7 @@ static void test_quoted_password(CuTest * tc)
     turn = 0;
     r = create_region(1, 1, T_PLAIN);
     f = addplayer(r, 0, 0);
-    u = r->units;
+    u = (unit *)ql_get(r->units, 0);
 
     faction_setpassword(f, "mypassword");
     CuAssertIntEquals(tc, 0, f->lastorders);
@@ -112,7 +112,7 @@ static void test_bad_password(CuTest * tc)
     r = create_region(1, 1, T_PLAIN);
     f = addplayer(r, 0, 0);
     faction_setpassword(f, "mypassword");
-    u = r->units;
+    u = (unit *)ql_get(r->units, 0);
 
     turn = 1;
     mstream_init(&strm);
@@ -140,7 +140,7 @@ static void test_password_cmd(CuTest * tc)
     r = create_region(1, 1, T_PLAIN);
     f = addplayer(r, 0, 0);
     faction_setpassword(f, "mypassword");
-    u = r->units;
+    u = (unit *)ql_get(r->units, 0);
 
     mstream_init(&strm);
 
@@ -176,11 +176,12 @@ static void test_form(CuTest * tc)
     ql_push(&u->orders, _strdup("WORK"));
     ql_push(&u->orders, _strdup("END"));
     process_form(u, r);
-    CuAssertPtrNotNull(tc, r->units->next);
+    CuAssertIntEquals(tc, 2, ql_length(r->units));
     CuAssertIntEquals(tc, 1, ql_length(u->orders));
     CuAssertIntEquals(tc, 0, u->alias);
-    CuAssertPtrEquals(tc, u, r->units);
-    u = r->units->next;
+    CuAssertPtrEquals(tc, u, (unit *)ql_get(r->units, 0));
+
+    u = (unit *)ql_get(r->units, 1);
     CuAssertIntEquals(tc, 1, ql_length(u->orders));
     CuAssertIntEquals(tc, 42, u->alias);
     CuAssertTrue(tc, u->no>0);
@@ -199,7 +200,7 @@ static void test_orders(CuTest * tc)
     r = create_region(1, 1, T_PLAIN);
     f = addplayer(r, 0, 0);
     faction_setpassword(f, "mypassword");
-    u = r->units;
+    u = (unit *)ql_get(r->units, 0);
     CuAssertPtrNotNull(tc, r);
     CuAssertPtrNotNull(tc, f);
     CuAssertPtrNotNull(tc, u);
@@ -223,9 +224,8 @@ static void test_orders(CuTest * tc)
 static void test_addplayers(CuTest * tc)
 {
     region * r;
-    unit * u;
     stream strm;
-    ql_iter fli;
+    ql_iter fli, uli;
     int n;
 
     cleargame();
@@ -239,13 +239,14 @@ static void test_addplayers(CuTest * tc)
     addplayers(r, &strm);
     CuAssertPtrNotNull(tc, factions);
     CuAssertPtrNotNull(tc, r->units);
-    for (u=r->units,fli=qli_init(&factions),n=0;qli_more(fli) && u;u=u->next,++n) {
+    CuAssertIntEquals(tc, ql_length(r->units), ql_length(factions));
+    for (uli=qli_init(&r->units),fli=qli_init(&factions),n=0;qli_more(fli) && qli_more(uli);++n) {
+        unit * u = (unit *)qli_next(&uli);
         faction *f = (faction *)qli_next(&fli);
         CuAssertPtrEquals(tc, u->faction, f);
         CuAssertIntEquals(tc, 1, u->number);
     }
     CuAssertIntEquals(tc, 2, n);
-    CuAssertPtrEquals(tc, 0, u);
     CuAssertTrue(tc, !qli_more(fli));
 }
 
@@ -260,7 +261,7 @@ static void test_addplayer(CuTest * tc)
     turn = 1;
     r = create_region(1, 1, T_PLAIN);
     f = addplayer(r, email, 0);
-    u = r->units;
+    u = (unit *)ql_get(r->units, 0);
 
     CuAssertPtrNotNull(tc, r);
     CuAssertPtrNotNull(tc, f);
@@ -268,7 +269,6 @@ static void test_addplayer(CuTest * tc)
     CuAssertStrEquals(tc, email, faction_getaddr(f));
     CuAssertIntEquals(tc, r->x, f->origin_x);
     CuAssertIntEquals(tc, r->y, f->origin_y);
-    CuAssertPtrNotNull(tc, r->units);
     CuAssertPtrNotNull(tc, faction_getpwhash(f));
     CuAssertStrEquals(tc, "", u->thisorder);
     CuAssertStrEquals(tc, keywords[K_WORK], u->lastorder);
@@ -580,7 +580,7 @@ static void test_region_addunit(CuTest * tc)
     r = create_region(0, 0, T_PLAIN);
     u = create_unit(0, 1);
     region_addunit(r, u);
-    CuAssertPtrEquals(tc, u, r->units);
+    CuAssertPtrEquals(tc, u, (unit *)ql_get(r->units, 0));
 }
 
 static void test_unit_name(CuTest * tc)

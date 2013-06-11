@@ -31,11 +31,9 @@ region * create_region(int x, int y, terrain_t t)
 
 void free_region(region *r) {
     free(r->name_);
-    while (r->units) {
-        unit * u = r->units;
-        r->units = u->next;
-        free_unit(u);
-    }
+    ql_foreach(r->units, (ql_cb)free_unit);
+    ql_free(r->units);
+    r->units = 0;
     ql_foreach(r->ships, (ql_cb)free_ship);
     ql_free(r->ships);
     r->ships = 0;
@@ -63,8 +61,6 @@ void region_setname(struct region *r, const char *name)
 
 void region_addunit(struct region *self, struct unit *u)
 {
-    unit ** iter;
     assert(u && !u->next);
-    for (iter=&self->units; *iter; iter=&(*iter)->next);
-    *iter = u;
+    ql_push(&self->units, u);
 }

@@ -60,10 +60,6 @@ int ignore_password = 0;
 static void (*store_init)(struct storage *, FILE *) = binstore_init;
 static void (*store_done)(struct storage *) = binstore_done;
 
-typedef struct list {
-    struct list *next;
-} list;
-
 typedef struct order {
     struct order *next;
     struct unit *unit;
@@ -751,10 +747,10 @@ typedef struct strlist {
 
 struct settings config;
 
-void freestrlist(strlist ** slist) {
-    while (*slist) {
-        strlist * sl = *slist;
-        *slist = sl->next;
+void freestrlist(strlist * slist) {
+    while (slist) {
+        strlist * sl = slist;
+        slist = sl->next;
         free(sl);
     }
 }
@@ -784,69 +780,18 @@ void rnd_seed(unsigned long x)
     init_genrand(x);
 }
 
-void addlist(void *l1, void *p1)
-{
-    list **l;
-    list *p, *q;
-
-    l = (list **)l1;
-    p = (list *)p1;
-
-    p->next = 0;
-
-    if (*l) {
-        for (q = *l; q->next; q = q->next);
-        q->next = p;
-    } else
-        *l = p;
-}
-
-void choplist(list ** l, list * p)
-{
-    list *q;
-
-    if (*l == p)
-        *l = p->next;
-    else {
-        for (q = *l; q->next != p; q = q->next)
-            assert(q);
-        q->next = p->next;
+static void removelist(quicklist **qlp, void *data) {
+    ql_iter qli;
+    for (qli=qli_init(qlp);qli_more(qli);) {
+        void *x = qli_get(qli);
+        if (x==data) {
+            qli_delete(&qli);
+            break;
+        }
+        qli_next(&qli);
     }
 }
 
-void translist(void *l1, void *l2, void *p)
-{
-    choplist((list **)l1, (list *)p);
-    addlist(l2, p);
-}
-
-void removelist(void *l, void *p)
-{
-    choplist((list **)l, (list *)p);
-    free(p);
-}
-
-void freelist(void *p1)
-{
-    list *p, *p2;
-
-    p = (list *)p1;
-
-    while (p) {
-        p2 = p->next;
-        free(p);
-        p = p2;
-    }
-}
-
-int listlen(void *l)
-{
-    int i;
-    list *p;
-
-    for (p = (list *)l, i = 0; p; p = p->next, i++);
-    return i;
-}
 
 strlist *makestrlist(char *s)
 {
@@ -872,7 +817,8 @@ void addmessage(faction * f, const char *s)
 
 void addstrlist(strlist ** SP, char *s)
 {
-    addlist(SP, makestrlist(s));
+    while (*SP) SP = &(*SP)->next;
+    *SP = makestrlist(s);
 }
 
 FILE * cfopen(const char *filename, const char *mode)
@@ -944,11 +890,11 @@ int effskill(const unit * u, int i)
     return result;
 }
 
-int cansee(const faction * f, const region * r, const unit * u)
+int cansee(const faction * f, region * r, const unit * u)
 {
     int n, o;
     int cansee;
-    unit *u2;
+    ql_iter uli;
 
     if (u->faction == f)
         return 2;
@@ -959,7 +905,8 @@ int cansee(const faction * f, const region * r, const unit * u)
 
     n = effskill(u, SK_STEALTH);
 
-    for (u2 = r->units; u2; u2 = u2->next) {
+    for (uli=qli_init(&r->units);qli_more(uli);) {
+        unit *u2 = (unit *)qli_next(&uli);
         if (u2->faction != f)
             continue;
 
@@ -1077,12 +1024,13 @@ ship *getship(region * r)
 
 unit *findunitg(int n)
 {
-    unit *u;
     ql_iter rli;
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        for (u = r->units; u; u = u->next) {
+        ql_iter uli;
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_next(&uli);
             if (u->no == n) {
                 return u;
             }
@@ -1495,7 +1443,7 @@ void spskill(const unit * u, int i, int *dh, int days)
     }
 }
 
-void spunit(strlist ** SP, const faction * f, const region * r, const unit * u, int indent,
+void spunit(strlist ** SP, const faction * f, region * r, const unit * u, int indent,
             bool battle)
 {
     const char * sc;
@@ -1598,12 +1546,13 @@ void spunit(strlist ** SP, const faction * f, const region * r, const unit * u, 
 
 void reportevent(region * r, char *s)
 {
-    unit *u;
     ql_iter fli;
 
     for (fli = qli_init(&factions); qli_more(fli);) {
         faction *f = (faction *)qli_next(&fli);
-        for (u = r->units; u; u = u->next) {
+        ql_iter uli;
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_next(&uli);
             if (u->faction == f && u->number) {
                 addevent(f, s);
                 break;
@@ -1614,7 +1563,6 @@ void reportevent(region * r, char *s)
 
 void leave(region * r, unit * u)
 {
-    unit *u2;
     building *b;
     ship *sh;
 
@@ -1623,19 +1571,23 @@ void leave(region * r, unit * u)
         u->building = 0;
 
         if (u->owner) {
+            ql_iter uli;
             u->owner = false;
 
-            for (u2 = r->units; u2; u2 = u2->next)
+            for (uli=qli_init(&r->units);qli_more(uli);) {
+                unit *u2 = (unit *)qli_next(&uli);
                 if (u2->faction == u->faction && u2->building == b) {
                     u2->owner = true;
                     return;
                 }
-
-            for (u2 = r->units; u2; u2 = u2->next)
+            }
+            for (uli=qli_init(&r->units);qli_more(uli);) {
+                unit *u2 = (unit *)qli_next(&uli);
                 if (u2->building == b) {
                     u2->owner = true;
                     return;
                 }
+            }
         }
     }
 
@@ -1644,19 +1596,23 @@ void leave(region * r, unit * u)
         u->ship = 0;
 
         if (u->owner) {
+            ql_iter uli;
             u->owner = false;
 
-            for (u2 = r->units; u2; u2 = u2->next)
+            for (uli=qli_init(&r->units);qli_more(uli);) {
+                unit *u2 = (unit *)qli_next(&uli);
                 if (u2->faction == u->faction && u2->ship == sh) {
                     u2->owner = true;
                     return;
                 }
-
-            for (u2 = r->units; u2; u2 = u2->next)
+            }
+            for (uli=qli_init(&r->units);qli_more(uli);) {
+                unit *u2 = (unit *)qli_next(&uli);
                 if (u2->ship == sh) {
                     u2->owner = true;
                     return;
                 }
+            }
         }
     }
 }
@@ -1664,18 +1620,18 @@ void leave(region * r, unit * u)
 void removeempty(void)
 {
     int i;
-    unit *u, *u2, *u3;
-    ql_iter rli;
+    ql_iter rli, uli;
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        for (u = r->units; u;) {
-            u2 = u->next;
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_get(uli);
 
             if (!u->number) {
-                leave(r, u);
+                ql_iter qli;
 
-                for (u3 = r->units; u3; u3 = u3->next)
+                for (qli=qli_init(&r->units);qli_more(qli);) {
+                    unit *u3 = (unit *)qli_next(&qli);
                     if (u3->faction == u->faction) {
                         u3->money += u->money;
                         u->money = 0;
@@ -1683,23 +1639,26 @@ void removeempty(void)
                             u3->items[i] += u->items[i];
                         break;
                     }
-
+                }
                 if (r->terrain != T_OCEAN)
                     r->money += u->money;
 
-                freelist(u->orders);
-                removelist(&r->units, u);
+                leave(r, u);
+                free_unit(u);
+                qli_delete(&uli);
+            } else {
+                qli_next(&uli);
             }
-
-            u = u2;
         }
 
         if (r->terrain == T_OCEAN) {
             ql_iter sli;
             for (sli = qli_init(&r->ships); qli_more(sli);) {
                 ship *sh = (ship *)ql_get(sli.l, sli.i);
+                unit *u = 0;
 
-                for (u = r->units; u; u = u->next) {
+                for (uli=qli_init(&r->units);qli_more(uli);) {
+                    u = (unit *)qli_next(&uli);
                     if (u->ship == sh) {
                         break;
                     }
@@ -1722,7 +1681,9 @@ void destroyfaction(faction * f)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        for (u = r->units; u; u = u->next) {
+        ql_iter uli;
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            u = (unit *)qli_next(&uli);
             if (u->faction == f) {
                 if (r->terrain != T_OCEAN)
                     r->peasants += u->number;
@@ -1792,17 +1753,19 @@ int armedmen(unit * u)
 void getmoney(region * r, unit * u, int n)
 {
     int i;
-    unit *u2;
+    ql_iter uli;
 
     n -= u->money;
 
-    for (u2 = r->units; u2 && n >= 0; u2 = u2->next)
+    for (uli=qli_init(&r->units);qli_more(uli);) {
+        unit *u2 = (unit *)qli_next(&uli);
         if (u2->faction == u->faction && u2 != u) {
             i = MIN(u2->money, n);
             u2->money -= i;
             u->money += i;
             n -= i;
         }
+    }
 }
 
 bool isallied(const unit * u, const unit * u2)
@@ -1832,11 +1795,13 @@ bool admits(const unit * u, const unit * u2)
     return !!ql_set_find(&u->faction->admit, 0, u2->faction);
 }
 
-unit *buildingowner(const region * r, const building * b)
+unit *buildingowner(region * r, const building * b)
 {
-    unit *u, *res = 0;
+    unit *res = 0;
+    ql_iter uli;
 
-    for (u = r->units; u; u = u->next) {
+    for (uli=qli_init(&r->units);qli_more(uli);) {
+        unit *u = (unit *)qli_next(&uli);
         if (u->building == b) {
             if (u->owner) {
                 return u;
@@ -1847,11 +1812,13 @@ unit *buildingowner(const region * r, const building * b)
     return res;
 }
 
-unit *shipowner(const region * r, const ship * sh)
+unit *shipowner(region * r, const ship * sh)
 {
-    unit *u, *res = 0;
+    unit *res = 0;
+    ql_iter uli;
 
-    for (u = r->units; u; u = u->next) {
+    for (uli=qli_init(&r->units);qli_more(uli);) {
+        unit *u = (unit *)qli_next(&uli);
         if (u->ship == sh) {
             if (u->owner) {
                 return u;
@@ -1862,7 +1829,7 @@ unit *shipowner(const region * r, const ship * sh)
     return res;
 }
 
-int mayenter(const region * r, const unit * u, const building * b)
+bool mayenter(region * r, const unit * u, const building * b)
 {
     unit *u2;
 
@@ -1870,7 +1837,7 @@ int mayenter(const region * r, const unit * u, const building * b)
     return u2 == 0 || admits(u2, u);
 }
 
-int mayboard(region * r, unit * u, ship * sh)
+bool mayboard(region * r, unit * u, ship * sh)
 {
     unit *u2;
 
@@ -1924,11 +1891,14 @@ NEXTPLAYER:
 
                 for (rli = qli_init(&regions); qli_more(rli);) {
                     region *r = (region *)qli_next(&rli);
-                    for (u = r->units; u; u = u->next)
+                    ql_iter uli;
+                    for (uli=qli_init(&r->units);qli_more(uli);) {
+                        u = (unit *)qli_next(&uli);
                         if (u->faction == f) {
-                            freelist(u->orders);
+                            ql_free(u->orders);
                             u->orders = 0;
                         }
+                    }
                 }
                 for (;;) {
                     int kwd;
@@ -2160,11 +2130,13 @@ void writesummary(void)
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
         if (r->peasants || r->units) {
+            ql_iter uli;
             inhabitedregions++;
             peasants += r->peasants;
             peasantmoney += r->money;
 
-            for (u = r->units; u; u = u->next) {
+            for (uli=qli_init(&r->units);qli_more(uli);) {
+                u = (unit *)qli_next(&uli);
                 nunits++;
                 playerpop += u->number;
                 playermoney += u->money;
@@ -2311,7 +2283,7 @@ void centreqstrlist(FILE * F, const char *s, quicklist *ql)
         sparagraph(&S, str, 0, 0);
     }
     centrestrlist(F, s, S);
-    freestrlist(&S);
+    freestrlist(S);
 }
 
 void rparagraph(FILE * F, char const *s, int indent, int mark)
@@ -2321,17 +2293,17 @@ void rparagraph(FILE * F, char const *s, int indent, int mark)
     S = 0;
     sparagraph(&S, s, indent, mark);
     rpstrlist(F, S);
-    freelist(S);
+    freestrlist(S);
 }
 
-void rpunit(FILE * F, const faction * f, const region * r, const unit * u, int indent, bool battle)
+void rpunit(FILE * F, const faction * f, region * r, const unit * u, int indent, bool battle)
 {
     strlist *S;
 
     S = 0;
     spunit(&S, f, r, u, indent, battle);
     rpstrlist(F, S);
-    freelist(S);
+    freestrlist(S);
 }
 
 void report(faction * f)
@@ -2341,7 +2313,6 @@ void report(faction * f)
     int dh;
     int anyunits;
     ql_iter rli;
-    unit *u;
 
     sprintf(buf, "reports/%d-%d.r", turn, f->no);
     F = cfopen(buf, "w");
@@ -2439,14 +2410,16 @@ void report(faction * f)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
+        unit *u = 0;
         int d;
         ql_iter qli;
 
-        for (u = r->units; u; u = u->next)
+        for (qli=qli_init(&r->units);qli_more(qli);) {
+            u = (unit *)qli_next(&qli);
             if (u->faction == f)
                 break;
-        if (!u)
-            continue;
+        }
+        if (!u) continue;
 
         anyunits = 0;
         sprintf(buf, "%s, %s", regionid(r, f), terrainnames[r->terrain]);
@@ -2481,6 +2454,7 @@ void report(faction * f)
 
         for (qli=qli_init(&r->buildings);qli_more(qli);) {
             building *b = (building *)qli_next(&qli);
+            ql_iter uli;
             sprintf(buf, "%s, size %d", buildingid(b), b->size);
 
             if (building_getdisplay(b)) {
@@ -2497,19 +2471,24 @@ void report(faction * f)
 
             rparagraph(F, buf, 4, 0);
 
-            for (u = r->units; u; u = u->next)
+            for (uli=qli_init(&r->units);qli_more(uli);) {
+                unit *u = (unit *)qli_next(&uli);
                 if (u->building == b && u->owner) {
                     rpunit(F, f, r, u, 8, 0);
                     break;
                 }
-
-            for (u = r->units; u; u = u->next)
+            }
+            for (uli=qli_init(&r->units);qli_more(uli);) {
+                unit *u = (unit *)qli_next(&uli);
                 if (u->building == b && !u->owner)
                     rpunit(F, f, r, u, 8, 0);
+            }
         }
 
         for (qli = qli_init(&r->ships); qli_more(qli);) {
             ship *sh = (ship *)qli_next(&qli);
+            ql_iter uli;
+
             sprintf(buf, "%s, %s", shipid(sh), shiptypenames[sh->type]);
             if (sh->left)
                 scat(", under construction");
@@ -2528,20 +2507,25 @@ void report(faction * f)
 
             rparagraph(F, buf, 4, 0);
 
-            for (u = r->units; u; u = u->next)
+            for (uli=qli_init(&r->units);qli_more(uli);) {
+                unit *u = (unit *)qli_next(&uli);
                 if (u->ship == sh && u->owner) {
                     rpunit(F, f, r, u, 8, 0);
                     break;
                 }
+            }
 
-            for (u = r->units; u; u = u->next)
+            for (uli=qli_init(&r->units);qli_more(uli);) {
+                unit *u = (unit *)qli_next(&uli);
                 if (u->ship == sh && !u->owner)
                     rpunit(F, f, r, u, 8, 0);
+            }
         }
 
         dh = 0;
 
-        for (u = r->units; u; u = u->next)
+        for (qli=qli_init(&r->units);qli_more(qli);) {
+            unit *u = (unit *)qli_next(&qli);
             if (!u->building && !u->ship && cansee(f, r, u)) {
                 if (!dh && (r->buildings || r->ships)) {
                     rnl(F);
@@ -2550,6 +2534,7 @@ void report(faction * f)
 
                 rpunit(F, f, r, u, 4, 0);
             }
+        }
     }
 
     if (!anyunits) {
@@ -2595,33 +2580,48 @@ void scramble(void *v1, int n, int width)
     }
 }
 
+void freeorders(order *orders) {
+    order **op;
+
+    for (op = &orders; *op; ) {
+        order *o = *op;
+        *op = o->next;
+        free(o);
+    }
+}
+
 void expandorders(region * r, order * orders)
 {
-    int i, j;
-    unit *u;
+    ql_iter uli;
     order *o;
 
-    for (u = r->units; u; u = u->next)
+    for (uli=qli_init(&r->units);qli_more(uli);) {
+        unit *u = (unit *)qli_next(&uli);
         u->n = -1;
+    }
 
     norders = 0;
 
-    for (o = orders; o; o = o->next)
+    for (o = orders; o; o = o->next) {
         norders += o->qty;
+    }
 
     oa = (order *)malloc(norders * sizeof(order));
     if (oa) {
-        i = 0;
+        order **op;
+        int i = 0;
 
-        for (o = orders; o; o = o->next)
+        for (op = &orders; *op; ) {
+            order *o = *op;
+            int j;
             for (j = o->qty; j; j--) {
                 oa[i].unit = o->unit;
                 oa[i].unit->n = 0;
                 i++;
             }
-
-        freelist(orders);
-
+            *op = o->next;
+            free(o);
+        }
         scramble(oa, norders, sizeof(order));
     }
 }
@@ -2703,14 +2703,15 @@ int canride(unit * u)
 int cansail(region * r, ship * sh)
 {
     int n;
-    unit *u;
+    ql_iter uli;
 
     n = 0;
 
-    for (u = r->units; u; u = u->next)
+    for (uli=qli_init(&r->units);qli_more(uli);) {
+        unit *u = (unit *)qli_next(&uli);
         if (u->ship == sh)
             n += itemweight(u) + horseweight(u) + (u->number * 10);
-
+    }
     return n <= shipcapacity[sh->type];
 }
 
@@ -2753,16 +2754,18 @@ int cancast(unit * u, int i)
 int magicians(faction * f)
 {
     int n;
-    unit *u;
     ql_iter rli;
 
     n = 0;
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        for (u = r->units; u; u = u->next)
+        ql_iter uli;
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_next(&uli);
             if (u->skills[SK_MAGIC] && u->faction == f)
                 n += u->number;
+        }
     }
     return n;
 }
@@ -2865,7 +2868,7 @@ static const char * getname(unit * u, const char *ord) {
     return s2;
 }
 
-int getseen(const region *r, const faction *f, unit **uptr) {
+int getseen(region *r, const faction *f, unit **uptr) {
     unit *u = 0;
     int j = getunit(r, f, &u);
     if (u && !cansee(f, r, u)) {
@@ -2894,7 +2897,7 @@ void processorders(void)
     ql_iter rli, fli;
     building *b;
     ship *sh;
-    unit *u, *u2, *u3;
+    unit *u2, *u3;
     static unit *uv[100];
     order *o, *taxorders, *recruitorders, *entertainorders, *workorders;
     static order *produceorders[MAXITEMS];
@@ -2905,9 +2908,7 @@ void processorders(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        for (u = r->units; u; u = u->next) {
-            process_form(u, r);
-        }
+        ql_foreachx(r->units, (ql_cbx)process_form, r);
     }
     /* Instant orders - diplomacy etc. */
 
@@ -2915,7 +2916,9 @@ void processorders(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        for (u = r->units; u; u = u->next) {
+        ql_iter uli;
+        for (uli = qli_init(&r->units); qli_more(uli);) {
+            unit *u = (unit *)qli_next(&uli);
             ql_iter oli;
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
                 const char *s = (const char *)qli_next(&oli);
@@ -3148,7 +3151,10 @@ void processorders(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        for (u = r->units; u; u = u->next) {
+        ql_iter uli;
+
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_next(&uli);
             ql_iter oli;
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
                 const char *s = (const char *)qli_next(&oli);
@@ -3249,16 +3255,19 @@ void processorders(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
+        ql_iter uli;
         taxorders = 0;
         recruitorders = 0;
 
         /* DEMOLISH, GIVE, PAY, SINK orders */
 
-        for (u = r->units; u; u = u->next) {
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_next(&uli);
             ql_iter oli;
 
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
                 const char *s = (const char *)qli_next(&oli);
+                ql_iter qli;
                 int i, j, sp;
                 switch (igetkeyword(s)) {
                 case K_DEMOLISH:
@@ -3274,12 +3283,13 @@ void processorders(void)
 
                     b = u->building;
 
-                    for (u2 = r->units; u2; u2 = u2->next)
+                    for (qli=qli_init(&r->units);qli_more(qli);) {
+                        unit *u2 = (unit *)qli_next(&qli);
                         if (u2->building == b) {
                             u2->building = 0;
                             u2->owner = 0;
                         }
-
+                    }
                     sprintf(buf, "%s demolishes %s.", unitid(u),
                             buildingid(b));
                     reportevent(r, buf);
@@ -3445,11 +3455,13 @@ void processorders(void)
 
                     sh = u->ship;
 
-                    for (u2 = r->units; u2; u2 = u2->next)
+                    for (qli=qli_init(&r->units);qli_more(qli);) {
+                        unit *u2 = (unit *)qli_next(&qli);
                         if (u2->ship == sh) {
                             u2->ship = 0;
                             u2->owner = 0;
                         }
+                    }
 
                     sprintf(buf, "%s sinks %s.", unitid(u), shipid(sh));
                     reportevent(r, buf);
@@ -3461,7 +3473,8 @@ void processorders(void)
         }
 
         /* TRANSFER orders */
-        for (u = r->units; u; u = u->next) {
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_next(&uli);
             ql_iter oli;
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
                 const char *s = (const char *)qli_next(&oli);
@@ -3548,11 +3561,15 @@ void processorders(void)
             }
         }
         /* TAX orders */
-        for (u = r->units; u; u = u->next) {
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_next(&uli);
             ql_iter oli;
             taxed = 0;
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
                 const char *s = (const char *)qli_next(&oli);
+                ql_iter qli;
+                unit *u2 = 0;
+
                 switch (igetkeyword(s)) {
                 case K_TAX:
                     if (taxed)
@@ -3566,20 +3583,22 @@ void processorders(void)
                         break;
                     }
 
-                    for (u2 = r->units; u2; u2 = u2->next)
+                    for (qli=qli_init(&r->units);qli_more(qli);) {
+                        unit *u2 = (unit *)qli_next(&qli);
                         if (u2->guard && u2->number && !admits(u2, u)) {
                             sprintf(buf, "%s is on guard", unit_getname(u2));
                             mistakes(u, s, buf);
                             break;
                         }
-
+                    }
                     if (u2)
                         break;
 
                     o = (order *)malloc(sizeof(order));
                     o->qty = n * TAXINCOME;
                     o->unit = u;
-                    addlist(&taxorders, o);
+                    o->next = taxorders;
+                    taxorders = o;
                     taxed = 1;
                     break;
                 }
@@ -3588,7 +3607,8 @@ void processorders(void)
 
         /* Do taxation */
 
-        for (u = r->units; u; u = u->next) {
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_next(&uli);
             u->n = -1;
         }
         norders = 0;
@@ -3607,7 +3627,7 @@ void processorders(void)
                 i++;
             }
         }
-        freelist(taxorders);
+        freeorders(taxorders);
 
         scramble(oa, norders, sizeof(order));
 
@@ -3618,15 +3638,17 @@ void processorders(void)
 
         free(oa);
 
-        for (u = r->units; u; u = u->next)
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_next(&uli);
             if (u->n >= 0) {
                 sprintf(buf, "%s collects $%d in taxes.", unitid(u), u->n);
                 addevent(u->faction, buf);
             }
-
+        }
         /* GUARD 1, RECRUIT orders */
 
-        for (u = r->units; u; u = u->next) {
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_next(&uli);
             ql_iter oli;
             availmoney = u->money;
 
@@ -3656,7 +3678,8 @@ void processorders(void)
                     o = (order *)malloc(sizeof(order));
                     o->qty = n;
                     o->unit = u;
-                    addlist(&recruitorders, o);
+                    o->next = recruitorders;
+                    recruitorders = o;
 
                     availmoney -= o->qty * RECRUITCOST;
                     break;
@@ -3665,7 +3688,6 @@ void processorders(void)
         }
 
         /* Do recruiting */
-
         expandorders(r, recruitorders);
 
         for (i = 0, n = r->peasants / RECRUITFRACTION; i != norders && n;
@@ -3677,7 +3699,8 @@ void processorders(void)
             oa[i].unit->n++;
         }
 
-        for (u = r->units; u; u = u->next) {
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_next(&uli);
             if (u->n >= 0) {
                 sprintf(buf, "%s recruits %d.", unitid(u), u->n);
                 addevent(u->faction, buf);
@@ -3691,7 +3714,9 @@ void processorders(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        for (u = r->units; u; u = u->next) {
+        ql_iter uli;
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_next(&uli);
             ql_iter oli;
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
                 const char *s = (const char *)qli_next(&oli);
@@ -3723,8 +3748,10 @@ void processorders(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
+        ql_iter uli;
 
-        for (u = r->units; u; u = u->next) {
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_next(&uli);
             ql_iter oli;
             strcpy(u->thisorder, u->lastorder);
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
@@ -3763,9 +3790,10 @@ void processorders(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        for (u = r->units; u;) {
+        ql_iter uli;
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_get(uli);
             region *r2;
-            unit *u2 = u->next;
 
             switch (igetkeyword(u->thisorder)) {
             case K_MOVE:
@@ -3773,11 +3801,13 @@ void processorders(void)
 
                 if (!r2) {
                     mistakeu(u, "Direction not recognized");
+                    qli_next(&uli);
                     break;
                 }
 
                 if (r->terrain == T_OCEAN) {
                     mistakeu(u, "Currently at sea");
+                    qli_next(&uli);
                     break;
                 }
 
@@ -3785,16 +3815,19 @@ void processorders(void)
                     sprintf(buf, "%s discovers that (%d,%d) is ocean.",
                             unitid(u), r2->x, r2->y);
                     addevent(u->faction, buf);
+                    qli_next(&uli);
                     break;
                 }
 
                 if (!canmove(u)) {
                     mistakeu(u, "Carrying too much weight to move");
+                    qli_next(&uli);
                     break;
                 }
 
                 leave(r, u);
-                translist(&r->units, &r2->units, u);
+                qli_delete(&uli);
+                ql_push(&r2->units, u);
                 u->thisorder[0] = 0;
 
                 sprintf(buf, "%s ", unitid(u));
@@ -3809,9 +3842,9 @@ void processorders(void)
                 scat(".");
                 addevent(u->faction, buf);
                 break;
+            default:
+                qli_next(&uli);
             }
-
-            u = u2;
         }
     }
     /* SAIL orders */
@@ -3820,10 +3853,11 @@ void processorders(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-
-        for (u = r->units; u;) {
+        ql_iter uli;
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_get(uli);
+            ql_iter qli;
             region *r2;
-            unit *u2 = u->next;
 
             switch (igetkeyword(u->thisorder)) {
             case K_SAIL:
@@ -3861,24 +3895,33 @@ void processorders(void)
                     break;
                 }
 
-                translist(&r->ships, &r2->ships, u->ship);
+                
+                for (qli=qli_init(&r->ships);qli_more(qli);) {
+                    ship *sh = (ship *)qli_get(qli);
+                    if (sh==u->ship) {
+                        qli_delete(&qli);
+                        break;
+                    }
+                    qli_next(&qli);
+                }
+                ql_push(&r2->ships, u->ship);
 
-                for (u2 = r->units; u2;) {
-                    u3 = u2->next;
+                for (qli=qli_init(&r->units);qli_more(qli);) {
+                    unit *u2 = (unit *)qli_get(qli);
 
                     if (u2->ship == u->ship) {
-                        translist(&r->units, &r2->units, u2);
+                        qli_delete(&qli);
+                        ql_push(&r2->units, u2);
                         u2->thisorder[0] = 0;
+                    } else {
+                        qli_next(&qli);
                     }
-
-                    u2 = u3;
                 }
 
                 u->thisorder[0] = 0;
                 break;
             }
-
-            u = u2;
+            qli_next(&uli);
         }
     }
     /* Do production orders */
@@ -3887,6 +3930,7 @@ void processorders(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
+        ql_iter uli;
         ship_t stype;
         if (r->terrain == T_OCEAN)
             continue;
@@ -3895,7 +3939,8 @@ void processorders(void)
         workorders = 0;
         memset(produceorders, 0, sizeof produceorders);
 
-        for (u = r->units; u; u = u->next)
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_next(&uli);
             switch (igetkeyword(u->thisorder)) {
             case K_BUILD:
                 switch (i = getkeyword()) {
@@ -3924,7 +3969,7 @@ void processorders(void)
                             }
                             while (findbuilding(b->no));
 
-                            addlist(&r->buildings, b);
+                            ql_push(&r->buildings, b);
                         }
                         leave(r, u);
                         u->building = b;
@@ -4010,7 +4055,7 @@ void processorders(void)
                     sh->left = shipcost[i];
                     sprintf(buf2, "Ship %d", n);
                     ship_setname(sh, buf2);
-                    addlist(&r->ships, sh);
+                    ql_push(&r->ships, sh);
 
                     leave(r, u);
                     u->ship = sh;
@@ -4030,7 +4075,8 @@ void processorders(void)
                     u->number * effskill(u,
                                          SK_ENTERTAINMENT) *
                     ENTERTAININCOME;
-                addlist(&entertainorders, o);
+                o->next = entertainorders;
+                entertainorders = o;
                 break;
 
             case K_PRODUCE:
@@ -4057,7 +4103,8 @@ void processorders(void)
                     o = (order *)malloc(sizeof(order));
                     o->unit = u;
                     o->qty = n * productivity[r->terrain][i];
-                    addlist(&produceorders[i], o);
+                    o->next = produceorders[i];
+                    produceorders[i] = o;
                 } else {
                     n = MIN(n, u->items[rawmaterial[i]]);
 
@@ -4213,10 +4260,11 @@ void processorders(void)
                 o = (order *)malloc(sizeof(order));
                 o->unit = u;
                 o->qty = u->number * foodproductivity[r->terrain];
-                addlist(&workorders, o);
+                o->next = workorders;
+                workorders = o;
                 break;
             }
-
+        }            
         /* Entertainment */
 
         expandorders(r, entertainorders);
@@ -4230,7 +4278,8 @@ void processorders(void)
 
             free(oa);
         }
-        for (u = r->units; u; u = u->next)
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_next(&uli);
             if (u->n >= 0) {
                 sprintf(buf, "%s earns $%d entertaining.", unitid(u),
                         u->n);
@@ -4238,7 +4287,7 @@ void processorders(void)
 
                 u->skills[SK_ENTERTAINMENT] += 10 * u->number;
             }
-
+        }
         /* Food production */
 
         expandorders(r, workorders);
@@ -4253,13 +4302,14 @@ void processorders(void)
             r->money += MIN(n, r->peasants * foodproductivity[r->terrain]);
         }
 
-        for (u = r->units; u; u = u->next)
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_next(&uli);
             if (u->n >= 0) {
                 sprintf(buf, "%s earns $%d performing manual labor.",
                         unitid(u), u->n);
                 addevent(u->faction, buf);
             }
-
+        }
         /* Production of other primary commodities */
 
         for (i = 0; i != 4; i++) {
@@ -4273,7 +4323,8 @@ void processorders(void)
 
             free(oa);
 
-            for (u = r->units; u; u = u->next)
+            for (uli=qli_init(&r->units);qli_more(uli);) {
+                unit *u = (unit *)qli_next(&uli);
                 if (u->n >= 0) {
                     if (u->n == 1)
                         sprintf(buf, "%s produces 1 %s.", unitid(u),
@@ -4283,6 +4334,7 @@ void processorders(void)
                                 itemnames[i][1]);
                     addevent(u->faction, buf);
                 }
+            }
         }
     }
 
@@ -4294,7 +4346,9 @@ void processorders(void)
         region *r = (region *)qli_next(&rli);
 
         if (r->terrain != T_OCEAN) {
-            for (u = r->units; u; u = u->next) {
+            ql_iter uli;
+            for (uli=qli_init(&r->units);qli_more(uli);) {
+                unit *u = (unit *)qli_next(&uli);
                 switch (igetkeyword(u->thisorder)) {
                 case K_STUDY:
                     i = getskill();
@@ -4330,12 +4384,13 @@ void processorders(void)
         }
     }
     /* Ritual spells, and loss of spells where required */
-
     puts("Processing CAST orders...");
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        for (u = r->units; u; u = u->next) {
+        ql_iter uli;
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_next(&uli);
             for (i = 0; i != MAXSPELLS; i++) {
                 if (u->spells[i]
                     && spelllevel[i] > (effskill(u, SK_MAGIC) + 1) / 2)
@@ -4346,7 +4401,9 @@ void processorders(void)
         }
 
         if (r->terrain != T_OCEAN) {
-            for (u = r->units; u; u = u->next) {
+            ql_iter uli;
+            for (uli=qli_init(&r->units);qli_more(uli);) {
+                unit *u = (unit *)qli_next(&uli);
                 region *r2;
                 unit *u2;
                 ql_iter fli;
@@ -4439,12 +4496,15 @@ void processorders(void)
 
                         r2 = 0;
                         for (rli = qli_init(&regions); qli_more(rli);) {
+                            ql_iter qli;
+                            unit *u3 = 0;
                             r2 = (region *)qli_next(&rli);
 
-                            for (u3 = r2->units; u3; u3 = u3->next)
+                            for (qli=qli_init(&r->units);qli_more(qli);) {
+                                u3 = (unit *)qli_next(&qli);
                                 if (u3 == u2)
                                     break;
-
+                            }
                             if (u3)
                                 break;
                         }
@@ -4458,6 +4518,7 @@ void processorders(void)
                         n *= 10000;
 
                         for (;;) {
+                            ql_iter qli;
                             j = getseen(r, u->faction, &u3);
                             if (!u3) {
                                 mistakeu(u, "Unit not found");
@@ -4481,7 +4542,16 @@ void processorders(void)
 
                             leave(r, u3);
                             n -= i;
-                            translist(&r->units, &r2->units, u3);
+
+                            ql_push(&r2->units, u3);
+                            for (qli=qli_init(&r->units);qli_more(qli);) {
+                                unit *u4 = (unit*)qli_get(qli);
+                                if (u4==u3) {
+                                    qli_delete(&qli);
+                                    break;
+                                }
+                                qli_next(&qli);
+                            }
                             u3->building = u2->building;
                             u3->ship = u2->ship;
                         }
@@ -4500,14 +4570,13 @@ void processorders(void)
         }
     }
 
-
-
     /* Population growth, dispersal and food consumption */
 
     puts("Processing demographics...");
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
+        ql_iter uli;
 
         if (r->terrain != T_OCEAN) {
             for (n = r->peasants; n; n--)
@@ -4530,7 +4599,8 @@ void processorders(void)
             }
         }
 
-        for (u = r->units; u; u = u->next) {
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_next(&uli);
             getmoney(r, u, u->number * MAINTENANCE);
             n = u->money / MAINTENANCE;
 
@@ -4590,7 +4660,7 @@ int readgame(void)
     region *r;
     building *b;
     ship *sh;
-    unit *u, **up;
+    unit *u;
     int minx, miny, maxx, maxy;
     storage store;
     int version = VER_NOHEADER;
@@ -4731,7 +4801,6 @@ int readgame(void)
 
         store.api->r_int(store.handle, &n2);
         if (n2<0) return -7;
-        up = &r->units;
 
         while (--n2 >= 0) {
             char temp[DISPLAYSIZE];
@@ -4789,10 +4858,8 @@ int readgame(void)
                 }
             }
             
-            addlist2(up, u);
+            ql_push(&r->units, u);
         }
-
-        *up = 0;
     }
 
     /* Get rid of stuff that was only relevant last turn */
@@ -4839,16 +4906,6 @@ int readgame(void)
     return 0;
 }
 
-void wstrlist(storage * store, strlist * S)
-{
-    store->api->w_int(store->handle, listlen(S));
-
-    while (S) {
-        store->api->w_str(store->handle, S->s);
-        S = S->next;
-    }
-}
-
 void wqstrlist(storage * store, quicklist * ql)
 {
     ql_iter qli;
@@ -4865,7 +4922,6 @@ int writegame(void)
     storage store;
     int i;
     ql_iter rli, fli;
-    unit *u;
 
     sprintf(buf, "data/%d", turn);
     printf("Writing turn %d...\n", turn);
@@ -4922,7 +4978,7 @@ int writegame(void)
         store.api->w_int(store.handle, r->peasants);
         store.api->w_int(store.handle, r->money);
 
-        store.api->w_int(store.handle, listlen(r->buildings));
+        store.api->w_int(store.handle, ql_length(r->buildings));
 
         for (qli=qli_init(&r->buildings);qli_more(qli);) {
             building *b = (building *)qli_next(&qli);
@@ -4933,7 +4989,7 @@ int writegame(void)
             store.api->w_int(store.handle, b->size);
         }
 
-        store.api->w_int(store.handle, listlen(r->ships));
+        store.api->w_int(store.handle, ql_length(r->ships));
 
         for (qli = qli_init(&r->ships); qli_more(qli);) {
             ship *sh = (ship *)qli_next(&qli);
@@ -4944,9 +5000,10 @@ int writegame(void)
             store.api->w_int(store.handle, sh->left);
         }
 
-        store.api->w_int(store.handle, listlen(r->units));
+        store.api->w_int(store.handle, ql_length(r->units));
 
-        for (u = r->units; u; u = u->next) {
+        for (qli = qli_init(&r->units); qli_more(qli);) {
+            unit *u = (unit *)qli_next(&qli);
             store.api->w_int(store.handle, u->no);
             store.api->w_int(store.handle, u->faction->no);
             store.api->w_str(store.handle, unit_getname(u));

@@ -10,6 +10,7 @@
 
 #include "rtl.h"
 
+#include <quicklist.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -210,17 +211,18 @@ char *getstr(void)
     return igetstr(0);
 }
 
-unit *getnewunit(const region * r, const faction * f)
+unit *getnewunit(region * r, const faction * f)
 {
     int n;
-    unit *u;
+    ql_iter uli;
 
     n = atoi(getstr());
 
     if (n <= 0) {
         return 0;
     }
-    for (u = r->units; u; u = u->next) {
+    for (uli=qli_init(&r->units);qli_more(uli);) {
+        unit *u = (unit *)qli_next(&uli);
         if (u->faction == f && u->alias == n) {
             return u;
         }
@@ -229,7 +231,7 @@ unit *getnewunit(const region * r, const faction * f)
     return 0;
 }
 
-unit *getunitg(const region *r, const faction *f)
+unit *getunitg(region *r, const faction *f)
 {
     const char *s;
 
@@ -241,16 +243,16 @@ unit *getunitg(const region *r, const faction *f)
     return findunitg(atoi(s));
 }
 
-int getunit(const region * r, const faction *f, unit **uptr)
+int getunit(region * r, const faction *f, unit **uptr)
 {
     int n;
     const char *s;
-    unit *u;
+    ql_iter uli;
 
     s = getstr();
 
     if (!_strcmpl(s, "new")) {
-        u = getnewunit(r, f);
+        unit *u = getnewunit(r, f);
         if (u) {
             *uptr = u;
             return U_UNIT;
@@ -272,7 +274,8 @@ int getunit(const region * r, const faction *f, unit **uptr)
         return U_NONE;
     }
 
-    for (u = r->units; u; u = u->next) {
+    for (uli=qli_init(&r->units);qli_more(uli);) {
+        unit *u = (unit *)qli_next(&uli);
         if (u->no == n && !u->isnew) {
             *uptr = u;
             return U_UNIT;

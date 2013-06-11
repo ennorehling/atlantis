@@ -31,7 +31,7 @@ static void test_json_report(CuTest * tc) {
     turn = 0;
     r = create_region(1, 1, T_PLAIN);
     f = addplayer(r, 0, 0);
-    u = r->units;
+    u = (unit *)ql_get(r->units, 0);
     makeworld();
 
     json = json_report(f);

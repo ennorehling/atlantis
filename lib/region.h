@@ -33,7 +33,7 @@ typedef struct region {
     int money;
     struct quicklist *buildings;
     struct quicklist *ships;
-    struct unit *units;
+    struct quicklist *units;
     int immigrants;
 } region;
 

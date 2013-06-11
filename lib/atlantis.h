@@ -26,16 +26,12 @@ extern int ignore_password;
 extern const keyword_t directions[];
 
 int distribute(int old, int nyu, int n);
-int getseen(const struct region *r, const struct faction *f, struct unit **uptr);
+int getseen(struct region *r, const struct faction *f, struct unit **uptr);
 
 /* untyped list bullshit */
-void addlist(void *l1, void *p1);
-
 int effskill(const struct unit * u, int i);
 int lovar(int n);
 bool isallied(const struct unit * u, const struct unit * u2);
-
-int cansee(const struct faction * f, const struct region * r, const struct unit * u);
 
 void read_orders(struct stream * strm);
 void processorders(void);
@@ -57,7 +53,7 @@ void rnd_seed(unsigned long x);
 void createcontinent(void);
 void addplayers(struct region * r, struct stream * strm);
 void addunits(void);
-int cansee(const struct faction * f, const struct region * r, const struct unit * u);
+int cansee(const struct faction * f, struct region * r, const struct unit * u);
 struct region *movewhere(struct region * r);
 int effskill(const struct unit * u, int i);
 
@@ -65,5 +61,5 @@ void makeblock(int x1, int y1);
 struct faction * addplayer(struct region * r, const char * email, int no);
 const char *regionid(const struct region * r, const struct faction *f);
 
-struct unit *shipowner(const struct region * r, const struct ship * sh);
+struct unit *shipowner(struct region * r, const struct ship * sh);
 #endif
