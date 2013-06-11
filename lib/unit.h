@@ -22,7 +22,6 @@ struct region;
 struct quicklist;
 
 typedef struct unit {
-    struct unit *next;
     int no;
     char * name_;
     char * display_;

@@ -61,6 +61,6 @@ void region_setname(struct region *r, const char *name)
 
 void region_addunit(struct region *self, struct unit *u)
 {
-    assert(u && !u->next);
+    assert(u);
     ql_push(&self->units, u);
 }
