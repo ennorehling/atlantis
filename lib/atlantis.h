@@ -28,7 +28,6 @@ extern const keyword_t directions[];
 int distribute(int old, int nyu, int n);
 int getseen(struct region *r, const struct faction *f, struct unit **uptr);
 
-/* untyped list bullshit */
 int effskill(const struct unit * u, int i);
 int lovar(int n);
 bool isallied(const struct unit * u, const struct unit * u2);

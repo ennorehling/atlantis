@@ -55,8 +55,6 @@ int ignore_password = 0;
 
 #define VER_CURRENT VER_HEADER
 
-#define addlist2(l,p) (*l = p, l = &p->next)
-
 static void (*store_init)(struct storage *, FILE *) = binstore_init;
 static void (*store_done)(struct storage *) = binstore_done;
 
@@ -747,7 +745,7 @@ typedef struct strlist {
 
 struct settings config;
 
-void freestrlist(strlist * slist) {
+static void freestrlist(strlist * slist) {
     while (slist) {
         strlist * sl = slist;
         slist = sl->next;
@@ -2114,7 +2112,6 @@ void writesummary(void)
     int playermoney;
     ql_iter fli;
     ql_iter rli;
-    unit *u;
 
     F = cfopen("summary", "w");
     puts("Writing summary file...");
