@@ -1652,7 +1652,7 @@ void removeempty(void)
         if (r->terrain == T_OCEAN) {
             ql_iter sli;
             for (sli = qli_init(&r->ships); qli_more(sli);) {
-                ship *sh = (ship *)ql_get(sli.l, sli.i);
+                ship *sh = (ship *)qli_get(sli);
                 unit *u = 0;
 
                 for (uli=qli_init(&r->units);qli_more(uli);) {
@@ -2635,7 +2635,7 @@ void removenullfactions(void)
     ql_iter fli;
 
     for (fli = qli_init(&factions); qli_more(fli);) {
-        faction * f = (faction *)ql_get(fli.l, fli.i);
+        faction * f = (faction *)qli_get(fli);
 
         if (!f->alive) {
             printf("Removing %s.\n", faction_getname(f));
@@ -2812,7 +2812,7 @@ region *movewhere(region * r)
 void process_form(unit *u, region *r) {
     ql_iter oli;
     for (oli = qli_init(&u->orders); qli_more(oli); ) {
-        char *s = (char *)ql_get(oli.l, oli.i);
+        char *s = (char *)qli_get(oli);
         unit *u2;
 
         if (igetkeyword(s) == K_FORM) {
@@ -2833,7 +2833,7 @@ void process_form(unit *u, region *r) {
 
             free(s);
             while (qli_more(oli)) {
-                char *s = (char *)ql_get(oli.l, oli.i);
+                char *s = (char *)qli_get(oli);
                 ql_delete(&oli.l, oli.i);
                 if (igetkeyword(s) == K_END) {
                     free(s);
