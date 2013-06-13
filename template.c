@@ -25,7 +25,7 @@ void print_template(cJSON *json, FILE *F) {
     }
     fprintf(F, "FACTION %d %s\n", fno, passwd);
     for (r = 0 ; r != cJSON_GetArraySize(regions) ; ++r) {
-        int u;
+        int u, money = 0, people = 0;
         cJSON *region = cJSON_GetArrayItem(regions, r);
         cJSON *units = cJSON_GetObjectItem(region, "units");
 
@@ -35,6 +35,15 @@ void print_template(cJSON *json, FILE *F) {
                 cJSON_GetObjectItem(region, "x")->valueint,
                 cJSON_GetObjectItem(region, "y")->valueint,
                 json_getint(region, "money", 0));
+        for (u = 0 ; u != cJSON_GetArraySize(units) ; ++u) {
+            cJSON *chld, *unit = cJSON_GetArrayItem(units, u);
+            chld = cJSON_GetObjectItem(unit, "faction");
+            if (chld && fno==chld->valueint) {
+                money += json_getint(unit, "money", 0);
+                people += json_getint(unit, "number", 0);
+            }
+        }
+        fprintf(F, ";money: %d  people: %d\n", money, people);
         for (u = 0 ; u != cJSON_GetArraySize(units) ; ++u) {
             cJSON *chld, *unit = cJSON_GetArrayItem(units, u);
 
@@ -53,28 +62,38 @@ void print_template(cJSON *json, FILE *F) {
 }
 
 int main (int argc, char **argv) {
-    FILE * F;
+    FILE *in = stdin, *out = stdout;
     long len;
     char *data;
     cJSON *json;
     if (argc>=1) {
-        F = fopen(argv[1], "rb");
-        if (!F) {
-            return -1;
+        in = fopen(argv[1], "r");
+        if (!in || errno) {
+            perror("could not open input file");
+            return errno;
         }
-        fseek(F,0,SEEK_END);
-        len=ftell(F);
-        fseek(F,0,SEEK_SET);
-        data = (char *)malloc(len+1);
-        if (data) {
-            fread(data,1,len,F);
-        }
-        fclose(F);
-
-        json = cJSON_Parse(data);
-        print_template(json, stdout);
-        free(data);
-        cJSON_Delete(json);
     }
+    if (argc>=2) {
+        out = fopen(argv[2], "w");
+        if (!out || errno) {
+            perror("could not open output file");
+            return errno;
+        }
+    }
+    fseek(in,0,SEEK_END);
+    len=ftell(in);
+    fseek(in,0,SEEK_SET);
+    data = (char *)malloc(len+1);
+    if (data) {
+        fread(data,1,len,in);
+    }
+    if (in!=stdin) fclose(in);
+
+    json = cJSON_Parse(data);
+    print_template(json, out);
+    free(data);
+    cJSON_Delete(json);
+    if (out!=stdout) fclose(out);
+
     return 0;
 }
