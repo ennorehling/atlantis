@@ -7,7 +7,13 @@
 #include <signal.h>
 #include <curses.h>
 
-static int xof, yof;
+typedef struct rect {
+    int x, y, w, h;
+} rect;
+
+typedef struct point {
+    int x, y;
+} point;
 
 static int json_getint(cJSON *json, const char *key, int def) {
     json = cJSON_GetObjectItem(json, key);
@@ -25,11 +31,29 @@ void finish(int sig) {
     exit(sig);
 }
 
-void run(void) {
+void draw_map(WINDOW *win, point origin, cJSON *json) {
+    int x, y;
+    rect view;
+
+    getbegyx(stdscr, view.y, view.x);
+    getmaxyx(stdscr, view.h, view.w);
+    for (y=0;y!=view.h;++y) {
+        int yp = y;
+        for (x=0;x!=view.w;x+=2) {
+            int xp = x + (y&1);
+            mvwaddch(win, yp, xp, '.' | COLOR_PAIR(COLOR_WHITE));
+        }
+    }
+}
+
+void run(cJSON *json) {
+    point origin = {0, 0};
+
     initscr();
     signal(SIGINT, finish);      /* arrange interrupts to terminate */
     start_color();
     init_color(COLOR_YELLOW, 1000, 1000, 0);
+    init_pair(COLOR_WHITE, COLOR_WHITE, COLOR_BLACK);
     attrset(COLOR_PAIR(COLOR_BLACK));
     bkgd(' ' | COLOR_PAIR(COLOR_BLACK));
     bkgdset(' ' | COLOR_PAIR(COLOR_BLACK));
@@ -39,8 +63,13 @@ void run(void) {
     noecho();       /* don't echo input */
     scrollok(stdscr, FALSE);
     wclear(stdscr);
+
     for (;;) {
-        int c = getch();     /* refresh, accept single keystroke of input */
+        int c;
+
+        draw_map(stdscr, origin, json);
+        wrefresh(stdscr);
+        c = getch();     /* refresh, accept single keystroke of input */
         switch (c) {
             case 'Q':
               finish(0);
@@ -48,7 +77,7 @@ void run(void) {
         }
     }
 }
-
+/*
 void print_map(cJSON *json, FILE *F) {
     int w = 1, h = 1;
     int fno = 0;
@@ -75,24 +104,16 @@ void print_map(cJSON *json, FILE *F) {
         mapdata[x+y*h] = terrain[0];
     }
 }
-
+*/
 int main (int argc, char **argv) {
     FILE *in = stdin, *out = stdout;
     long len;
     char *data;
     cJSON *json;
-    printf("argc: %d\n", argc);
     if (argc>1) {
         in = fopen(argv[1], "r");
         if (!in || errno) {
             perror("could not open input file");
-            return errno;
-        }
-    }
-    if (argc>2) {
-        out = fopen(argv[2], "w");
-        if (!out || errno) {
-            perror("could not open output file");
             return errno;
         }
     }
@@ -106,8 +127,7 @@ int main (int argc, char **argv) {
     if (in!=stdin) fclose(in);
 
     json = cJSON_Parse(data);
-    print_map(json, out);
-    run();
+    run(json);
     free(data);
     cJSON_Delete(json);
     if (out!=stdout) fclose(out);
