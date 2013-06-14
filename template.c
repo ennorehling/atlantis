@@ -2,6 +2,7 @@
 #include <cJSON.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 static int json_getint(cJSON *json, const char *key, int def) {
   json = cJSON_GetObjectItem(json, key);
