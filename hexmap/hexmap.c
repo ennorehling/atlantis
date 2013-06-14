@@ -4,17 +4,49 @@
 #include <stddef.h>
 #include <string.h>
 #include <errno.h>
+#include <signal.h>
+#include <curses.h>
 
 static int xof, yof;
 
 static int json_getint(cJSON *json, const char *key, int def) {
-  json = cJSON_GetObjectItem(json, key);
-  return json ? json->valueint : def;
+    json = cJSON_GetObjectItem(json, key);
+    return json ? json->valueint : def;
 }
 
 static const char * json_getstr(cJSON *json, const char *key, const char *def) {
-  json = cJSON_GetObjectItem(json, key);
-  return json ? json->valuestring : def;
+    json = cJSON_GetObjectItem(json, key);
+    return json ? json->valuestring : def;
+}
+
+void finish(int sig) {
+    erase();
+    endwin();
+    exit(sig);
+}
+
+void run(void) {
+    initscr();
+    signal(SIGINT, finish);      /* arrange interrupts to terminate */
+    start_color();
+    init_color(COLOR_YELLOW, 1000, 1000, 0);
+    attrset(COLOR_PAIR(COLOR_BLACK));
+    bkgd(' ' | COLOR_PAIR(COLOR_BLACK));
+    bkgdset(' ' | COLOR_PAIR(COLOR_BLACK));
+    keypad(stdscr, TRUE);  /* enable keyboard mapping */
+    nonl();         /* tell curses not to do NL->CR/NL on output */
+    cbreak();       /* take input chars one at a time, no wait for \n */
+    noecho();       /* don't echo input */
+    scrollok(stdscr, FALSE);
+    wclear(stdscr);
+    for (;;) {
+        int c = getch();     /* refresh, accept single keystroke of input */
+        switch (c) {
+            case 'Q':
+              finish(0);
+              break;
+        }
+    }
 }
 
 void print_map(cJSON *json, FILE *F) {
@@ -49,14 +81,15 @@ int main (int argc, char **argv) {
     long len;
     char *data;
     cJSON *json;
-    if (argc>=1) {
+    printf("argc: %d\n", argc);
+    if (argc>1) {
         in = fopen(argv[1], "r");
         if (!in || errno) {
             perror("could not open input file");
             return errno;
         }
     }
-    if (argc>=2) {
+    if (argc>2) {
         out = fopen(argv[2], "w");
         if (!out || errno) {
             perror("could not open output file");
@@ -74,6 +107,7 @@ int main (int argc, char **argv) {
 
     json = cJSON_Parse(data);
     print_map(json, out);
+    run();
     free(data);
     cJSON_Delete(json);
     if (out!=stdout) fclose(out);
