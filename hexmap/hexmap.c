@@ -14,7 +14,37 @@ typedef struct rect {
 typedef struct point {
     int x, y;
 } point;
+/*
+typedef struct window {
+    struct window *child;
+    struct window *next;
+    WINDOW *win;
+    int w, h;
+    unsigned int flags;
+} window;
 
+#define MAXWINDOWS 16
+window * windows[MAXWINDOWS];
+
+window * create_window(window *parent, rect size, unsigned int flags) {
+    int i;
+    for (i=0;i!=MAXWINDOWS;++i) {
+        if (!windows[i]) {
+            window *w = (window *)malloc(sizeof(window));
+            windows[i] = w;
+            if (parent) {
+                w->next = parent->child;
+                parent->child = w;
+                w->win = derwin(parent->win, size.h, size.w, size.y, size.x);
+            } else {
+                w->win = newwin(size.h, size.w, size.y, size.x);
+            }
+            return w;
+        }
+    }
+    return 0;
+}
+*/
 static int json_getint(cJSON *json, const char *key, int def) {
     json = cJSON_GetObjectItem(json, key);
     return json ? json->valueint : def;
@@ -31,22 +61,24 @@ void finish(int sig) {
     exit(sig);
 }
 
-void draw_map(WINDOW *win, point origin, cJSON *json) {
+void draw_map(WINDOW *win, point origin, cJSON *json, int def) {
     int x, y;
     rect view;
 
-    getbegyx(stdscr, view.y, view.x);
-    getmaxyx(stdscr, view.h, view.w);
-    for (y=0;y!=view.h;++y) {
+    getbegyx(win, view.y, view.x);
+    getmaxyx(win, view.h, view.w);
+    for (y=0;y<view.h;++y) {
         int yp = y;
-        for (x=0;x!=view.w;x+=2) {
+        for (x=0;x<view.w;x+=2) {
             int xp = x + (y&1);
-            mvwaddch(win, yp, xp, '.' | COLOR_PAIR(COLOR_WHITE));
+            mvwaddch(win, yp, xp, def);
         }
     }
 }
 
 void run(cJSON *json) {
+    int def = 'a';
+    WINDOW *win, *sub;
     point origin = {0, 0};
 
     initscr();
@@ -54,6 +86,7 @@ void run(cJSON *json) {
     start_color();
     init_color(COLOR_YELLOW, 1000, 1000, 0);
     init_pair(COLOR_WHITE, COLOR_WHITE, COLOR_BLACK);
+    init_pair(COLOR_YELLOW, COLOR_YELLOW, COLOR_BLACK);
     attrset(COLOR_PAIR(COLOR_BLACK));
     bkgd(' ' | COLOR_PAIR(COLOR_BLACK));
     bkgdset(' ' | COLOR_PAIR(COLOR_BLACK));
@@ -64,17 +97,28 @@ void run(cJSON *json) {
     scrollok(stdscr, FALSE);
     wclear(stdscr);
 
+    win = newwin(20, 72, 2, 4);
+    box(win, 0, 0);
+    sub = subwin(win, 12, 40, 4, 16);
+    draw_map(win, origin, json, def | COLOR_PAIR(COLOR_WHITE));
+    wrefresh(win);
     for (;;) {
         int c;
-
-        draw_map(stdscr, origin, json);
-        wrefresh(stdscr);
+        // wrefresh(sub);
         c = getch();     /* refresh, accept single keystroke of input */
         switch (c) {
             case 'Q':
               finish(0);
               break;
+            case '+':
+                ++def;
+                break;
+            case '-':
+                --def;
+                break;
         }
+        draw_map(sub, origin, json, (def+1) | COLOR_PAIR(COLOR_YELLOW));
+        wrefresh(sub);
     }
 }
 /*
