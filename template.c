@@ -91,9 +91,11 @@ int main (int argc, char **argv) {
     if (in!=stdin) fclose(in);
 
     json = cJSON_Parse(data);
-    print_template(json, out);
+    if (json) {
+        print_template(json, out);
+        cJSON_Delete(json);
+    }
     free(data);
-    cJSON_Delete(json);
     if (out!=stdout) fclose(out);
 
     return 0;
