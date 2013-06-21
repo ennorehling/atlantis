@@ -32,6 +32,35 @@ void free_unit(unit *u) {
     free(u);
 }
 
+#if UNIT_STACKS
+void unit_stack(struct unit* u, struct unit *stack) {
+    unit **up = &stack->child;
+    assert(!u->stack);
+    while (*up) up = &(*up)->next;
+    *up = u;
+    u->stack = stack;
+}
+
+void unit_unstack(struct unit* u) {
+    if (u->stack) {
+        unit ** up = &u->stack->child;
+        while (*up!=u) {
+            up = &(*up)->next;
+        }
+        if (*up) {
+            *up = u->next;
+            u->next = 0;
+            u->stack = 0;
+        }
+    }
+}
+
+struct unit * unit_getstack(struct unit *u) {
+    while (u->stack) { u = u->stack; }
+    return u;
+}
+#endif
+
 const char * unit_getname(const struct unit *self)
 {
     return self->name_;
