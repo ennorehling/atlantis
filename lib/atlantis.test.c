@@ -28,6 +28,48 @@ static unit *make_unit(faction *f, region *r, int no) {
     return u;
 }
 
+#if UNIT_STACKS
+static void test_stack(CuTest *tc)
+{
+    faction *f;
+    region *r;
+    unit *u1, *u2, *u3;
+    
+    cleargame();
+    r = create_region(1, 1, T_PLAIN);
+    f = addplayer(r, 0, 0);
+    u1 = make_unit(f, r, 1);
+    u2 = make_unit(f, r, 2);
+    u3 = make_unit(f, r, 3);
+    
+    CuAssertPtrEquals(tc, u1, unit_getstack(u1));
+    CuAssertPtrEquals(tc, u2, unit_getstack(u2));
+
+    unit_stack(u3, u2);
+    CuAssertPtrEquals(tc, u2, unit_getstack(u3));
+    CuAssertPtrEquals(tc, u2, unit_getstack(u2));
+
+    unit_stack(u2, u1);
+    CuAssertPtrEquals(tc, u1, unit_getstack(u3));
+    CuAssertPtrEquals(tc, u1, unit_getstack(u2));
+
+    unit_unstack(u2);
+    CuAssertPtrEquals(tc, u2, unit_getstack(u2));
+    CuAssertPtrEquals(tc, u2, unit_getstack(u3));
+
+    unit_unstack(u3);
+    unit_stack(u2, u1);
+    unit_stack(u3, u1);
+    CuAssertPtrEquals(tc, u1, unit_getstack(u2));
+    CuAssertPtrEquals(tc, u1, unit_getstack(u3));
+    CuAssertPtrEquals(tc, u2, u1->child);
+    CuAssertPtrEquals(tc, u3, u2->next);
+    CuAssertPtrEquals(tc, 0, u3->next);
+    CuAssertPtrEquals(tc, 0, u2->child);
+    CuAssertPtrEquals(tc, 0, u1->next);
+}
+#endif
+
 static void test_wrapmap(CuTest * tc)
 {
     region *r;
@@ -715,7 +757,9 @@ int main(void)
     SUITE_ADD_TEST(suite, test_unit_display);
     SUITE_ADD_TEST(suite, test_faction_name);
     SUITE_ADD_TEST(suite, test_faction_addr);
-
+#if UNIT_STACKS
+    SUITE_ADD_TEST(suite, test_stack);
+#endif
     CuSuiteRun(suite);
     CuSuiteSummary(suite, output);
     CuSuiteDetails(suite, output);

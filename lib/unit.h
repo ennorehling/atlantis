@@ -9,6 +9,10 @@
 #ifndef ATL_UNIT_H
 #define ATL_UNIT_H
 
+#ifndef UNIT_STACKS
+#define UNIT_STACKS 1
+#endif
+
 #include "settings.h"
 #include "bool.h"
 #include "spells.h"
@@ -22,6 +26,11 @@ struct region;
 struct quicklist;
 
 typedef struct unit {
+#if UNIT_STACKS
+    struct unit * stack;
+    struct unit * child;
+    struct unit * next;
+#endif
     int no;
     char * name_;
     char * display_;
@@ -48,6 +57,12 @@ typedef struct unit {
     int side;
     bool isnew;
 } unit;
+
+#if UNIT_STACKS
+void unit_stack(struct unit* u, struct unit *stack);
+void unit_unstack(struct unit* u);
+struct unit * unit_getstack(struct unit *u);
+#endif
 
 struct unit * create_unit(struct faction * f, int no);
 void free_unit(struct unit *u);
