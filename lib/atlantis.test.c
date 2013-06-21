@@ -28,7 +28,6 @@ static unit *make_unit(faction *f, region *r, int no) {
     return u;
 }
 
-#if UNIT_STACKS
 static void test_stack(CuTest *tc)
 {
     faction *f;
@@ -68,7 +67,6 @@ static void test_stack(CuTest *tc)
     CuAssertPtrEquals(tc, 0, u2->child);
     CuAssertPtrEquals(tc, 0, u1->next);
 }
-#endif
 
 static void test_wrapmap(CuTest * tc)
 {
@@ -727,12 +725,22 @@ static void test_faction_password(CuTest * tc)
 
 }
 
+static void test_keywords(CuTest * tc)
+{
+    CuAssertIntEquals(tc, K_ACCEPT, findkeyword("accept"));
+    CuAssertIntEquals(tc, K_NAME, findkeyword("name"));
+    CuAssertIntEquals(tc, K_STACK, findkeyword("stack"));
+    CuAssertIntEquals(tc, K_UNSTACK, findkeyword("unstack"));
+    CuAssertIntEquals(tc, K_WORK, findkeyword("work"));
+}
+
 int main(void)
 {
     CuString *output = CuStringNew();
     CuSuite *suite = CuSuiteNew();
 
     SUITE_ADD_TEST(suite, test_form);
+    SUITE_ADD_TEST(suite, test_keywords);
     SUITE_ADD_TEST(suite, test_wrapmap);
     SUITE_ADD_TEST(suite, test_addplayer);
     SUITE_ADD_TEST(suite, test_orders);
@@ -757,9 +765,8 @@ int main(void)
     SUITE_ADD_TEST(suite, test_unit_display);
     SUITE_ADD_TEST(suite, test_faction_name);
     SUITE_ADD_TEST(suite, test_faction_addr);
-#if UNIT_STACKS
     SUITE_ADD_TEST(suite, test_stack);
-#endif
+
     CuSuiteRun(suite);
     CuSuiteSummary(suite, output);
     CuSuiteDetails(suite, output);
