@@ -2896,7 +2896,7 @@ void cmd_stack(region *r, unit *u, const char *s) {
     unit_stack(u, stack);
 }
 
-void cmd_unstack(region *r, unit *u, const char *s) {
+void cmd_unstack(unit *u) {
     unit_unstack(u);
 }
 
@@ -3149,9 +3149,8 @@ void processorders(void)
 
     puts("Processing FIND orders...");
 
-    for (ql_iter rli = qli_init(&regions); qli_more(rli);) {
+    for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-
         ql_iter uli;
 
         for (uli=qli_init(&r->units);qli_more(uli);) {
@@ -3164,7 +3163,7 @@ void processorders(void)
                     cmd_stack(r, u, s);
                     break;
                 case K_UNSTACK:
-                    cmd_unstack(r, u, s);
+                    cmd_unstack(u);
                     break;
                 case K_FIND:
                     cmd_find(u, s);
