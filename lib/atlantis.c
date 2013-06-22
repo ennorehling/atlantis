@@ -745,8 +745,6 @@ typedef struct strlist {
     char s[1];
 } strlist;
 
-struct settings config;
-
 static void freestrlist(strlist * slist) {
     while (slist) {
         strlist * sl = slist;
@@ -2885,6 +2883,36 @@ int lovar(int n)
     return (genrand_int32() % n + 1) + (genrand_int32() % n + 1);
 }
 
+void cmd_stack(region *r, unit *u, const char *s) {
+    unit *stack;
+    
+    if (getseen(r, u->faction, &stack)==U_NOTFOUND) {
+        mistakes(u, s, "Unit not found");
+        return;
+    }
+    if (unit_getstack(u)!=u) {
+        unit_unstack(u);
+    }
+    unit_stack(u, stack);
+}
+
+void cmd_unstack(region *r, unit *u, const char *s) {
+    unit_unstack(u);
+}
+
+void cmd_find(unit *u, const char *s) {
+    faction *f;
+    f = getfaction();
+    if (f == 0) {
+        mistakes(u, s, "Faction not found");
+        return;
+    }
+    
+    sprintf(buf2, "The address of %s is %s.", factionid(f),
+            faction_getaddr(f));
+    ql_push(&u->faction->messages, buf2);
+}
+
 void processorders(void)
 {
     int i, j, k;
@@ -3117,7 +3145,6 @@ void processorders(void)
             }
         }
     }
-#ifdef ENABLE_FIND                  
     /* FIND orders */
 
     puts("Processing FIND orders...");
@@ -3125,26 +3152,27 @@ void processorders(void)
     for (ql_iter rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
 
-        for (u = r->units; u; u = u->next) {
-            for (S = u->orders; S; S = S->next) {
+        ql_iter uli;
+
+        for (uli=qli_init(&r->units);qli_more(uli);) {
+            unit *u = (unit *)qli_next(&uli);
+            ql_iter oli;
+            for (oli = qli_init(&u->orders); qli_more(oli); ) {
+                const char *s = (const char *)qli_next(&oli);
                 switch (igetkeyword(s)) {
+                case K_STACK:
+                    cmd_stack(r, u, s);
+                    break;
+                case K_UNSTACK:
+                    cmd_unstack(r, u, s);
+                    break;
                 case K_FIND:
-                    f = getfaction();
-
-                    if (f == 0) {
-                        mistakes(u, s, "Faction not found");
-                        break;
-                    }
-
-                    sprintf(buf, "The address of %s is %s.", factionid(f),
-                            faction_getaddr(f));
-                    ql_push(&u->faction->messages, buf);
+                    cmd_find(u, s);
                     break;
                 }
             }
         }
     }
-#endif
     /* Leaving and entering buildings and ships */
 
     puts("Processing leaving and entering orders...");

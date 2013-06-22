@@ -9,6 +9,7 @@
 #include <atlantis.h>
 #include <region.h>
 #include <faction.h>
+#include <settings.h>
 
 #include <rtl.h>
 
@@ -16,6 +17,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <time.h>
 #include <ctype.h>
 
@@ -163,7 +165,7 @@ int main(int argc, char **argv)
 {
     int i;
     char buf[12];
-    const char * arg, * orders = 0;
+    const char *arg, *orders = 0, *cfgfile = 0;
 
     rnd_seed((unsigned int) time(0));
 
@@ -175,6 +177,9 @@ int main(int argc, char **argv)
     for (i = 1; i != argc; ++i) {
         if (argv[i][0] == '-') {
             switch (argv[i][1]) {
+            case 'c':
+                cfgfile = (argv[i][2]) ? (argv[i] + 2) : argv[++i];
+                break;
             case 'i':
                 ignore_password = 1;
                 break;
@@ -193,6 +198,18 @@ int main(int argc, char **argv)
     }
 
     initgame();
+    if (cfgfile) {
+        FILE * F = fopen(cfgfile, "r");
+        if (F) {
+            stream strm;
+            fstream_init(&strm, F);
+            read_config(&strm);
+            fstream_done(&strm);
+        } else {
+            fprintf(stderr, "could not open configuration file '%s'\n", cfgfile);
+            return errno ? errno : -1;
+        }
+    }
     if (orders) {
         return processturn(orders);
     }

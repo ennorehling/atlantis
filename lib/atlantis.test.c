@@ -6,6 +6,7 @@
 #include "building.h"
 #include "unit.h"
 #include "parser.h"
+#include "settings.h"
 
 #include "rtl.h"
 
@@ -734,6 +735,24 @@ static void test_keywords(CuTest * tc)
     CuAssertIntEquals(tc, K_WORK, findkeyword("work"));
 }
 
+static void test_settings(CuTest * tc)
+{
+    char line[80];
+    stream strm;
+    mstream_init(&strm);
+    strm.api->writeln(strm.handle, "# comments are okay");
+    strm.api->writeln(strm.handle, "width = 10");
+    strm.api->writeln(strm.handle, " height = 20");
+    strm.api->writeln(strm.handle, " stacks=yes");
+    strm.api->rewind(strm.handle);
+    read_config(&strm);
+    CuAssertIntEquals(tc, 10, config.width);
+    CuAssertIntEquals(tc, 20, config.height);
+    CuAssertIntEquals(tc, CFG_STACKS, config.features);
+
+    mstream_done(&strm);
+}
+
 int main(void)
 {
     CuString *output = CuStringNew();
@@ -766,6 +785,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_faction_name);
     SUITE_ADD_TEST(suite, test_faction_addr);
     SUITE_ADD_TEST(suite, test_stack);
+    SUITE_ADD_TEST(suite, test_settings);
 
     CuSuiteRun(suite);
     CuSuiteSummary(suite, output);
