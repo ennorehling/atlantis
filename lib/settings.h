@@ -9,11 +9,18 @@
 #ifndef ATL_SETTINGS_H
 #define ATL_SETTINGS_H
 
+#define CFG_STACKS 0x01
+
+struct stream;
+
 typedef struct settings {
     int width, height;
+    unsigned int features;
 } settings;
 
 extern struct settings config;
+
+void read_config(struct stream *);
 
 #define NAMESIZE 81
 #define DISPLAYSIZE 161
