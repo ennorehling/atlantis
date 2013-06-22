@@ -1,0 +1,7 @@
+my_hdr From: Atlantis Server <atlantis@twigtechnology.com>
+my_hdr Reply-To: enno@twigtechnology.com
+set record=/dev/null
+set fcc_attach="no"
+
+set send_charset="utf-8:iso-8859-1"
+set charset="utf-8"
