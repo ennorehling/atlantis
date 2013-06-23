@@ -53,6 +53,12 @@ void unit_unstack(struct unit* u) {
             u->next = 0;
             u->stack = 0;
         }
+    } else if (u->next) {
+        unit *stack = u->next;
+        stack->stack = 0;
+        for (u = stack->next;u;u=u->next) {
+            u->stack = stack;
+        }
     }
 }
 
