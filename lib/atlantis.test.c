@@ -29,6 +29,31 @@ static unit *make_unit(faction *f, region *r, int no) {
     return u;
 }
 
+static void test_unstack_leader(CuTest *tc)
+{
+    faction *f;
+    region *r;
+    unit *u1, *u2, *u3;
+    
+    cleargame();
+    r = create_region(1, 1, T_PLAIN);
+    f = create_faction(1);
+    u1 = make_unit(f, r, 1);
+    u2 = make_unit(f, r, 2);
+    u3 = make_unit(f, r, 3);
+    
+    CuAssertPtrEquals(tc, u1, unit_getstack(u1));
+    CuAssertPtrEquals(tc, u2, unit_getstack(u2));
+
+    unit_stack(u3, u2);
+    unit_stack(u2, u1);
+
+    unit_unstack(u1);
+    CuAssertPtrEquals(tc, u1, unit_getstack(u1));
+    CuAssertPtrEquals(tc, u2, unit_getstack(u2));
+    CuAssertPtrEquals(tc, u2, unit_getstack(u3));
+}
+
 static void test_stacking(CuTest *tc)
 {
     faction *f;
@@ -62,10 +87,6 @@ static void test_stacking(CuTest *tc)
     unit_stack(u3, u1);
     CuAssertPtrEquals(tc, u1, unit_getstack(u2));
     CuAssertPtrEquals(tc, u1, unit_getstack(u3));
-
-    free_unit(u1);
-    CuAssertPtrEquals(tc, u2, unit_getstack(u2));
-    CuAssertPtrEquals(tc, u2, unit_getstack(u3));
 }
 
 static void test_stacking_moves_units(CuTest *tc)
@@ -825,6 +846,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_faction_name);
     SUITE_ADD_TEST(suite, test_faction_addr);
     SUITE_ADD_TEST(suite, test_stacking);
+    SUITE_ADD_TEST(suite, test_unstack_leader);
     // SUITE_ADD_TEST(suite, test_stacking_moves_units);
     SUITE_ADD_TEST(suite, test_settings);
 
