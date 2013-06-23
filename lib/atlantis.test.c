@@ -29,7 +29,7 @@ static unit *make_unit(faction *f, region *r, int no) {
     return u;
 }
 
-static void test_stack(CuTest *tc)
+static void test_stacking(CuTest *tc)
 {
     faction *f;
     region *r;
@@ -37,7 +37,7 @@ static void test_stack(CuTest *tc)
     
     cleargame();
     r = create_region(1, 1, T_PLAIN);
-    f = addplayer(r, 0, 0);
+    f = create_faction(1);
     u1 = make_unit(f, r, 1);
     u2 = make_unit(f, r, 2);
     u3 = make_unit(f, r, 3);
@@ -55,17 +55,74 @@ static void test_stack(CuTest *tc)
 
     unit_unstack(u2);
     CuAssertPtrEquals(tc, u2, unit_getstack(u2));
-    CuAssertPtrEquals(tc, u2, unit_getstack(u3));
+    CuAssertPtrEquals(tc, u1, unit_getstack(u3));
 
     unit_unstack(u3);
     unit_stack(u2, u1);
     unit_stack(u3, u1);
     CuAssertPtrEquals(tc, u1, unit_getstack(u2));
     CuAssertPtrEquals(tc, u1, unit_getstack(u3));
-    CuAssertPtrEquals(tc, u2, u1->child);
+}
+
+static void test_stacking_moves_units(CuTest *tc)
+{
+    faction *f;
+    region *r;
+    unit *u1, *u2, *u3;
+    
+    cleargame();
+    r = create_region(1, 1, T_PLAIN);
+    f = create_faction(1);
+    u1 = make_unit(f, r, 1);
+    u2 = make_unit(f, r, 2);
+    u3 = make_unit(f, r, 3);
+    
+    CuAssertPtrEquals(tc, u1, unit_getstack(u1));
+    CuAssertPtrEquals(tc, u2, unit_getstack(u2));
+    // 1, 2, 3:
+    CuAssertPtrEquals(tc, u1, ql_get(r->units, 0));
+    CuAssertPtrEquals(tc, u2, ql_get(r->units, 1));
+    CuAssertPtrEquals(tc, u3, ql_get(r->units, 2));
+
+    unit_stack(u3, u1);
+    // 1->3, 2:
+    CuAssertPtrEquals(tc, u3, ql_get(r->units, 1));
+    CuAssertPtrEquals(tc, u2, ql_get(r->units, 2));
+
+    unit_unstack(u3);
+    // 1, 3, 2:
+    CuAssertPtrEquals(tc, u3, unit_getstack(u3));
+    CuAssertPtrEquals(tc, u3, ql_get(r->units, 1));
+    CuAssertPtrEquals(tc, u2, ql_get(r->units, 2));
+
+    unit_stack(u3, u2);
+    // 1, 2->3:
+    CuAssertPtrEquals(tc, u2, unit_getstack(u3));
+    CuAssertPtrEquals(tc, u2, unit_getstack(u2));
+    CuAssertPtrEquals(tc, u2, ql_get(r->units, 1));
+    CuAssertPtrEquals(tc, u3, ql_get(r->units, 2));
+
+    unit_stack(u2, u1);
+    CuAssertPtrEquals(tc, u1, unit_getstack(u3));
+    CuAssertPtrEquals(tc, u1, unit_getstack(u2));
+    // 1->2->3:
+    CuAssertPtrEquals(tc, u1, ql_get(r->units, 0));
+    CuAssertPtrEquals(tc, u2, ql_get(r->units, 1));
+    CuAssertPtrEquals(tc, u3, ql_get(r->units, 2));
+
+    unit_unstack(u2);
+    CuAssertPtrEquals(tc, u2, unit_getstack(u2));
+    CuAssertPtrEquals(tc, u1, unit_getstack(u3));
+
+    unit_unstack(u3);
+    unit_stack(u2, u1);
+    unit_stack(u3, u1);
+    CuAssertPtrEquals(tc, u1, unit_getstack(u2));
+    CuAssertPtrEquals(tc, u1, unit_getstack(u3));
+    CuAssertPtrEquals(tc, u2, u1->next);
     CuAssertPtrEquals(tc, u3, u2->next);
     CuAssertPtrEquals(tc, 0, u3->next);
-    CuAssertPtrEquals(tc, 0, u2->child);
+    CuAssertPtrEquals(tc, 0, u2->next);
     CuAssertPtrEquals(tc, 0, u1->next);
 }
 
@@ -737,7 +794,6 @@ static void test_keywords(CuTest * tc)
 
 static void test_settings(CuTest * tc)
 {
-    char line[80];
     stream strm;
     mstream_init(&strm);
     strm.api->writeln(strm.handle, "# comments are okay");
@@ -784,7 +840,8 @@ int main(void)
     SUITE_ADD_TEST(suite, test_unit_display);
     SUITE_ADD_TEST(suite, test_faction_name);
     SUITE_ADD_TEST(suite, test_faction_addr);
-    SUITE_ADD_TEST(suite, test_stack);
+    SUITE_ADD_TEST(suite, test_stacking);
+    // SUITE_ADD_TEST(suite, test_stacking_moves_units);
     SUITE_ADD_TEST(suite, test_settings);
 
     CuSuiteRun(suite);
