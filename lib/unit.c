@@ -24,6 +24,7 @@ unit * create_unit(struct faction *f, int no)
 }
 
 void free_unit(unit *u) {
+    unit_unstack(u);
     ql_foreach(u->orders, free);
     ql_free(u->orders);
     free(u->litems);
@@ -33,16 +34,17 @@ void free_unit(unit *u) {
 }
 
 void unit_stack(struct unit* u, struct unit *stack) {
-    unit **up = &stack->child;
+    unit **up = &stack->next;
     assert(!u->stack);
     while (*up) up = &(*up)->next;
-    *up = u;
-    u->stack = stack;
+    for (*up = u; *up; up = &(*up)->next) {
+        (*up)->stack = stack;
+    }
 }
 
 void unit_unstack(struct unit* u) {
     if (u->stack) {
-        unit ** up = &u->stack->child;
+        unit ** up = &u->stack->next;
         while (*up!=u) {
             up = &(*up)->next;
         }
@@ -50,6 +52,12 @@ void unit_unstack(struct unit* u) {
             *up = u->next;
             u->next = 0;
             u->stack = 0;
+        }
+    } else if (u->next) {
+        unit *stack = u->next;
+        stack->stack = 0;
+        for (u = stack->next;u;u=u->next) {
+            u->stack = stack;
         }
     }
 }

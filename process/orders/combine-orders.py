@@ -48,10 +48,14 @@ for row in cur.fetchall():
     email, filename = row
     filename = os.path.join(path, filename)
     try:
+        first = True
         fin = open(filename, 'r')
         print('#ORDERS %s\n#ORDERS %s' % (email, filename))
         for line in fin.readlines():
             line = line.strip()
+            if first and re.match('\s*FACTION', line, re.IGNORECASE) is None:
+                continue
+            first = False
             if len(line)>1:
                 print(line)
     except IOError:
