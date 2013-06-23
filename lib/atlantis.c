@@ -1639,9 +1639,9 @@ void removeempty(void)
                         break;
                     }
                 }
-                if (r->terrain != T_OCEAN)
+                if (r->terrain != T_OCEAN) {
                     r->money += u->money;
-
+                }
                 leave(r, u);
                 free_unit(u);
                 qli_delete(&uli);
@@ -2884,10 +2884,10 @@ int lovar(int n)
     return (genrand_int32() % n + 1) + (genrand_int32() % n + 1);
 }
 
-void cmd_stack(region *r, unit *u, const char *s) {
+void cmd_stack(unit *u, const char *s) {
     unit *stack;
     
-    if (getseen(r, u->faction, &stack)==U_NOTFOUND) {
+    if (getseen(u->region, u->faction, &stack)==U_NOTFOUND) {
         mistakes(u, s, "Unit not found");
         return;
     }
@@ -3161,7 +3161,7 @@ void processorders(void)
                 const char *s = (const char *)qli_next(&oli);
                 switch (igetkeyword(s)) {
                 case K_STACK:
-                    cmd_stack(r, u, s);
+                    cmd_stack(u, s);
                     break;
                 case K_UNSTACK:
                     cmd_unstack(u);
@@ -3855,7 +3855,7 @@ void processorders(void)
 
                 leave(r, u);
                 qli_delete(&uli);
-                ql_push(&r2->units, u);
+                region_addunit(r2, u);
                 u->thisorder[0] = 0;
 
                 sprintf(buf, "%s ", unitid(u));
@@ -3939,7 +3939,7 @@ void processorders(void)
 
                     if (u2->ship == u->ship) {
                         qli_delete(&qli);
-                        ql_push(&r2->units, u2);
+                        region_addunit(r2, u2);
                         u2->thisorder[0] = 0;
                     } else {
                         qli_next(&qli);
@@ -4886,7 +4886,7 @@ int readgame(void)
                 }
             }
             
-            ql_push(&r->units, u);
+            region_addunit(r, u);
         }
     }
 
@@ -5032,6 +5032,8 @@ int writegame(void)
 
         for (qli = qli_init(&r->units); qli_more(qli);) {
             unit *u = (unit *)qli_next(&qli);
+
+            assert(u->region==r);
             store.api->w_int(store.handle, u->no);
             store.api->w_int(store.handle, u->faction->no);
 //            store.api->w_int(store.handle, u->stack ? u->stack->no : 0);

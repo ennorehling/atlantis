@@ -62,6 +62,10 @@ static void test_stacking(CuTest *tc)
     unit_stack(u3, u1);
     CuAssertPtrEquals(tc, u1, unit_getstack(u2));
     CuAssertPtrEquals(tc, u1, unit_getstack(u3));
+
+    free_unit(u1);
+    CuAssertPtrEquals(tc, u2, unit_getstack(u2));
+    CuAssertPtrEquals(tc, u2, unit_getstack(u3));
 }
 
 static void test_stacking_moves_units(CuTest *tc)
@@ -77,8 +81,6 @@ static void test_stacking_moves_units(CuTest *tc)
     u2 = make_unit(f, r, 2);
     u3 = make_unit(f, r, 3);
     
-    CuAssertPtrEquals(tc, u1, unit_getstack(u1));
-    CuAssertPtrEquals(tc, u2, unit_getstack(u2));
     // 1, 2, 3:
     CuAssertPtrEquals(tc, u1, ql_get(r->units, 0));
     CuAssertPtrEquals(tc, u2, ql_get(r->units, 1));
@@ -91,39 +93,20 @@ static void test_stacking_moves_units(CuTest *tc)
 
     unit_unstack(u3);
     // 1, 3, 2:
-    CuAssertPtrEquals(tc, u3, unit_getstack(u3));
     CuAssertPtrEquals(tc, u3, ql_get(r->units, 1));
     CuAssertPtrEquals(tc, u2, ql_get(r->units, 2));
 
     unit_stack(u3, u2);
     // 1, 2->3:
-    CuAssertPtrEquals(tc, u2, unit_getstack(u3));
-    CuAssertPtrEquals(tc, u2, unit_getstack(u2));
     CuAssertPtrEquals(tc, u2, ql_get(r->units, 1));
     CuAssertPtrEquals(tc, u3, ql_get(r->units, 2));
 
     unit_stack(u2, u1);
-    CuAssertPtrEquals(tc, u1, unit_getstack(u3));
-    CuAssertPtrEquals(tc, u1, unit_getstack(u2));
     // 1->2->3:
     CuAssertPtrEquals(tc, u1, ql_get(r->units, 0));
     CuAssertPtrEquals(tc, u2, ql_get(r->units, 1));
     CuAssertPtrEquals(tc, u3, ql_get(r->units, 2));
 
-    unit_unstack(u2);
-    CuAssertPtrEquals(tc, u2, unit_getstack(u2));
-    CuAssertPtrEquals(tc, u1, unit_getstack(u3));
-
-    unit_unstack(u3);
-    unit_stack(u2, u1);
-    unit_stack(u3, u1);
-    CuAssertPtrEquals(tc, u1, unit_getstack(u2));
-    CuAssertPtrEquals(tc, u1, unit_getstack(u3));
-    CuAssertPtrEquals(tc, u2, u1->next);
-    CuAssertPtrEquals(tc, u3, u2->next);
-    CuAssertPtrEquals(tc, 0, u3->next);
-    CuAssertPtrEquals(tc, 0, u2->next);
-    CuAssertPtrEquals(tc, 0, u1->next);
 }
 
 static void test_wrapmap(CuTest * tc)
@@ -678,6 +661,7 @@ static void test_region_addunit(CuTest * tc)
     r = create_region(0, 0, T_PLAIN);
     u = create_unit(0, 1);
     region_addunit(r, u);
+    CuAssertPtrEquals(tc, r, u->region);
     CuAssertPtrEquals(tc, u, (unit *)ql_get(r->units, 0));
 }
 
