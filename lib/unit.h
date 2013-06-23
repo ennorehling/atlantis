@@ -23,7 +23,6 @@ struct quicklist;
 
 typedef struct unit {
     struct unit * stack;
-    struct unit * child;
     struct unit * next;
     int no;
     char * name_;

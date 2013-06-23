@@ -33,16 +33,17 @@ void free_unit(unit *u) {
 }
 
 void unit_stack(struct unit* u, struct unit *stack) {
-    unit **up = &stack->child;
+    unit **cp, **up = &stack->next;
     assert(!u->stack);
     while (*up) up = &(*up)->next;
-    *up = u;
-    u->stack = stack;
+    for (*up = u; *up; up = &(*up)->next) {
+        (*up)->stack = stack;
+    }
 }
 
 void unit_unstack(struct unit* u) {
     if (u->stack) {
-        unit ** up = &u->stack->child;
+        unit ** up = &u->stack->next;
         while (*up!=u) {
             up = &(*up)->next;
         }

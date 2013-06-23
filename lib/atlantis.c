@@ -52,8 +52,9 @@ int ignore_password = 0;
 
 #define VER_NOHEADER 0 // no version header
 #define VER_HEADER 1 // has a version header
+#define VER_STACKS 2 // can have stacks
 
-#define VER_CURRENT VER_HEADER
+#define VER_CURRENT VER_STACKS
 
 static void (*store_init)(struct storage *, FILE *) = binstore_init;
 static void (*store_done)(struct storage *) = binstore_done;
@@ -5033,6 +5034,7 @@ int writegame(void)
             unit *u = (unit *)qli_next(&qli);
             store.api->w_int(store.handle, u->no);
             store.api->w_int(store.handle, u->faction->no);
+//            store.api->w_int(store.handle, u->stack ? u->stack->no : 0);
             store.api->w_str(store.handle, unit_getname(u));
             store.api->w_str(store.handle, unit_getdisplay(u));
             store.api->w_int(store.handle, u->number);
