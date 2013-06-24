@@ -46,5 +46,6 @@ struct region * findregion(int x, int y);
 const char * region_getname(const struct region *r);
 void region_setname(struct region *r, const char *name);
 void region_addunit(struct region *self, struct unit *u);
+void region_rmunit(struct region *self, struct unit *u);
 
 #endif

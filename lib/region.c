@@ -59,9 +59,28 @@ void region_setname(struct region *r, const char *name)
     }
 }
 
-void region_addunit(struct region *self, struct unit *u)
+void region_addunit(struct region *r, struct unit *u)
 {
     assert(u);
-    u->region = self;
-    ql_push(&self->units, u);
+    u->region = r;
+    ql_push(&r->units, u);
+}
+
+void region_rmunit(struct region *r, struct unit *u)
+{
+    quicklist *ql;
+    int qi;
+    assert(u && u->region==r);
+    for (qi=0,ql=r->units;ql;ql_advance(&ql, &qi, 1)) {
+        unit *x = (unit *)ql_get(ql, qi);
+        if (x==u) {
+            if (ql==r->units) {
+                ql_delete(&r->units, qi);
+            } else {
+                ql_delete(&ql, qi);
+            }
+            break;
+        }
+    }    
+    u->region = 0;
 }

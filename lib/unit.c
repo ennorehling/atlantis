@@ -1,4 +1,5 @@
 #include "unit.h"
+#include "region.h"
 #include "atlantis.h"
 
 #include <quicklist.h>
@@ -33,16 +34,30 @@ void free_unit(unit *u) {
     free(u);
 }
 
-void unit_stack(struct unit* u, struct unit *stack) {
+void unit_stack(unit* u, unit *stack) {
+    quicklist *ql;
+    int qi;
+
     unit **up = &stack->next;
     assert(!u->stack);
+    assert(u->region);
+    assert(stack->region==u->region);
+
     while (*up) up = &(*up)->next;
     for (*up = u; *up; up = &(*up)->next) {
         (*up)->stack = stack;
     }
+    ql = u->region->units; qi = 0;
+    if (ql_find(&ql, &qi, u, 0)) {
+        ql_delete(&ql, qi);
+    }
+    ql = u->region->units; qi = 0;
+    if (ql_find(&ql, &qi, stack, 0)) {
+        ql_insert(&ql, qi+1, u);
+    }
 }
 
-void unit_unstack(struct unit* u) {
+void unit_unstack(unit* u) {
     if (u->stack) {
         unit ** up = &u->stack->next;
         while (*up!=u) {
