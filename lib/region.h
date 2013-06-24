@@ -33,7 +33,7 @@ typedef struct region {
     int money;
     struct quicklist *buildings;
     struct quicklist *ships;
-    struct quicklist *units;
+    struct unit *units_;
     int immigrants;
 } region;
 
@@ -45,7 +45,7 @@ struct region * findregion(int x, int y);
 
 const char * region_getname(const struct region *r);
 void region_setname(struct region *r, const char *name);
-void region_addunit(struct region *self, struct unit *u);
-void region_rmunit(struct region *self, struct unit *u);
+void region_addunit(struct region *r, struct unit *u, struct unit *stack);
+bool region_rmunit(struct region *r, struct unit *u, struct unit **hint);
 
 #endif

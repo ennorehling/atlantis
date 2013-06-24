@@ -31,9 +31,11 @@ region * create_region(int x, int y, terrain_t t)
 
 void free_region(region *r) {
     free(r->name_);
-    ql_foreach(r->units, (ql_cb)free_unit);
-    ql_free(r->units);
-    r->units = 0;
+    while (r->units_) {
+        unit *u = r->units_;
+        r->units_ = u->next;
+        free_unit(u);
+    }
     ql_foreach(r->ships, (ql_cb)free_ship);
     ql_free(r->ships);
     r->ships = 0;
@@ -59,28 +61,41 @@ void region_setname(struct region *r, const char *name)
     }
 }
 
-void region_addunit(struct region *r, struct unit *u)
+void region_addunit(struct region *r, struct unit *u, struct unit *stack)
 {
+    unit **up, *top = 0;
     assert(u);
+    assert(!stack || stack->region==r);
     u->region = r;
-    ql_push(&r->units, u);
+    up = stack ? &stack->next : &r->units_;
+    while (*up) {
+        unit *x = *up;
+        up = &x->next;
+        if (top) {
+             if (x->stack!=stack) {
+                 break;
+             }
+        }
+        else if (stack && stack==x->stack) {
+            top = stack;
+        }
+    }
+    u->stack = stack;
+    u->next = *up;
+    *up = u;
 }
 
-void region_rmunit(struct region *r, struct unit *u)
+bool region_rmunit(struct region *r, struct unit *u, struct unit **hint)
 {
-    quicklist *ql;
-    int qi;
-    assert(u && u->region==r);
-    for (qi=0,ql=r->units;ql;ql_advance(&ql, &qi, 1)) {
-        unit *x = (unit *)ql_get(ql, qi);
+    unit **up = hint ? hint : &r->units_;
+    while (*up) {
+        unit *x = *up;
         if (x==u) {
-            if (ql==r->units) {
-                ql_delete(&r->units, qi);
-            } else {
-                ql_delete(&ql, qi);
-            }
-            break;
+            *up = x->next;
+            return true;
         }
-    }    
-    u->region = 0;
+        up = &x->next;
+    }
+    return false;
+
 }

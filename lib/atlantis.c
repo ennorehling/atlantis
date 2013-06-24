@@ -889,32 +889,31 @@ int effskill(const unit * u, int i)
     return result;
 }
 
-int cansee(const faction * f, region * r, const unit * u)
+int cansee(const faction * f, region * r, const unit * ux)
 {
     int n, o;
     int cansee;
-    ql_iter uli;
+    unit *u;
 
-    if (u->faction == f)
+    if (ux->faction == f)
         return 2;
 
     cansee = 0;
-    if (u->guard || u->building || u->ship)
+    if (ux->guard || ux->building || ux->ship)
         cansee = 1;
 
-    n = effskill(u, SK_STEALTH);
+    n = effskill(ux, SK_STEALTH);
 
-    for (uli=qli_init(&r->units);qli_more(uli);) {
-        unit *u2 = (unit *)qli_next(&uli);
-        if (u2->faction != f)
+    for (u = r->units_;u;u=u->next) {
+        if (u->faction != f)
             continue;
 
-        if (u->items[I_RING_OF_INVISIBILITY] &&
-            u->items[I_RING_OF_INVISIBILITY] == u->number &&
-            !u2->items[I_AMULET_OF_TRUE_SEEING])
+        if (ux->items[I_RING_OF_INVISIBILITY] &&
+            ux->items[I_RING_OF_INVISIBILITY] == ux->number &&
+            !u->items[I_AMULET_OF_TRUE_SEEING])
             continue;
 
-        o = effskill(u2, SK_OBSERVATION);
+        o = effskill(u, SK_OBSERVATION);
         if (o > n)
             return 2;
         if (o >= n)
@@ -1027,9 +1026,8 @@ unit *findunitg(int n)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        ql_iter uli;
-        for (uli=qli_init(&r->units);qli_more(uli);) {
-            unit *u = (unit *)qli_next(&uli);
+        unit *u;
+        for (u = r->units_;u;u=u->next) {
             if (u->no == n) {
                 return u;
             }
@@ -1066,7 +1064,7 @@ faction * addplayer(region * r, const char * email, int no)
 
     while (findunitg(nextunitid)) ++nextunitid;
     u = create_unit(f, nextunitid++);
-    region_addunit(r, u);
+    region_addunit(r, u, 0);
     strcpy(u->lastorder, "work");
     u->combatspell = -1;
     u->number = 1;
@@ -1549,9 +1547,8 @@ void reportevent(region * r, char *s)
 
     for (fli = qli_init(&factions); qli_more(fli);) {
         faction *f = (faction *)qli_next(&fli);
-        ql_iter uli;
-        for (uli=qli_init(&r->units);qli_more(uli);) {
-            unit *u = (unit *)qli_next(&uli);
+        unit *u;
+        for (u = r->units_;u;u=u->next) {
             if (u->faction == f && u->number) {
                 addevent(f, s);
                 break;
@@ -1560,55 +1557,51 @@ void reportevent(region * r, char *s)
     }
 }
 
-void leave(region * r, unit * u)
+void leave(region * r, unit * ux)
 {
     building *b;
     ship *sh;
 
-    if (u->building) {
-        b = u->building;
-        u->building = 0;
+    if (ux->building) {
+        b = ux->building;
+        ux->building = 0;
 
-        if (u->owner) {
-            ql_iter uli;
-            u->owner = false;
+        if (ux->owner) {
+            unit *u;
+            ux->owner = false;
 
-            for (uli=qli_init(&r->units);qli_more(uli);) {
-                unit *u2 = (unit *)qli_next(&uli);
-                if (u2->faction == u->faction && u2->building == b) {
-                    u2->owner = true;
+            for (u = r->units_;u;u=u->next) {
+                if (u->faction == u->faction && u->building == b) {
+                    u->owner = true;
                     return;
                 }
             }
-            for (uli=qli_init(&r->units);qli_more(uli);) {
-                unit *u2 = (unit *)qli_next(&uli);
-                if (u2->building == b) {
-                    u2->owner = true;
+            for (u = r->units_;u;u=u->next) {
+                if (u->building == b) {
+                    u->owner = true;
                     return;
                 }
             }
         }
     }
 
-    if (u->ship) {
-        sh = u->ship;
-        u->ship = 0;
+    if (ux->ship) {
+        sh = ux->ship;
+        ux->ship = 0;
 
-        if (u->owner) {
-            ql_iter uli;
-            u->owner = false;
+        if (ux->owner) {
+            unit *u;
+            ux->owner = false;
 
-            for (uli=qli_init(&r->units);qli_more(uli);) {
-                unit *u2 = (unit *)qli_next(&uli);
-                if (u2->faction == u->faction && u2->ship == sh) {
-                    u2->owner = true;
+            for (u = r->units_;u;u=u->next) {
+                if (u->faction == ux->faction && u->ship == sh) {
+                    u->owner = true;
                     return;
                 }
             }
-            for (uli=qli_init(&r->units);qli_more(uli);) {
-                unit *u2 = (unit *)qli_next(&uli);
-                if (u2->ship == sh) {
-                    u2->owner = true;
+            for (u = r->units_;u;u=u->next) {
+                if (u->ship == sh) {
+                    u->owner = true;
                     return;
                 }
             }
@@ -1623,14 +1616,13 @@ void removeempty(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        for (uli=qli_init(&r->units);qli_more(uli);) {
-            unit *u = (unit *)qli_get(uli);
-
+        unit *u;
+        for (u = r->units_;u;u=u->next) {
             if (!u->number) {
                 ql_iter qli;
 
-                for (qli=qli_init(&r->units);qli_more(qli);) {
-                    unit *u3 = (unit *)qli_next(&qli);
+                unit *u3;
+                for (u3 = r->units_;u3;u3=u3->next) {
                     if (u3->faction == u->faction) {
                         u3->money += u->money;
                         u->money = 0;
@@ -1654,14 +1646,12 @@ void removeempty(void)
             ql_iter sli;
             for (sli = qli_init(&r->ships); qli_more(sli);) {
                 ship *sh = (ship *)qli_get(sli);
-                unit *u = 0;
+                unit *u;
 
-                for (uli=qli_init(&r->units);qli_more(uli);) {
-                    u = (unit *)qli_next(&uli);
+                for (u=r->units_;u;u=u->next) {
                     if (u->ship == sh) {
                         break;
                     }
-                    u = 0;
                 }
                 if (!u) {
                     free_ship(sh);
@@ -1680,9 +1670,9 @@ void destroyfaction(faction * f)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        ql_iter uli;
-        for (uli=qli_init(&r->units);qli_more(uli);) {
-            unit *u = (unit *)qli_next(&uli);
+        unit *u;
+
+        for (u=r->units_;u;u=u->next) {
             if (u->faction == f) {
                 if (r->terrain != T_OCEAN)
                     r->peasants += u->number;
@@ -1749,19 +1739,18 @@ int armedmen(unit * u)
     return MIN(n, u->number);
 }
 
-void getmoney(region * r, unit * u, int n)
+void getmoney(region * r, unit * ux, int n)
 {
     int i;
-    ql_iter uli;
+    unit *u;
 
-    n -= u->money;
+    n -= ux->money;
 
-    for (uli=qli_init(&r->units);qli_more(uli);) {
-        unit *u2 = (unit *)qli_next(&uli);
-        if (u2->faction == u->faction && u2 != u) {
-            i = MIN(u2->money, n);
-            u2->money -= i;
-            u->money += i;
+    for (u=r->units_;u;u=u->next) {
+        if (u->faction == ux->faction && u != ux) {
+            i = MIN(u->money, n);
+            u->money -= i;
+            ux->money += i;
             n -= i;
         }
     }
@@ -1796,11 +1785,9 @@ bool admits(const unit * u, const unit * u2)
 
 unit *buildingowner(region * r, const building * b)
 {
-    unit *res = 0;
-    ql_iter uli;
+    unit *u, *res = 0;
 
-    for (uli=qli_init(&r->units);qli_more(uli);) {
-        unit *u = (unit *)qli_next(&uli);
+    for (u=r->units_;u;u=u->next) {
         if (u->building == b) {
             if (u->owner) {
                 return u;
@@ -1814,10 +1801,9 @@ unit *buildingowner(region * r, const building * b)
 unit *shipowner(region * r, const ship * sh)
 {
     unit *res = 0;
-    ql_iter uli;
+    unit *u;
 
-    for (uli=qli_init(&r->units);qli_more(uli);) {
-        unit *u = (unit *)qli_next(&uli);
+    for (u=r->units_;u;u=u->next) {
         if (u->ship == sh) {
             if (u->owner) {
                 return u;
@@ -1890,9 +1876,8 @@ NEXTPLAYER:
 
                 for (rli = qli_init(&regions); qli_more(rli);) {
                     region *r = (region *)qli_next(&rli);
-                    ql_iter uli;
-                    for (uli=qli_init(&r->units);qli_more(uli);) {
-                        unit *u = (unit *)qli_next(&uli);
+                    unit *u;
+                    for (u=r->units_;u;u=u->next) {
                         if (u->faction == f) {
                             ql_free(u->orders);
                             u->orders = 0;
@@ -2127,14 +2112,13 @@ void writesummary(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        if (r->peasants || r->units) {
-            ql_iter uli;
+        if (r->peasants || r->units_) {
+            unit *u;
             inhabitedregions++;
             peasants += r->peasants;
             peasantmoney += r->money;
 
-            for (uli=qli_init(&r->units);qli_more(uli);) {
-                unit *u = (unit *)qli_next(&uli);
+            for (u=r->units_;u;u=u->next) {
                 nunits++;
                 playerpop += u->number;
                 playermoney += u->money;
@@ -2412,8 +2396,7 @@ void report(faction * f)
         int d;
         ql_iter qli;
 
-        for (qli=qli_init(&r->units);qli_more(qli);) {
-            u = (unit *)qli_next(&qli);
+        for (u=r->units_;u;u=u->next) {
             if (u->faction == f)
                 break;
             u = 0;
@@ -2453,7 +2436,7 @@ void report(faction * f)
 
         for (qli=qli_init(&r->buildings);qli_more(qli);) {
             building *b = (building *)qli_next(&qli);
-            ql_iter uli;
+            unit *u;
             sprintf(buf, "%s, size %d", buildingid(b), b->size);
 
             if (building_getdisplay(b)) {
@@ -2470,23 +2453,21 @@ void report(faction * f)
 
             rparagraph(F, buf, 4, 0);
 
-            for (uli=qli_init(&r->units);qli_more(uli);) {
-                unit *u = (unit *)qli_next(&uli);
+            for (u=r->units_;u;u=u->next) {
                 if (u->building == b && u->owner) {
                     rpunit(F, f, r, u, 8, 0);
                     break;
                 }
             }
-            for (uli=qli_init(&r->units);qli_more(uli);) {
-                unit *u = (unit *)qli_next(&uli);
-                if (u->building == b && !u->owner)
+            for (u=r->units_;u;u=u->next) {
+                if (u->building == b && !u->owner) {
                     rpunit(F, f, r, u, 8, 0);
+                }
             }
         }
 
         for (qli = qli_init(&r->ships); qli_more(qli);) {
             ship *sh = (ship *)qli_next(&qli);
-            ql_iter uli;
 
             sprintf(buf, "%s, %s", shipid(sh), shiptypenames[sh->type]);
             if (sh->left)
@@ -2506,25 +2487,23 @@ void report(faction * f)
 
             rparagraph(F, buf, 4, 0);
 
-            for (uli=qli_init(&r->units);qli_more(uli);) {
-                unit *u = (unit *)qli_next(&uli);
+            for (u=r->units_;u;u=u->next) {
                 if (u->ship == sh && u->owner) {
                     rpunit(F, f, r, u, 8, 0);
                     break;
                 }
             }
 
-            for (uli=qli_init(&r->units);qli_more(uli);) {
-                unit *u = (unit *)qli_next(&uli);
-                if (u->ship == sh && !u->owner)
+            for (u=r->units_;u;u=u->next) {
+                if (u->ship == sh && !u->owner) {
                     rpunit(F, f, r, u, 8, 0);
+                }
             }
         }
 
         dh = 0;
 
-        for (qli=qli_init(&r->units);qli_more(qli);) {
-            unit *u = (unit *)qli_next(&qli);
+        for (u=r->units_;u;u=u->next) {
             if (!u->building && !u->ship && cansee(f, r, u)) {
                 if (!dh && (r->buildings || r->ships)) {
                     rnl(F);
@@ -2702,12 +2681,11 @@ int canride(unit * u)
 int cansail(region * r, ship * sh)
 {
     int n;
-    ql_iter uli;
+    unit *u;
 
     n = 0;
 
-    for (uli=qli_init(&r->units);qli_more(uli);) {
-        unit *u = (unit *)qli_next(&uli);
+    for (u=r->units_;u;u=u->next) {
         if (u->ship == sh)
             n += itemweight(u) + horseweight(u) + (u->number * 10);
     }
@@ -2821,7 +2799,7 @@ void process_form(unit *u, region *r) {
 
             while (findunitg(nextunitid)) ++nextunitid;
             u2 = create_unit(u->faction, nextunitid++);
-            region_addunit(r, u2);
+            region_addunit(r, u2, 0);
 
             u2->alias = atoi(getstr());
             if (u2->alias == 0)
@@ -2937,7 +2915,10 @@ void processorders(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        ql_foreachx(r->units, (ql_cbx)process_form, r);
+        unit *u;
+        for (u=r->units_;u;u=u->next) {
+            process_form(u, r);
+        }
     }
     /* Instant orders - diplomacy etc. */
 
@@ -3855,7 +3836,7 @@ void processorders(void)
 
                 leave(r, u);
                 qli_delete(&uli);
-                region_addunit(r2, u);
+                region_addunit(r2, u, 0);
                 u->thisorder[0] = 0;
 
                 sprintf(buf, "%s ", unitid(u));
@@ -3939,7 +3920,7 @@ void processorders(void)
 
                     if (u2->ship == u->ship) {
                         qli_delete(&qli);
-                        region_addunit(r2, u2);
+                        region_addunit(r2, u2, 0);
                         u2->thisorder[0] = 0;
                     } else {
                         qli_next(&qli);
@@ -4546,7 +4527,7 @@ void processorders(void)
                         n *= 10000;
 
                         for (;;) {
-                            ql_iter qli;
+                            unit **up;
                             j = getseen(r, u->faction, &u3);
                             if (!u3) {
                                 mistakeu(u, "Unit not found");
@@ -4571,15 +4552,7 @@ void processorders(void)
                             leave(r, u3);
                             n -= i;
 
-                            ql_push(&r2->units, u3);
-                            for (qli=qli_init(&r->units);qli_more(qli);) {
-                                unit *u4 = (unit*)qli_get(qli);
-                                if (u4==u3) {
-                                    qli_delete(&qli);
-                                    break;
-                                }
-                                qli_next(&qli);
-                            }
+                            region_rmunit(r, u3, 0);
                             u3->building = u2->building;
                             u3->ship = u2->ship;
                         }
@@ -4833,6 +4806,7 @@ int readgame(void)
         while (--n2 >= 0) {
             char temp[DISPLAYSIZE];
             int no, fno, cs;
+            unit *stack = 0;
 
             store.api->r_int(store.handle, &no);
             store.api->r_int(store.handle, &fno);
@@ -4886,7 +4860,7 @@ int readgame(void)
                 }
             }
             
-            region_addunit(r, u);
+            region_addunit(r, u, stack);
         }
     }
 
