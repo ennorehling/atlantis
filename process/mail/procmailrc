@@ -3,5 +3,5 @@
 atlantis
 
 :0:orders.lock
-* ^Subject:.*ATLANTIS.*ORDERS
+* ^Subject:.*ATLANTIS.*ORDER
 | tr -d '' | (cd $ATLANTIS ; bin/receive-orders)
