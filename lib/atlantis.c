@@ -2572,9 +2572,9 @@ void expandorders(region * r, order * orders)
 {
     ql_iter uli;
     order *o;
+	unit *u;
 
-    for (uli=qli_init(&r->units);qli_more(uli);) {
-        unit *u = (unit *)qli_next(&uli);
+    for (u=r->units_;u;u=u->next) {
         u->n = -1;
     }
 
@@ -2737,9 +2737,8 @@ int magicians(faction * f)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        ql_iter uli;
-        for (uli=qli_init(&r->units);qli_more(uli);) {
-            unit *u = (unit *)qli_next(&uli);
+        unit *u;
+	    for (u=r->units_;u;u=u->next) {
             if (u->skills[SK_MAGIC] && u->faction == f)
                 n += u->number;
         }
@@ -2926,9 +2925,8 @@ void processorders(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        ql_iter uli;
-        for (uli = qli_init(&r->units); qli_more(uli);) {
-            unit *u = (unit *)qli_next(&uli);
+        unit *u;
+		for (u=r->units_;u;u=u->next) {
             ql_iter oli;
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
                 const char *s = (const char *)qli_next(&oli);
@@ -3133,10 +3131,9 @@ void processorders(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        ql_iter uli;
+        unit *u;
 
-        for (uli=qli_init(&r->units);qli_more(uli);) {
-            unit *u = (unit *)qli_next(&uli);
+	    for (u=r->units_;u;u=u->next) {
             ql_iter oli;
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
                 const char *s = (const char *)qli_next(&oli);
@@ -3160,10 +3157,9 @@ void processorders(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        ql_iter uli;
+        unit *u;
 
-        for (uli=qli_init(&r->units);qli_more(uli);) {
-            unit *u = (unit *)qli_next(&uli);
+		for (u=r->units_;u;u=u->next) {
             ql_iter oli;
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
                 const char *s = (const char *)qli_next(&oli);
