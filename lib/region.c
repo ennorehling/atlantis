@@ -61,13 +61,14 @@ void region_setname(struct region *r, const char *name)
     }
 }
 
-void region_addunit(struct region *r, struct unit *u, struct unit *stack)
+void region_addunit(struct region *r, struct unit *u, struct unit *stack, struct unit **hint)
 {
     unit **up, *top = 0;
     assert(u);
     assert(!stack || stack->region==r);
     u->region = r;
-    up = stack ? &stack->next : &r->units_;
+	up = hint ? hint : &r->units_;
+    up = stack ? &stack->next : up;
     while (*up) {
         unit *x = *up;
         up = &x->next;

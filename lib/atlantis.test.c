@@ -25,7 +25,7 @@
 static unit *make_unit(faction *f, region *r, int no) {
     unit * u = create_unit(f, no);
     u->number = 1;
-    region_addunit(r, u, 0);
+    region_addunit(r, u, 0, 0);
     return u;
 }
 
@@ -687,11 +687,11 @@ static void test_region_addunit(CuTest * tc)
     r = create_region(0, 0, T_PLAIN);
     u1 = create_unit(0, 1);
     u2 = create_unit(0, 1);
-    region_addunit(r, u1, 0);
+    region_addunit(r, u1, 0, 0);
     CuAssertPtrEquals(tc, r, u1->region);
     CuAssertPtrEquals(tc, u1, r->units_);
 
-    region_addunit(r, u2, 0);
+    region_addunit(r, u2, 0, 0);
     CuAssertPtrEquals(tc, u1, r->units_);
     CuAssertPtrEquals(tc, u2, r->units_->next);
 
