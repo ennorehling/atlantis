@@ -10,6 +10,7 @@
 #define ATL_REGION_H
 
 #include "settings.h"
+#include "bool.h"
 
 struct building;
 struct ship;

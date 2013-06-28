@@ -173,6 +173,7 @@ static cJSON * show_region(const faction *f, region * r) {
     int x, y, d;
     const char * str;
     ql_iter qli;
+    unit *u;
     
     x = (r->x - f->origin_x + config.width) % config.width;
     y = (r->y - f->origin_y + config.height) % config.height;
@@ -212,8 +213,7 @@ static cJSON * show_region(const faction *f, region * r) {
         }
     }
     cJSON_AddItemToObject(json, "units", chld = cJSON_CreateArray());
-    for (qli=qli_init(&r->units);qli_more(qli);) {
-        unit *u = (unit *)qli_next(&qli);
+    for (u=r->units_;u;u=u->next) {
         cJSON_AddItemToArray(chld, show_unit(f, r, u));
     }
     return json;
@@ -290,10 +290,9 @@ cJSON * json_report(faction * f) {
     
     for (rli = qli_init(&regions); qli_more(rli);) {
         region * r = (region *)qli_next(&rli);
-        ql_iter uli;
+        unit *u;
 
-        for (uli=qli_init(&r->units);qli_more(uli);) {
-            unit *u = (unit *)qli_next(&uli);
+        for (u=r->units_;u;u=u->next) {
             if (u->faction == f) {
                 cJSON_AddItemToArray(chld, show_region(f, r));
                 break;

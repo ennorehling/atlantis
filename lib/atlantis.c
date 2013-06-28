@@ -1612,16 +1612,16 @@ void leave(region * r, unit * ux)
 void removeempty(void)
 {
     int i;
-    ql_iter rli, uli;
+    ql_iter rli;
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        unit *u;
-        for (u = r->units_;u;u=u->next) {
+        unit **up;
+        for (up = &r->units_;*up;) {
+            unit *u = *up;
             if (!u->number) {
-                ql_iter qli;
-
                 unit *u3;
+
                 for (u3 = r->units_;u3;u3=u3->next) {
                     if (u3->faction == u->faction) {
                         u3->money += u->money;
@@ -1636,9 +1636,9 @@ void removeempty(void)
                 }
                 leave(r, u);
                 free_unit(u);
-                qli_delete(&uli);
+                *up = u;
             } else {
-                qli_next(&uli);
+                up = &u->next;
             }
         }
 
@@ -2570,9 +2570,8 @@ void freeorders(order *orders) {
 
 void expandorders(region * r, order * orders)
 {
-    ql_iter uli;
     order *o;
-	unit *u;
+    unit *u;
 
     for (u=r->units_;u;u=u->next) {
         u->n = -1;
@@ -2738,7 +2737,7 @@ int magicians(faction * f)
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
         unit *u;
-	    for (u=r->units_;u;u=u->next) {
+        for (u=r->units_;u;u=u->next) {
             if (u->skills[SK_MAGIC] && u->faction == f)
                 n += u->number;
         }
@@ -2926,7 +2925,7 @@ void processorders(void)
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
         unit *u;
-		for (u=r->units_;u;u=u->next) {
+        for (u=r->units_;u;u=u->next) {
             ql_iter oli;
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
                 const char *s = (const char *)qli_next(&oli);
@@ -3133,7 +3132,7 @@ void processorders(void)
         region *r = (region *)qli_next(&rli);
         unit *u;
 
-	    for (u=r->units_;u;u=u->next) {
+        for (u=r->units_;u;u=u->next) {
             ql_iter oli;
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
                 const char *s = (const char *)qli_next(&oli);
@@ -3159,7 +3158,7 @@ void processorders(void)
         region *r = (region *)qli_next(&rli);
         unit *u;
 
-		for (u=r->units_;u;u=u->next) {
+        for (u=r->units_;u;u=u->next) {
             ql_iter oli;
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
                 const char *s = (const char *)qli_next(&oli);
@@ -3458,8 +3457,7 @@ void processorders(void)
 
                     sh = u->ship;
 
-                    for (qli=qli_init(&r->units);qli_more(qli);) {
-                        unit *u2 = (unit *)qli_next(&qli);
+                    for (u2=r->units_;u2;u2=u2->next) {
                         if (u2->ship == sh) {
                             u2->ship = 0;
                             u2->owner = 0;
@@ -3476,8 +3474,7 @@ void processorders(void)
         }
 
         /* TRANSFER orders */
-        for (uli=qli_init(&r->units);qli_more(uli);) {
-            unit *u = (unit *)qli_next(&uli);
+        for (u=r->units_;u;u=u->next) {
             ql_iter oli;
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
                 const char *s = (const char *)qli_next(&oli);
@@ -3564,8 +3561,7 @@ void processorders(void)
             }
         }
         /* TAX orders */
-        for (uli=qli_init(&r->units);qli_more(uli);) {
-            unit *u = (unit *)qli_next(&uli);
+        for (u=r->units_;u;u=u->next) {
             ql_iter oli;
             taxed = 0;
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
@@ -3586,8 +3582,7 @@ void processorders(void)
                         break;
                     }
 
-                    for (qli=qli_init(&r->units);qli_more(qli);) {
-                        unit *u2 = (unit *)qli_next(&qli);
+                    for (u2=r->units_;u2;u2=u2->next) {
                         if (u2->guard && u2->number && !admits(u2, u)) {
                             sprintf(buf, "%s is on guard", unit_getname(u2));
                             mistakes(u, s, buf);
@@ -3610,8 +3605,7 @@ void processorders(void)
 
         /* Do taxation */
 
-        for (uli=qli_init(&r->units);qli_more(uli);) {
-            unit *u = (unit *)qli_next(&uli);
+        for (u=r->units_;u;u=u->next) {
             u->n = -1;
         }
         norders = 0;
@@ -3641,8 +3635,7 @@ void processorders(void)
 
         free(oa);
 
-        for (uli=qli_init(&r->units);qli_more(uli);) {
-            unit *u = (unit *)qli_next(&uli);
+        for (u=r->units_;u;u=u->next) {
             if (u->n >= 0) {
                 sprintf(buf, "%s collects $%d in taxes.", unitid(u), u->n);
                 addevent(u->faction, buf);
@@ -3650,8 +3643,7 @@ void processorders(void)
         }
         /* GUARD 1, RECRUIT orders */
 
-        for (uli=qli_init(&r->units);qli_more(uli);) {
-            unit *u = (unit *)qli_next(&uli);
+        for (u=r->units_;u;u=u->next) {
             ql_iter oli;
             availmoney = u->money;
 
@@ -3702,8 +3694,7 @@ void processorders(void)
             oa[i].unit->n++;
         }
 
-        for (uli=qli_init(&r->units);qli_more(uli);) {
-            unit *u = (unit *)qli_next(&uli);
+        for (u=r->units_;u;u=u->next) {
             if (u->n >= 0) {
                 sprintf(buf, "%s recruits %d.", unitid(u), u->n);
                 addevent(u->faction, buf);
@@ -3717,9 +3708,7 @@ void processorders(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        ql_iter uli;
-        for (uli=qli_init(&r->units);qli_more(uli);) {
-            unit *u = (unit *)qli_next(&uli);
+        for (u=r->units_;u;u=u->next) {
             ql_iter oli;
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
                 const char *s = (const char *)qli_next(&oli);
@@ -3793,9 +3782,9 @@ void processorders(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        ql_iter uli;
-        for (uli=qli_init(&r->units);qli_more(uli);) {
-            unit *u = (unit *)qli_get(uli);
+        unit **up;
+        for (up=&r->units_;*up;) {
+            unit *u = *up;
             region *r2;
 
             switch (igetkeyword(u->thisorder)) {
@@ -3810,7 +3799,7 @@ void processorders(void)
 
                 if (r->terrain == T_OCEAN) {
                     mistakeu(u, "Currently at sea");
-                    qli_next(&uli);
+                    up = &u->next;
                     break;
                 }
 
@@ -3818,18 +3807,18 @@ void processorders(void)
                     sprintf(buf, "%s discovers that (%d,%d) is ocean.",
                             unitid(u), r2->x, r2->y);
                     addevent(u->faction, buf);
-                    qli_next(&uli);
+                    up = &u->next;
                     break;
                 }
 
                 if (!canmove(u)) {
                     mistakeu(u, "Carrying too much weight to move");
-                    qli_next(&uli);
+                    up = &u->next;
                     break;
                 }
 
                 leave(r, u);
-                qli_delete(&uli);
+                *up = u;
                 region_addunit(r2, u, 0, 0);
                 u->thisorder[0] = 0;
 
@@ -3846,7 +3835,7 @@ void processorders(void)
                 addevent(u->faction, buf);
                 break;
             default:
-                qli_next(&uli);
+                up = &u->next;
             }
         }
     }
@@ -3856,46 +3845,51 @@ void processorders(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        unit *u;
-        for (u=r->units_;u;u=u->next) {
-            unit *u2;
-            region *r2;
-			ql_iter qli;
+        unit **up;
+        for (up=&r->units_;*up;) {
+            unit *u = *up;
 
-            switch (igetkeyword(u->thisorder)) {
-            case K_SAIL:
-                r2 = movewhere(r);
+            if (igetkeyword(u->thisorder) == K_SAIL)
+                region *r2 = movewhere(r);
+                unit **ui;
+                ql_iter qli;
 
                 if (!r2) {
                     mistakeu(u, "Direction not recognized");
-                    break;
+                    up = &u->next;
+                    continue;
                 }
 
                 if (!u->ship) {
                     mistakeu(u, "Not on a ship");
-                    break;
+                    up = &u->next;
+                    continue;
                 }
 
                 if (!u->owner) {
                     mistakeu(u, "Ship not owned by you");
-                    break;
+                    up = &u->next;
+                    continue;
                 }
 
                 if (r2->terrain != T_OCEAN && !iscoast(r2)) {
                     sprintf(buf, "%s discovers that (%d,%d) is inland.",
                             unitid(u), r2->x, r2->y);
                     addevent(u->faction, buf);
-                    break;
+                    up = &u->next;
+                    continue;
                 }
 
                 if (u->ship->left) {
                     mistakeu(u, "Ship still under construction");
-                    break;
+                    up = &u->next;
+                    continue;
                 }
 
                 if (!cansail(r, u->ship)) {
                     mistakeu(u, "Too heavily loaded to sail");
-                    break;
+                    up = &u->next;
+                    continue;
                 }
 
                 
@@ -3909,20 +3903,22 @@ void processorders(void)
                 }
                 ql_push(&r2->ships, u->ship);
 
-		        for (u2=r->units_;u2;u2=u2->next) {
+                *up = u->next;
+                u->thisorder[0] = 0;
+                region_addunit(r2, u, 0, 0);
+                for (ui=&r->units_;*ui;) {
+                    unit *u2 = *ui;
                     if (u2->ship == u->ship) {
-                        qli_delete(&qli);
-                        region_addunit(r2, u2, 0, 0);
+                        *ui = u2->next;
                         u2->thisorder[0] = 0;
+                        region_addunit(r2, u2, 0, &u->next);
                     } else {
-                        qli_next(&qli);
+                        ui = &u2->next;
                     }
                 }
-
-                u->thisorder[0] = 0;
-                break;
+            } else {
+                up = &u->next;
             }
-            qli_next(&uli);
         }
     }
     /* Do production orders */
@@ -4498,7 +4494,7 @@ void processorders(void)
 
                         for (;;) {
                             unit **up;
-							unit *u3 = getunitg(r, u->faction);
+                            unit *u3 = getunitg(r, u->faction);
                             j = getseen(r, u->faction, &u3);
                             if (!u3) {
                                 mistakeu(u, "Unit not found");
@@ -4524,11 +4520,11 @@ void processorders(void)
                             leave(r, u3);
                             region_rmunit(r, u3, 0);
 
-							u3->building = u2->building;
+                            u3->building = u2->building;
                             u3->ship = u2->ship;
-							region_addunit(u2->region, u3, 0, &u2->next);
-							sprintf(buf2, "%s teleports %s to %s.", unitid(u), unitid(u3), regionid(u2->region, u->faction));
-							addevent(u->faction, buf2);
+                            region_addunit(u2->region, u3, 0, &u2->next);
+                            sprintf(buf2, "%s teleports %s to %s.", unitid(u), unitid(u3), regionid(u2->region, u->faction));
+                            addevent(u->faction, buf2);
                         }
 
                         break;
@@ -4549,7 +4545,7 @@ void processorders(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-		unit *u;
+        unit *u;
 
         if (r->terrain != T_OCEAN) {
             for (n = r->peasants; n; n--)
@@ -4715,7 +4711,7 @@ int readgame(void)
     while (--n >= 0) {
         int x, y, n;
         char name[DISPLAYSIZE];
-		unit **up = 0;
+        unit **up = 0;
 
         store.api->r_int(store.handle, &x);
         store.api->r_int(store.handle, &y);
@@ -4778,9 +4774,9 @@ int readgame(void)
             unit *stack = 0;
 
             store.api->r_int(store.handle, &no);
-			if (no==0) {
-				break;
-			}
+            if (no==0) {
+                break;
+            }
             store.api->r_int(store.handle, &fno);
             u = create_unit(findfaction(fno), no);
             if (u->no>nextunitid) nextunitid = no+1;
@@ -4833,9 +4829,9 @@ int readgame(void)
             }
             
             region_addunit(r, u, stack, up);
-			if (!u->next) {
-				up = &u->next;
-			}
+            if (!u->next) {
+                up = &u->next;
+            }
         }
     }
 
@@ -4946,7 +4942,7 @@ int writegame(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-		unit *u;
+        unit *u;
         ql_iter qli;
 
         store.api->w_int(store.handle, r->x);
@@ -5010,7 +5006,7 @@ int writegame(void)
 
         }
 
-		store.api->w_int(store.handle, 0);
+        store.api->w_int(store.handle, 0);
     }
     store_done(&store);
     return 0;
