@@ -1635,8 +1635,8 @@ void removeempty(void)
                     r->money += u->money;
                 }
                 leave(r, u);
+                region_rmunit(r, u, up);
                 free_unit(u);
-                *up = u;
             } else {
                 up = &u->next;
             }
@@ -3817,7 +3817,7 @@ void processorders(void)
                 }
 
                 leave(r, u);
-                *up = u;
+                region_rmunit(r, u, up);
                 region_addunit(r2, u, 0, 0);
                 u->thisorder[0] = 0;
 
@@ -3902,13 +3902,13 @@ void processorders(void)
                 }
                 ql_push(&r2->ships, u->ship);
 
-                *up = u->next;
+                region_rmunit(r, u, up);
                 u->thisorder[0] = 0;
                 region_addunit(r2, u, 0, 0);
                 for (ui=&r->units_;*ui;) {
                     unit *u2 = *ui;
                     if (u2->ship == u->ship) {
-                        *ui = u2->next;
+                        region_rmunit(r, u2, ui);
                         u2->thisorder[0] = 0;
                         region_addunit(r2, u2, 0, &u->next);
                     } else {

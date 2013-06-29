@@ -35,26 +35,31 @@ void free_unit(unit *u) {
 }
 
 void unit_stack(unit* u, unit *stack) {
-    quicklist *ql;
-    int qi;
+    unit **up;
+    unit **sp = &stack->next;
 
-    unit **up = &stack->next;
-    assert(!u->stack);
+    for (up=&u->region->units_;*up;up=&(*up)->next) {
+        unit *x = *up;
+        if (x==u) {
+            break;
+        }
+    }
     assert(u->region);
     assert(stack->region==u->region);
 
-    while (*up) up = &(*up)->next;
-    for (*up = u; *up; up = &(*up)->next) {
-        (*up)->stack = stack;
+    while (*up) {
+        unit *x = *up;
+        if (u->stack && x->stack==u->stack) {
+            *up = x->next;
+            x->next = *sp;
+            *sp = x;
+            sp = &x->next;
+            x->stack = stack;
+        } else {
+            break;
+        }
     }
-    ql = u->region->units; qi = 0;
-    if (ql_find(&ql, &qi, u, 0)) {
-        ql_delete(&ql, qi);
-    }
-    ql = u->region->units; qi = 0;
-    if (ql_find(&ql, &qi, stack, 0)) {
-        ql_insert(&ql, qi+1, u);
-    }
+    u->stack = stack;
 }
 
 void unit_unstack(unit* u) {
