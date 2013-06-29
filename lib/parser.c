@@ -214,15 +214,14 @@ char *getstr(void)
 unit *getnewunit(region * r, const faction * f)
 {
     int n;
-    ql_iter uli;
+    unit *u;
 
     n = atoi(getstr());
 
     if (n <= 0) {
         return 0;
     }
-    for (uli=qli_init(&r->units);qli_more(uli);) {
-        unit *u = (unit *)qli_next(&uli);
+    for (u=r->units_;u;u=u->next) {
         if (u->faction == f && u->alias == n) {
             return u;
         }
@@ -247,7 +246,7 @@ int getunit(region * r, const faction *f, unit **uptr)
 {
     int n;
     const char *s;
-    ql_iter uli;
+    unit *u;
 
     s = getstr();
 
@@ -274,8 +273,7 @@ int getunit(region * r, const faction *f, unit **uptr)
         return U_NONE;
     }
 
-    for (uli=qli_init(&r->units);qli_more(uli);) {
-        unit *u = (unit *)qli_next(&uli);
+    for (u=r->units_;u;u=u->next) {
         if (u->no == n && !u->isnew) {
             *uptr = u;
             return U_UNIT;

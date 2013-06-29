@@ -539,11 +539,10 @@ troop * get_troop(troop **ta, int ntroops, int side, int mask) {
 }
 
 void count_casualties(region *r, troop **ta, int ntroops, int *peasants) {
-    ql_iter uli;
+    unit *u;
     int i, deadpeasants = 0;
     /* Count the casualties */
-    for (uli=qli_init(&r->units);qli_more(uli);) {
-        unit *u = (unit *)qli_next(&uli);
+    for (u=r->units_;u;u=u->next) {
         u->dead = 0;
     }
     for (i = 0; i != ntroops; i++) {
@@ -560,10 +559,9 @@ void count_casualties(region *r, troop **ta, int ntroops, int *peasants) {
 
 static bool ispresent(const faction * f, region * r)
 {
-    ql_iter uli;
+    unit *u;
 
-    for (uli=qli_init(&r->units);qli_more(uli);) {
-        unit *u = (unit *)qli_next(&uli);
+    for (u=r->units_;u;u=u->next) {
         if (u->faction == f)
             return true;
     }
@@ -602,13 +600,12 @@ void process_combat(void)
             /* Handle each faction's attack orders */
 
             for (fno = 0; fno != nfactions; fno++) {
-                ql_iter uli;
+                unit *u;
                 faction *f;
 
                 f = fa[fno];
 
-                for (uli=qli_init(&r->units);qli_more(uli);) {
-                    unit *u = (unit *)qli_next(&uli);
+                for (u=r->units_;u;u=u->next) {
                     if (u->faction == f) {
                         ql_iter oli;
                         for (oli = qli_init(&u->orders); qli_more(oli);) {
@@ -670,7 +667,7 @@ void process_combat(void)
                                     faction *f2 = (faction *)qli_next(&fli);
                                     f2->attacking = false;
                                 }
-                                for (qli=qli_init(&r->units);qli_more(qli);) {
+                                for (u3=r->units_;u3;u3=u3->next) {
                                     unit *u3 = (unit *)qli_next(&qli);
                                     ql_iter oli;
                                     for (oli = qli_init(&u3->orders); qli_more(oli);) {
@@ -686,8 +683,7 @@ void process_combat(void)
                                         }
                                     }
                                 }
-                                for (qli=qli_init(&r->units);qli_more(qli);) {
-                                    unit *u3 = (unit *)qli_next(&qli);
+                                for (u3=r->units_;u3;u3=u3->next) {
                                     u3->side = -1;
 
                                     if (!u3->number)
@@ -757,8 +753,7 @@ void process_combat(void)
                                 /* List sides */
                                 battle_report_unit(u);
 
-                                for (qli=qli_init(&r->units);qli_more(qli);) {
-                                    unit *u3 = (unit *)qli_next(&qli);
+                                for (u3=r->units_;u3;u3=u3->next) {
                                     if (u3->side == 0 && u3 != u) {
                                         battle_report_unit(u3);
                                     }
@@ -778,8 +773,7 @@ void process_combat(void)
                                     }
                                 }
 
-                                for (qli=qli_init(&r->units);qli_more(qli);) {
-                                    unit *u3 = (unit *)qli_next(&qli);
+                                for (u3=r->units_;u3;u3=u3->next) {
                                     if (u3->side == 1 && u3 != u2) {
                                         battle_report_unit(u3);
                                     }
@@ -929,8 +923,7 @@ void process_combat(void)
                                 if (attacker->side) {
                                     reportcasualties(u);
 
-                                    for (qli=qli_init(&r->units);qli_more(qli);) {
-                                        unit *u3 = (unit *)qli_next(&qli);
+                                    for (u3=r->units_;u3;u3=u3->next) {
                                         if (u3->side == 1 && u3 != u) {
                                             reportcasualties(u3);
                                         }
@@ -946,8 +939,7 @@ void process_combat(void)
                                         battlerecord(buf);
                                     }
 
-                                    for (qli=qli_init(&r->units);qli_more(qli);) {
-                                        unit *u3 = (unit *)qli_next(&qli);
+                                    for (u3=r->units_;u3;u3=u3->next) {
                                         if (u3->side == 0 && u3 != u2) {
                                             reportcasualties(u3);
                                         }
@@ -966,8 +958,7 @@ void process_combat(void)
 
                                 /* Adjust units */
 
-                                for (qli=qli_init(&r->units);qli_more(qli);) {
-                                    unit *u3 = (unit *)qli_next(&qli);
+                                for (u3=r->units_;u3;u3=u3->next) {
                                     k = u3->number - u3->dead;
 
                                     /* Redistribute items and skills */
@@ -1036,8 +1027,7 @@ void process_combat(void)
                                     faction *f2 = (faction *)qli_next(&fli);
                                     f2->dh = 0;
                                 }
-                                for (qli=qli_init(&r->units);qli_more(qli);) {
-                                    unit *u3 = (unit *)qli_next(&qli);
+                                for (u3=r->units_;u3;u3=u3->next) {
                                     if (u3->n || u3->litems) {
                                         int dh = 0;
 

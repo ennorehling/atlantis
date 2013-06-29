@@ -2902,7 +2902,7 @@ void processorders(void)
     ql_iter rli, fli;
     building *b;
     ship *sh;
-    unit *u2, *u3;
+    unit *u2;
     static unit *uv[100];
     order *o, *taxorders, *recruitorders, *entertainorders, *workorders;
     static order *produceorders[MAXITEMS];
@@ -3566,7 +3566,6 @@ void processorders(void)
             taxed = 0;
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
                 const char *s = (const char *)qli_next(&oli);
-                ql_iter qli;
                 unit *u2 = 0;
 
                 switch (igetkeyword(s)) {
@@ -3708,6 +3707,7 @@ void processorders(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
+        unit *u;
         for (u=r->units_;u;u=u->next) {
             ql_iter oli;
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
@@ -3740,10 +3740,9 @@ void processorders(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        ql_iter uli;
+        unit *u;
 
-        for (uli=qli_init(&r->units);qli_more(uli);) {
-            unit *u = (unit *)qli_next(&uli);
+        for (u=r->units_;u;u=u->next) {
             ql_iter oli;
             strcpy(u->thisorder, u->lastorder);
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
@@ -3793,7 +3792,7 @@ void processorders(void)
 
                 if (!r2) {
                     mistakeu(u, "Direction not recognized");
-                    qli_next(&uli);
+                    up=&u->next;
                     break;
                 }
 
@@ -3849,7 +3848,7 @@ void processorders(void)
         for (up=&r->units_;*up;) {
             unit *u = *up;
 
-            if (igetkeyword(u->thisorder) == K_SAIL)
+            if (igetkeyword(u->thisorder) == K_SAIL) {
                 region *r2 = movewhere(r);
                 unit **ui;
                 ql_iter qli;
@@ -4395,7 +4394,6 @@ void processorders(void)
         if (r->terrain != T_OCEAN) {
             unit *u;
             for (u=r->units_;u;u=u->next) {
-                region *r2;
                 unit *u2;
                 ql_iter fli;
 
@@ -4493,7 +4491,6 @@ void processorders(void)
                         n *= 10000;
 
                         for (;;) {
-                            unit **up;
                             unit *u3 = getunitg(r, u->faction);
                             j = getseen(r, u->faction, &u3);
                             if (!u3) {
