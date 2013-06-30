@@ -67,14 +67,17 @@ static void test_stacking(CuTest *tc)
     u2 = make_unit(f, r, 2);
     u3 = make_unit(f, r, 3);
     
+    CuAssertPtrEquals(tc, u1, r->units_);
     CuAssertPtrEquals(tc, u1, unit_getstack(u1));
     CuAssertPtrEquals(tc, u2, unit_getstack(u2));
 
     unit_stack(u3, u2);
+    CuAssertPtrEquals(tc, u1, r->units_);
     CuAssertPtrEquals(tc, u2, unit_getstack(u3));
     CuAssertPtrEquals(tc, u2, unit_getstack(u2));
 
     unit_stack(u2, u1);
+    CuAssertPtrEquals(tc, u1, r->units_);
     CuAssertPtrEquals(tc, u1, unit_getstack(u3));
     CuAssertPtrEquals(tc, u1, unit_getstack(u2));
 
@@ -109,13 +112,13 @@ static void test_stacking_moves_units(CuTest *tc)
 
     unit_stack(u3, u1);
     // 1->3, 2:
-    CuAssertPtrEquals(tc, u3, r->units_->next);
-    CuAssertPtrEquals(tc, u2, r->units_->next->next);
+    CuAssertPtrEquals(tc, u3, u1->next);
+    CuAssertPtrEquals(tc, u2, u3->next);
 
     unit_unstack(u3);
     // 1, 3, 2:
-    CuAssertPtrEquals(tc, u3, r->units_->next);
-    CuAssertPtrEquals(tc, u2, r->units_->next->next);
+    CuAssertPtrEquals(tc, u3, u1->next);
+    CuAssertPtrEquals(tc, u2, u3->next);
 
     unit_stack(u3, u2);
     // 1, 2->3:
@@ -130,6 +133,12 @@ static void test_stacking_moves_units(CuTest *tc)
 
     unit_unstack(u2);
     // 1->3, 2:
+    CuAssertPtrEquals(tc, u1, r->units_);
+    CuAssertPtrEquals(tc, u3, r->units_->next);
+    CuAssertPtrEquals(tc, u2, r->units_->next->next);
+
+    unit_unstack(u3);
+    // 1, 3, 2:
     CuAssertPtrEquals(tc, u1, r->units_);
     CuAssertPtrEquals(tc, u3, r->units_->next);
     CuAssertPtrEquals(tc, u2, r->units_->next->next);

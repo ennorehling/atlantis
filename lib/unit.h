@@ -22,17 +22,17 @@ struct region;
 struct quicklist;
 
 typedef struct unit {
-    struct region * region;
     struct unit * stack;
     struct unit * next;
+    struct region * region;
+    struct faction *faction;
+    struct building *building;
+    struct ship *ship;
     int no;
     char * name_;
     char * display_;
     int number;
     int money;
-    struct faction *faction;
-    struct building *building;
-    struct ship *ship;
     bool owner;
     bool behind;
     bool guard;

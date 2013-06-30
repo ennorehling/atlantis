@@ -35,31 +35,44 @@ void free_unit(unit *u) {
 }
 
 void unit_stack(unit* u, unit *stack) {
-    unit **up;
+    unit **up = &u->region->units_;
     unit **sp = &stack->next;
 
-    for (up=&u->region->units_;*up;up=&(*up)->next) {
+    stack = unit_getstack(stack);
+    while (*up) {
         unit *x = *up;
         if (x==u) {
             break;
         }
+        up = &x->next;
     }
     assert(u->region);
     assert(stack->region==u->region);
 
-    while (*up) {
-        unit *x = *up;
-        if (u->stack && x->stack==u->stack) {
-            *up = x->next;
-            x->next = *sp;
-            *sp = x;
-            sp = &x->next;
-            x->stack = stack;
-        } else {
-            break;
+    if (up!=sp) {
+        while (*up) {
+            unit *x = *up;
+            if (x==u || x->stack==u) {
+                *up = x->next;
+                x->next = *sp;
+                *sp = x;
+                sp = &x->next;
+                x->stack = stack;
+            } else {
+                break;
+            }
         }
+    } else {
+        unit *x;
+        for (x=u->next;x;x=x->next) {
+            if (x->stack==u) {
+                x->stack = stack;
+            } else {
+                break;
+            }
+        }
+        u->stack = stack;
     }
-    u->stack = stack;
 }
 
 void unit_unstack(unit* u) {
@@ -68,11 +81,17 @@ void unit_unstack(unit* u) {
         while (*up!=u) {
             up = &(*up)->next;
         }
-        if (*up) {
-            *up = u->next;
-            u->next = 0;
-            u->stack = 0;
+        *up = u->next;
+        while (*up) {
+            unit *x = *up;
+            if (x->stack!=u->stack) {
+                break;
+            }
+            up = &x->next;
         }
+        u->stack = 0;
+        u->next = *up;
+        *up = u;
     } else if (u->next) {
         unit *stack = u->next;
         stack->stack = 0;
@@ -83,8 +102,7 @@ void unit_unstack(unit* u) {
 }
 
 struct unit * unit_getstack(struct unit *u) {
-    while (u->stack) { u = u->stack; }
-    return u;
+    return u->stack ? u->stack : u;
 }
 
 const char * unit_getname(const struct unit *self)
