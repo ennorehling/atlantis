@@ -132,3 +132,8 @@ void unit_setdisplay(struct unit *self, const char *display)
         self->display_ = 0;
     }
 }
+
+void unit_setbuilding(struct unit *u, struct building *b)
+{
+    u->building = b;
+}

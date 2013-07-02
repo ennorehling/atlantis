@@ -92,6 +92,31 @@ static void test_stacking(CuTest *tc)
     CuAssertPtrEquals(tc, u1, unit_getstack(u3));
 }
 
+static void test_enter_building_moves_units(CuTest *tc)
+{
+    faction *f;
+    region *r;
+    unit *u1, *u2, *u3;
+    building *b;
+    
+    cleargame();
+    r = create_region(1, 1, T_PLAIN);
+    f = create_faction(1);
+    b = create_building(1);
+    ql_push(&r->buildings, b);
+
+    u1 = make_unit(f, r, 1);
+    u2 = make_unit(f, r, 2);
+    u3 = make_unit(f, r, 3);
+
+    unit_setbuilding(u3, b);
+    CuAssertPtrEquals(tc, u3, r->units_);
+    CuAssertPtrEquals(tc, u1, r->units_->next);
+
+    unit_setbuilding(u2, b);
+    CuAssertPtrEquals(tc, u2, r->units_->next);
+}
+
 static void test_stacking_moves_units(CuTest *tc)
 {
     faction *f;
@@ -869,6 +894,8 @@ int main(void)
     SUITE_ADD_TEST(suite, test_unstack_leader);
     SUITE_ADD_TEST(suite, test_stacking_moves_units);
     SUITE_ADD_TEST(suite, test_settings);
+
+    SUITE_ADD_TEST(suite, test_enter_building_moves_units);
 
     CuSuiteRun(suite);
     CuSuiteSummary(suite, output);
