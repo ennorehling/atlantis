@@ -842,19 +842,77 @@ static void test_keywords(CuTest * tc)
     CuAssertIntEquals(tc, K_WORK, findkeyword("work"));
 }
 
-static void test_settings(CuTest * tc)
+static void test_config_stacks(CuTest * tc)
+{
+}
+
+static void test_config_teachers(CuTest * tc)
+{
+    region * r;
+    unit *u1, *u2;
+    faction * f;
+    char line[256];
+    stream strm;
+
+    cleargame();
+    turn = 0;
+    r = create_region(1, 1, T_PLAIN);
+    f = create_faction(1);
+    faction_setpassword(f, "mypassword");
+    u1 = make_unit(f, r, 1);
+    u2 = make_unit(f, r, 2);
+    u1->money = 20;
+    u2->money = 20;
+
+    mstream_init(&strm);
+
+    sprintf(line, "FACTION %d mypassword", f->no);
+    strm.api->writeln(strm.handle, line);
+    strm.api->writeln(strm.handle, "UNIT 1");
+    strm.api->writeln(strm.handle, "TEACH 2");
+    strm.api->writeln(strm.handle, "UNIT 2");
+    strm.api->writeln(strm.handle, "STUDY LONGBOW");
+
+    config.features = CFG_TEACHERS;
+    u1->skills[SK_LONGBOW] = 30;
+    u2->skills[SK_LONGBOW] = 0;
+    strm.api->rewind(strm.handle);
+    read_orders(&strm);
+    ql_foreach(f->messages, free);
+    ql_free(f->messages);
+    f->messages = 0;
+    processorders();
+    CuAssertIntEquals(tc, 60, u2->skills[SK_LONGBOW]);
+
+    config.features = 0;
+    u1->skills[SK_LONGBOW] = 30;
+    u2->skills[SK_LONGBOW] = 0;
+    strm.api->rewind(strm.handle);
+    read_orders(&strm);
+    ql_foreach(f->messages, free);
+    ql_free(f->messages);
+    f->messages = 0;
+    processorders();
+    CuAssertIntEquals(tc, 30, u2->skills[SK_LONGBOW]);
+
+    mstream_done(&strm);
+}
+
+static void test_config_read(CuTest * tc)
 {
     stream strm;
     mstream_init(&strm);
     strm.api->writeln(strm.handle, "# comments are okay");
     strm.api->writeln(strm.handle, "width = 10");
     strm.api->writeln(strm.handle, " height = 20");
-    strm.api->writeln(strm.handle, " stacks=yes");
+    strm.api->writeln(strm.handle, "stacks=yes");
+    strm.api->writeln(strm.handle, "teachers=yes");
     strm.api->rewind(strm.handle);
     read_config(&strm);
     CuAssertIntEquals(tc, 10, config.width);
     CuAssertIntEquals(tc, 20, config.height);
-    CuAssertIntEquals(tc, CFG_STACKS, config.features);
+    CuAssertIntEquals(tc, CFG_STACKS, config.features&CFG_STACKS);
+    CuAssertIntEquals(tc, CFG_TEACHERS, config.features&CFG_TEACHERS);
 
     mstream_done(&strm);
 }
@@ -893,9 +951,11 @@ int main(void)
     SUITE_ADD_TEST(suite, test_stacking);
     SUITE_ADD_TEST(suite, test_unstack_leader);
     SUITE_ADD_TEST(suite, test_stacking_moves_units);
-    SUITE_ADD_TEST(suite, test_settings);
+    SUITE_ADD_TEST(suite, test_config_read);
+    SUITE_ADD_TEST(suite, test_config_stacks);
+    SUITE_ADD_TEST(suite, test_config_teachers);
 
-    SUITE_ADD_TEST(suite, test_enter_building_moves_units);
+    // SUITE_ADD_TEST(suite, test_enter_building_moves_units);
 
     CuSuiteRun(suite);
     CuSuiteSummary(suite, output);

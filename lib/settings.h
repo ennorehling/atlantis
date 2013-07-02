@@ -9,7 +9,8 @@
 #ifndef ATL_SETTINGS_H
 #define ATL_SETTINGS_H
 
-#define CFG_STACKS 0x01
+#define CFG_STACKS   0x01
+#define CFG_TEACHERS 0x02
 
 struct stream;
 

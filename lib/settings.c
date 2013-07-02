@@ -30,5 +30,8 @@ void read_config(stream *strm) {
         else if (strcmp("stacks", key)==0 && strcmp(tok, "yes")==0) {
             config.features |= CFG_STACKS;
         }
+        else if (strcmp("teachers", key)==0 && strcmp(tok, "no")!=0) {
+            config.features |= CFG_TEACHERS;
+        }
     }
 }

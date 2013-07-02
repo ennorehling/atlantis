@@ -2860,24 +2860,96 @@ int lovar(int n)
     return (genrand_int32() % n + 1) + (genrand_int32() % n + 1);
 }
 
-void cmd_stack(unit *u, const char *s) {
-    unit *stack;
-    
-    if (getseen(u->region, u->faction, &stack)==U_NOTFOUND) {
-        mistakes(u, s, "Unit not found");
-        return;
+void cmd_stack(unit *u, const char *s) {    
+    if (config.features&CFG_STACKS) {
+        unit *stack;
+        if (getseen(u->region, u->faction, &stack)==U_NOTFOUND) {
+            mistakes(u, s, "Unit not found");
+            return;
+        }
+        if (unit_getstack(u)!=u) {
+            unit_unstack(u);
+        }
+        unit_stack(u, stack);
     }
-    if (unit_getstack(u)!=u) {
-        unit_unstack(u);
-    }
-    unit_stack(u, stack);
 }
 
-void cmd_unstack(unit *u) {
+static void cmd_unstack(unit *u) {
+    if ((config.features&CFG_STACKS)==0) {
+        return;
+    }
     unit_unstack(u);
 }
 
-void cmd_find(unit *u, const char *s) {
+static void cmd_teach(unit *u) {
+    int teaching, j, m;
+    region *r;
+    unit *uv[100];
+
+    if ((config.features&CFG_TEACHERS)==0) {
+        return;
+    }
+
+    teaching = u->number * 30 * TEACHNUMBER;
+    m = 0;
+    r = u->region;
+
+    do {
+        j = getseen(r, u->faction, uv+m);
+    } while (++m != 100 && j!=U_NONE);
+    --m;
+
+    for (j = 0; j != m; j++) {
+        unit *u2 = uv[j];
+        int n, i;
+
+        if (!u2) {
+            mistakeu(u, "Unit not found");
+            continue;
+        }
+
+        if (!accepts(u2, u)) {
+            mistakeu(u, "Unit does not accept teaching");
+            continue;
+        }
+
+        i = igetkeyword(u2->thisorder);
+
+        if (i != K_STUDY || (i = getskill()) < 0) {
+            mistakeu(u, "Unit not studying");
+            continue;
+        }
+
+        if (effskill(u, i) <= effskill(u2, i)) {
+            mistakeu(u,
+                        "Unit not studying a skill you can teach it");
+            continue;
+        }
+
+        n = (u2->number * 30) - u2->learning;
+        n = MIN(n, teaching);
+
+        if (n == 0)
+            continue;
+
+        u2->learning += n;
+        teaching -= u->number * 30;
+
+        strcpy(buf, unitid(u));
+        scat(" teaches ");
+        scat(unitid(u2));
+        scat(" ");
+        scat(skillnames[i]);
+        scat(".");
+
+        addevent(u->faction, buf);
+        if (u2->faction != u->faction)
+            addevent(u2->faction, buf);
+    }
+
+}
+
+static void cmd_find(unit *u, const char *s) {
     faction *f;
     f = getfaction();
     if (f == 0) {
@@ -2903,7 +2975,6 @@ void processorders(void)
     building *b;
     ship *sh;
     unit *u2;
-    static unit *uv[100];
     order *o, *taxorders, *recruitorders, *entertainorders, *workorders;
     static order *produceorders[MAXITEMS];
 
@@ -4195,60 +4266,7 @@ void processorders(void)
                 break;
 
             case K_TEACH:
-                teaching = u->number * 30 * TEACHNUMBER;
-                m = 0;
-                do {
-                    j = getseen(r, u->faction, uv+m);
-                } while (++m != 100 && j!=U_NONE);
-                --m;
-
-                for (j = 0; j != m; j++) {
-                    u2 = uv[j];
-
-                    if (!u2) {
-                        mistakeu(u, "Unit not found");
-                        continue;
-                    }
-
-                    if (!accepts(u2, u)) {
-                        mistakeu(u, "Unit does not accept teaching");
-                        continue;
-                    }
-
-                    i = igetkeyword(u2->thisorder);
-
-                    if (i != K_STUDY || (i = getskill()) < 0) {
-                        mistakeu(u, "Unit not studying");
-                        continue;
-                    }
-
-                    if (effskill(u, i) <= effskill(u2, i)) {
-                        mistakeu(u,
-                                 "Unit not studying a skill you can teach it");
-                        continue;
-                    }
-
-                    n = (u2->number * 30) - u2->learning;
-                    n = MIN(n, teaching);
-
-                    if (n == 0)
-                        continue;
-
-                    u2->learning += n;
-                    teaching -= u->number * 30;
-
-                    strcpy(buf, unitid(u));
-                    scat(" teaches ");
-                    scat(unitid(u2));
-                    scat(" ");
-                    scat(skillnames[i]);
-                    scat(".");
-
-                    addevent(u->faction, buf);
-                    if (u2->faction != u->faction)
-                        addevent(u2->faction, buf);
-                }
-
+                cmd_teach(u);
                 break;
 
             case K_WORK:
@@ -4370,6 +4388,7 @@ void processorders(void)
                     addevent(u->faction, buf);
 
                     u->skills[i] += (u->number * 30) + u->learning;
+                    u->learning = 0;
                     break;
                 }
             }
