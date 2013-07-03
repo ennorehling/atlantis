@@ -4784,6 +4784,9 @@ int readgame(void)
             ql_push(&r->ships, sh);
         }
 
+        if (version<VER_STACKS) {
+            store.api->r_int(store.handle, &n2);
+        }
         for (;;) {
             char temp[DISPLAYSIZE];
             int no, fno, cs;
