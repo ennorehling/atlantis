@@ -844,6 +844,47 @@ static void test_keywords(CuTest * tc)
 
 static void test_config_stacks(CuTest * tc)
 {
+    region * r;
+    unit *u1, *u2;
+    faction * f;
+    char line[256];
+    stream strm;
+
+    cleargame();
+    turn = 0;
+    r = create_region(1, 1, T_PLAIN);
+    f = create_faction(1);
+    faction_setpassword(f, "mypassword");
+    u1 = make_unit(f, r, 1);
+    u2 = make_unit(f, r, 2);
+
+    mstream_init(&strm);
+
+    sprintf(line, "FACTION %d mypassword", f->no);
+    strm.api->writeln(strm.handle, line);
+    strm.api->writeln(strm.handle, "UNIT 1");
+    strm.api->writeln(strm.handle, "STACK 2");
+    strm.api->writeln(strm.handle, "WORK");
+    strm.api->writeln(strm.handle, "UNIT 2");
+    strm.api->writeln(strm.handle, "WORK");
+
+    config.features = CFG_STACKS;
+    strm.api->rewind(strm.handle);
+    read_orders(&strm);
+    processorders();
+    CuAssertPtrEquals(tc, u2, unit_getstack(u1));
+    unit_unstack(u1);
+    CuAssertPtrEquals(tc, u1, unit_getstack(u1));
+
+    config.features = 0;
+    strm.api->rewind(strm.handle);
+    read_orders(&strm);
+    ql_foreach(f->messages, free);
+    ql_free(f->messages);
+    processorders();
+    CuAssertPtrEquals(tc, u1, unit_getstack(u1));
+
+    mstream_done(&strm);
 }
 
 static void test_config_teachers(CuTest * tc)
@@ -878,9 +919,6 @@ static void test_config_teachers(CuTest * tc)
     u2->skills[SK_LONGBOW] = 0;
     strm.api->rewind(strm.handle);
     read_orders(&strm);
-    ql_foreach(f->messages, free);
-    ql_free(f->messages);
-    f->messages = 0;
     processorders();
     CuAssertIntEquals(tc, 60, u2->skills[SK_LONGBOW]);
 
@@ -889,9 +927,6 @@ static void test_config_teachers(CuTest * tc)
     u2->skills[SK_LONGBOW] = 0;
     strm.api->rewind(strm.handle);
     read_orders(&strm);
-    ql_foreach(f->messages, free);
-    ql_free(f->messages);
-    f->messages = 0;
     processorders();
     CuAssertIntEquals(tc, 30, u2->skills[SK_LONGBOW]);
 
