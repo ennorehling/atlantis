@@ -4679,6 +4679,7 @@ int readgame(void)
         store.api->r_int(store.handle, &version);
         store.api->r_int(store.handle, &n);
     }
+    assert(version<=VER_CURRENT);
     if (turn!=n) return -1;
 
     /* Read factions */
@@ -4745,6 +4746,7 @@ int readgame(void)
         store.api->r_int(store.handle, &x);
         store.api->r_int(store.handle, &y);
         store.api->r_int(store.handle, &n);
+        assert(n<NUMTERRAINS);
         r = create_region(x, y, (terrain_t)n);
         minx = MIN(minx, r->x);
         maxx = MAX(maxx, r->x);
@@ -4760,9 +4762,10 @@ int readgame(void)
         if (n2<0) return -4;
 
         while (--n2 >= 0) {
-            b = (building *)malloc(sizeof(building));
+            int no;
 
-            store.api->r_int(store.handle, &b->no);
+            store.api->r_int(store.handle, &no);
+            b = create_building(no);
             if (store.api->r_str(store.handle, name, sizeof(name))==0) {
                 building_setname(b, name);
             }
