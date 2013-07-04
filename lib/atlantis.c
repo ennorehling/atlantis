@@ -2965,12 +2965,11 @@ static void cmd_find(unit *u, const char *s) {
 void processorders(void)
 {
     int i, j, k;
-    int n, m;
+    int n;
     int taxed;
     int availmoney;
-    int teaching;
     char *sx, *sn;
-    faction *f;
+    faction *f; 
     ql_iter rli, fli;
     building *b;
     ship *sh;
@@ -4742,6 +4741,7 @@ int readgame(void)
         if (store.api->r_str(store.handle, name, sizeof(name))==0) {
             region_setname(r, name[0] ? name : 0);
         }
+        // fprintf(stderr, "reading %s (%d, %d)\n", name, r->x, r->y);
         store.api->r_int(store.handle, &r->peasants);
         store.api->r_int(store.handle, &r->money);
 
@@ -4789,18 +4789,25 @@ int readgame(void)
 
         if (version<VER_STACKS) {
             store.api->r_int(store.handle, &n2);
+        } else {
+            n2 = INT_MAX;
         }
-        for (;;) {
+        while (n2) {
             char temp[DISPLAYSIZE];
             int no, fno, cs;
             unit *stack = 0;
 
             store.api->r_int(store.handle, &no);
-            if (no==0) {
-                break;
+            if (version>=VER_STACKS) {
+                if (no<=0) {
+                    break;
+                }
+            } else {
+                --n2;
             }
             store.api->r_int(store.handle, &fno);
             u = create_unit(findfaction(fno), no);
+            assert(u->faction);
             if (u->no>nextunitid) nextunitid = no+1;
             if (store.api->r_str(store.handle, temp, sizeof(temp))==0) {
                 unit_setname(u, temp[0] ? temp : 0);

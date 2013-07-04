@@ -40,12 +40,12 @@ const char *factionid(const faction * f)
 
 const char *regionid(const region * r, const faction * f)
 {
-    int x, y;
+    int x = f ? f->origin_x : 0;
+    int y = f ? f->origin_y : 0;
     static char buf[NAMESIZE + 20];
-    assert(f);
     assert(r);
-    x = (r->x - f->origin_x + config.width) % config.width;
-    y = (r->y - f->origin_y + config.height) % config.height;
+    x = (r->x - x + config.width) % config.width;
+    y = (r->y - y + config.height) % config.height;
     if (r->terrain == T_OCEAN) {
         sprintf(buf, "(%d,%d)", x, y);
     }
