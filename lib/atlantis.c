@@ -2392,14 +2392,13 @@ void report(faction * f)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        unit *u = 0;
-        int d;
         ql_iter qli;
+        unit *u;
+        int d;
 
         for (u=r->units_;u;u=u->next) {
             if (u->faction == f)
                 break;
-            u = 0;
         }
         if (!u) continue;
 
