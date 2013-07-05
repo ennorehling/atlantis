@@ -92,7 +92,7 @@ void unit_unstack(unit* u) {
         u->stack = 0;
         u->next = *up;
         *up = u;
-    } else if (u->next) {
+    } else if (u->next && u->next->stack==u) {
         unit *stack = u->next;
         stack->stack = 0;
         for (u = stack->next;u;u=u->next) {

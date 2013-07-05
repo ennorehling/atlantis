@@ -4740,7 +4740,6 @@ int readgame(void)
         if (store.api->r_str(store.handle, name, sizeof(name))==0) {
             region_setname(r, name[0] ? name : 0);
         }
-        // fprintf(stderr, "reading %s (%d, %d)\n", name, r->x, r->y);
         store.api->r_int(store.handle, &r->peasants);
         store.api->r_int(store.handle, &r->money);
 

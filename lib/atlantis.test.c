@@ -842,6 +842,26 @@ static void test_keywords(CuTest * tc)
     CuAssertIntEquals(tc, K_WORK, findkeyword("work"));
 }
 
+static void test_freeunit(CuTest * tc)
+{
+    faction *f;
+    region *r;
+    unit *u1, *u2, *u3;
+    
+    cleargame();
+    r = create_region(1, 1, T_PLAIN);
+    f = create_faction(1);
+    u1 = make_unit(f, r, 1);
+    u2 = make_unit(f, r, 2);
+    u3 = make_unit(f, r, 3);
+    
+    CuAssertPtrEquals(tc, 0, u2->stack);
+    CuAssertPtrEquals(tc, 0, u3->stack);
+    free_unit(u1);
+    CuAssertPtrEquals(tc, 0, u2->stack);
+    CuAssertPtrEquals(tc, 0, u3->stack);
+}
+
 static void test_shipbuilding(CuTest * tc)
 {
     region * r;
@@ -1030,6 +1050,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_config_stacks);
     SUITE_ADD_TEST(suite, test_config_teachers);
     SUITE_ADD_TEST(suite, test_shipbuilding);
+    SUITE_ADD_TEST(suite, test_freeunit);
 
     // SUITE_ADD_TEST(suite, test_enter_building_moves_units);
 
