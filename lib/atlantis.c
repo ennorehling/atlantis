@@ -4084,7 +4084,7 @@ void processorders(void)
                     sh->left -= n;
                     u->items[I_WOOD] -= n;
 
-                    u->skills[SK_SHIPBUILDING] += n * 10;
+                    u->skills[SK_SHIPBUILDING] += MIN(n, u->number) * 10;
 
                     sprintf(buf, "%s adds %d to %s.", unitid(u), n,
                             shipid(sh));
@@ -4116,7 +4116,7 @@ void processorders(void)
                     while (findship(n));
 
                     sh = create_ship(n, stype);
-                    sh->left = shipcost[i];
+                    sh->left = shipcost[stype];
                     sprintf(buf2, "Ship %d", n);
                     ship_setname(sh, buf2);
                     ql_push(&r->ships, sh);
@@ -4782,7 +4782,9 @@ int readgame(void)
             store.api->r_int(store.handle, &type);
             sh->type = (ship_t)type;
             store.api->r_int(store.handle, &sh->left);
-
+            if (sh->left>shipcost[sh->type]) {
+                sh->left = 0;
+            }
             ql_push(&r->ships, sh);
         }
 

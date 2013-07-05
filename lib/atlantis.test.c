@@ -842,6 +842,46 @@ static void test_keywords(CuTest * tc)
     CuAssertIntEquals(tc, K_WORK, findkeyword("work"));
 }
 
+static void test_shipbuilding(CuTest * tc)
+{
+    region * r;
+    unit *u;
+    faction * f;
+    ship * sh;
+    char line[256];
+    stream strm;
+
+    cleargame();
+    turn = 0;
+    r = create_region(1, 1, T_PLAIN);
+    f = create_faction(1);
+    faction_setpassword(f, "mypassword");
+    u = make_unit(f, r, 1);
+    u->number = 10;
+    u->money = 10 * u->number;
+    u->skills[SK_SHIPBUILDING] = 90 * u->number;
+    u->items[I_WOOD] = 100;
+    mstream_init(&strm);
+
+    sprintf(line, "FACTION %d mypassword", f->no);
+    strm.api->writeln(strm.handle, line);
+    strm.api->writeln(strm.handle, "UNIT 1");
+    strm.api->writeln(strm.handle, "BUILD LONGBOAT");
+
+    strm.api->rewind(strm.handle);
+    read_orders(&strm);
+    processorders();
+    sh = (ship *)ql_get(r->ships, 0);
+    CuAssertPtrNotNull(tc, sh);
+    CuAssertPtrEquals(tc, sh, u->ship);
+    CuAssertIntEquals(tc, 80, sh->left);
+    CuAssertIntEquals(tc, SH_LONGBOAT, sh->type);
+    CuAssertIntEquals(tc, 100 * u->number, u->skills[SK_SHIPBUILDING]);
+    CuAssertIntEquals(tc, 80, u->items[I_WOOD]);
+
+    mstream_done(&strm);
+}
+
 static void test_config_stacks(CuTest * tc)
 {
     region * r;
@@ -989,6 +1029,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_config_read);
     SUITE_ADD_TEST(suite, test_config_stacks);
     SUITE_ADD_TEST(suite, test_config_teachers);
+    SUITE_ADD_TEST(suite, test_shipbuilding);
 
     // SUITE_ADD_TEST(suite, test_enter_building_moves_units);
 
