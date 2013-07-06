@@ -2,25 +2,38 @@
 #include <stream.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 struct settings config;
 
-void read_config(stream *strm) {
-    char line[160];
-    for (;;) {
-        char *tok, *key;
-        if (strm->api->readln(strm->handle, line, sizeof(line))!=0) {
-            break;
+static int read_entry(stream *strm, char *line, size_t size, char **key_o, char **value_o) {
+    char *tok, *key;
+    do {
+        int err = strm->api->readln(strm->handle, line, size);
+        if (err) {
+            return err;
         }
         tok = strtok(line, "= ");
         while (tok[0]==0) {
             tok = strtok(0, "= ");
         }
-        if (tok[0]=='#') continue; /* a comment */
-        key = tok;
-        do {
-            tok = strtok(0, "= ");
-        } while (tok[0]==0);
+    } while (tok[0]=='#'); /* a comment */
+    key = tok;
+    do {
+        tok = strtok(0, "= ");
+    } while (tok[0]==0);
+    *key_o = key;
+    *value_o = tok;
+    return 0;
+}
+
+void read_config(stream *strm) {
+    char line[160];
+    for (;;) {
+        char *key, *tok;
+        int err;
+        err = read_entry(strm, line, sizeof(line), &key, &tok);
+        if (err==EOF) break;
         if (strcmp("width", key)==0) {
             config.width = atoi(tok);
         }
