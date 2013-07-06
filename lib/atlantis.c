@@ -53,8 +53,9 @@ int ignore_password = 0;
 #define VER_NOHEADER 0 // no version header
 #define VER_HEADER 1 // has a version header
 #define VER_STACKS 2 // can have stacks
+#define VER_SHIPLEFT_FIX 3 // before this version, ship->left was invalid
 
-#define VER_CURRENT VER_STACKS
+#define VER_CURRENT VER_SHIPLEFT_FIX
 
 static void (*store_init)(struct storage *, FILE *) = binstore_init;
 static void (*store_done)(struct storage *) = binstore_done;
@@ -4781,7 +4782,7 @@ int readgame(void)
             store.api->r_int(store.handle, &type);
             sh->type = (ship_t)type;
             store.api->r_int(store.handle, &sh->left);
-            if (sh->left>shipcost[sh->type]) {
+            if (version<VER_SHIPLEFT_FIX) {
                 sh->left = 0;
             }
             ql_push(&r->ships, sh);
