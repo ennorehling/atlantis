@@ -2426,9 +2426,9 @@ void report(faction * f)
                 scat(", $");
                 icat(r->money);
             }
+            scat(".");
         }
 
-        scat(".");
         rnl(F);
         rparagraph(F, buf, 0, 0);
 
