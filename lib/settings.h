@@ -13,6 +13,7 @@
 #define CFG_TEACHERS 0x02
 
 struct stream;
+struct cJSON;
 
 typedef struct settings {
     int width, height;
@@ -22,6 +23,7 @@ typedef struct settings {
 extern struct settings config;
 
 void read_config(struct stream *);
+void read_config_json(struct cJSON*);
 
 #define NAMESIZE 81
 #define DISPLAYSIZE 161

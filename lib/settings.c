@@ -3,11 +3,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <cJSON.h>
 
 struct settings config;
 
-static int read_entry(stream *strm, char *line, size_t size, char **key_o, char **value_o) {
-    char *tok, *key;
+static int read_item(stream *strm, char *line, size_t size, char **key_o, char **value_o) {
+    char *tok;
     do {
         int err = strm->api->readln(strm->handle, line, size);
         if (err) {
@@ -17,12 +18,17 @@ static int read_entry(stream *strm, char *line, size_t size, char **key_o, char 
         while (tok[0]==0) {
             tok = strtok(0, "= ");
         }
+        if (tok[0]=='[') {
+            *key_o = tok+1;
+            tok = strtok(0, "]");
+            *value_o = 0;
+            return 0;
+        }
     } while (tok[0]=='#'); /* a comment */
-    key = tok;
+    *key_o = tok;
     do {
         tok = strtok(0, "= ");
     } while (tok[0]==0);
-    *key_o = key;
     *value_o = tok;
     return 0;
 }
@@ -32,7 +38,7 @@ void read_config(stream *strm) {
     for (;;) {
         char *key, *tok;
         int err;
-        err = read_entry(strm, line, sizeof(line), &key, &tok);
+        err = read_item(strm, line, sizeof(line), &key, &tok);
         if (err==EOF) break;
         if (strcmp("width", key)==0) {
             config.width = atoi(tok);
@@ -46,5 +52,26 @@ void read_config(stream *strm) {
         else if (strcmp("teachers", key)==0 && strcmp(tok, "no")!=0) {
             config.features |= CFG_TEACHERS;
         }
+    }
+}
+
+void read_config_json(cJSON *json) {
+    cJSON *item;
+    
+    item = cJSON_GetObjectItem(json, "width");
+    if (item) {
+        config.width = item->valueint;
+    }
+    item = cJSON_GetObjectItem(json, "height");
+    if (item) {
+        config.height = item->valueint;
+    }
+    item = cJSON_GetObjectItem(json, "stacks");
+    if (item && item->type==cJSON_True) {
+        config.features |= CFG_STACKS;
+    }
+    item = cJSON_GetObjectItem(json, "teachers");
+    if (item && item->type == cJSON_True) {
+        config.features |= CFG_TEACHERS;
     }
 }

@@ -1012,6 +1012,17 @@ static void test_config_read(CuTest * tc)
     mstream_done(&strm);
 }
 
+static void test_config_json(CuTest * tc)
+{
+    cJSON *json = cJSON_Parse("{ \"width\": 10, \"height\": 20, \"stacks\": true, \"teachers\": true }");
+    read_config_json(json);
+    CuAssertIntEquals(tc, 10, config.width);
+    CuAssertIntEquals(tc, 20, config.height);
+    CuAssertIntEquals(tc, CFG_STACKS, config.features&CFG_STACKS);
+    CuAssertIntEquals(tc, CFG_TEACHERS, config.features&CFG_TEACHERS);
+    cJSON_Delete(json);
+}
+
 int main(void)
 {
     CuString *output = CuStringNew();
@@ -1046,6 +1057,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_stacking);
     SUITE_ADD_TEST(suite, test_unstack_leader);
     SUITE_ADD_TEST(suite, test_stacking_moves_units);
+    SUITE_ADD_TEST(suite, test_config_json);
     SUITE_ADD_TEST(suite, test_config_read);
     SUITE_ADD_TEST(suite, test_config_stacks);
     SUITE_ADD_TEST(suite, test_config_teachers);
