@@ -31,7 +31,7 @@ void print_template(cJSON *json, FILE *F) {
         cJSON *units = cJSON_GetObjectItem(region, "units");
 
         fprintf(F, ";REGION %s, %s (%d,%d), $%d\n",
-                cJSON_GetObjectItem(region, "name")->valuestring,
+                json_getstr(region, "name", "no name"),
                 cJSON_GetObjectItem(region, "terrain")->valuestring,
                 cJSON_GetObjectItem(region, "x")->valueint,
                 cJSON_GetObjectItem(region, "y")->valueint,
