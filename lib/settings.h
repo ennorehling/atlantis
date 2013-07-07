@@ -22,7 +22,6 @@ typedef struct settings {
 
 extern struct settings config;
 
-void read_config(struct stream *);
 void read_config_json(struct cJSON*);
 
 #define NAMESIZE 81

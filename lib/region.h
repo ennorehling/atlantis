@@ -38,6 +38,10 @@ typedef struct region {
     int immigrants;
 } region;
 
+extern int foodproductivity[];
+extern int maxfoodoutput[];
+extern int maxoutput[][4];
+
 extern struct quicklist *regions;
 
 struct region * create_region(int x, int y, terrain_t t);

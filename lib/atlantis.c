@@ -125,14 +125,6 @@ const char *keywords[] = {
     "ydd",
 };
 
-const char *terrainnames[] = {
-    "ocean",
-    "plain",
-    "mountain",
-    "forest",
-    "swamp",
-};
-
 const char *regionnames[] = {
     "Aberaeron",
     "Aberdaron",
@@ -450,7 +442,15 @@ const char *regionnames[] = {
 
 const keyword_t directions[MAXDIRECTIONS] = { K_NORTH, K_SOUTH, K_EAST, K_WEST, K_MIR, K_YDD };
 
-char foodproductivity[] = {
+const char *terrainnames[NUMTERRAINS] = {
+    "ocean",
+    "plain",
+    "mountain",
+    "forest",
+    "swamp",
+};
+
+int foodproductivity[NUMTERRAINS] = {
     0,
     15,
     12,
@@ -458,20 +458,12 @@ char foodproductivity[] = {
     12,
 };
 
-int maxfoodoutput[] = {
+int maxfoodoutput[NUMTERRAINS] = {
     0,
     100000,
     20000,
     20000,
     10000,
-};
-
-char productivity[NUMTERRAINS][4] = {
-    {0, 0, 0, 0},
-    {0, 0, 0, 1},
-    {1, 0, 1, 0},
-    {0, 1, 0, 0},
-    {0, 1, 0, 0},
 };
 
 int maxoutput[NUMTERRAINS][4] = {
@@ -482,13 +474,13 @@ int maxoutput[NUMTERRAINS][4] = {
     {0, 100, 0, 0},
 };
 
-int shipcapacity[] = {
+int shipcapacity[NUMSHIPS] = {
     200,
     800,
     1800,
 };
 
-int shipcost[] = {
+int shipcost[NUMSHIPS] = {
     100,
     200,
     300,
@@ -4167,7 +4159,7 @@ void processorders(void)
                 if (i < 4) {
                     o = (order *)malloc(sizeof(order));
                     o->unit = u;
-                    o->qty = n * productivity[r->terrain][i];
+                    o->qty = maxoutput[r->terrain][i] ? n : 0;
                     o->next = produceorders[i];
                     produceorders[i] = o;
                 } else {

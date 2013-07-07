@@ -993,23 +993,17 @@ static void test_config_teachers(CuTest * tc)
     mstream_done(&strm);
 }
 
-static void test_config_read(CuTest * tc)
+static void test_config_terrain(CuTest * tc)
 {
-    stream strm;
-    mstream_init(&strm);
-    strm.api->writeln(strm.handle, "# comments are okay");
-    strm.api->writeln(strm.handle, "width = 10");
-    strm.api->writeln(strm.handle, " height = 20");
-    strm.api->writeln(strm.handle, "stacks=yes");
-    strm.api->writeln(strm.handle, "teachers=yes");
-    strm.api->rewind(strm.handle);
-    read_config(&strm);
-    CuAssertIntEquals(tc, 10, config.width);
-    CuAssertIntEquals(tc, 20, config.height);
-    CuAssertIntEquals(tc, CFG_STACKS, config.features&CFG_STACKS);
-    CuAssertIntEquals(tc, CFG_TEACHERS, config.features&CFG_TEACHERS);
-
-    mstream_done(&strm);
+    cJSON *json = cJSON_Parse("{ \"terrain\": [ {\"name\": \"swamp\", \"work\": 13, \"food\": 1000, \"output\" : [1, 2, 3, 4] } ] }");
+    read_config_json(json);
+    CuAssertIntEquals(tc, 13, foodproductivity[T_SWAMP]);
+    CuAssertIntEquals(tc, 1000, maxfoodoutput[T_SWAMP]);
+    CuAssertIntEquals(tc, 1, maxoutput[T_SWAMP][I_IRON]);
+    CuAssertIntEquals(tc, 2, maxoutput[T_SWAMP][I_WOOD]);
+    CuAssertIntEquals(tc, 3, maxoutput[T_SWAMP][I_STONE]);
+    CuAssertIntEquals(tc, 4, maxoutput[T_SWAMP][I_HORSE]);
+    cJSON_Delete(json);
 }
 
 static void test_config_json(CuTest * tc)
@@ -1058,7 +1052,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_unstack_leader);
     SUITE_ADD_TEST(suite, test_stacking_moves_units);
     SUITE_ADD_TEST(suite, test_config_json);
-    SUITE_ADD_TEST(suite, test_config_read);
+    SUITE_ADD_TEST(suite, test_config_terrain);
     SUITE_ADD_TEST(suite, test_config_stacks);
     SUITE_ADD_TEST(suite, test_config_teachers);
     SUITE_ADD_TEST(suite, test_shipbuilding);

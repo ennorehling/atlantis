@@ -20,6 +20,7 @@ typedef enum {
     SH_CLIPPER,
     SH_GALLEON,
 } ship_t;
+#define NUMSHIPS 3
 
 typedef struct ship {
     int no;

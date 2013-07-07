@@ -61,4 +61,5 @@ struct faction * addplayer(struct region * r, const char * email, int no);
 const char *regionid(const struct region * r, const struct faction *f);
 
 struct unit *shipowner(struct region * r, const struct ship * sh);
+
 #endif
