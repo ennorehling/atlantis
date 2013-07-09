@@ -35,7 +35,7 @@ void free_unit(unit *u) {
 }
 
 void unit_stack(unit* u, unit *stack) {
-    unit **up = &u->region->units_;
+    unit **up = &u->region->units;
     unit **sp = &stack->next;
 
     stack = unit_getstack(stack);

@@ -221,7 +221,7 @@ unit *getnewunit(region * r, const faction * f)
     if (n <= 0) {
         return 0;
     }
-    for (u=r->units_;u;u=u->next) {
+    for (u=r->units;u;u=u->next) {
         if (u->faction == f && u->alias == n) {
             return u;
         }
@@ -273,7 +273,7 @@ int getunit(region * r, const faction *f, unit **uptr)
         return U_NONE;
     }
 
-    for (u=r->units_;u;u=u->next) {
+    for (u=r->units;u;u=u->next) {
         if (u->no == n && !u->isnew) {
             *uptr = u;
             return U_UNIT;

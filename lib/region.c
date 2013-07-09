@@ -31,9 +31,9 @@ region * create_region(int x, int y, terrain_t t)
 
 void free_region(region *r) {
     free(r->name_);
-    while (r->units_) {
-        unit *u = r->units_;
-        r->units_ = u->next;
+    while (r->units) {
+        unit *u = r->units;
+        r->units = u->next;
         free_unit(u);
     }
     ql_foreach(r->ships, (ql_cb)free_ship);
@@ -67,7 +67,7 @@ void region_addunit(struct region *r, struct unit *u, struct unit *stack, struct
     assert(u);
     assert(!stack || stack->region==r);
     u->region = r;
-	up = hint ? hint : &r->units_;
+	up = hint ? hint : &r->units;
     up = stack ? &stack->next : up;
     while (*up) {
         unit *x = *up;
@@ -88,7 +88,7 @@ void region_addunit(struct region *r, struct unit *u, struct unit *stack, struct
 
 bool region_rmunit(struct region *r, struct unit *u, struct unit **hint)
 {
-    unit **up = hint ? hint : &r->units_;
+    unit **up = hint ? hint : &r->units;
     while (*up) {
         unit *x = *up;
         if (x==u) {
