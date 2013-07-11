@@ -79,6 +79,7 @@ void region_addunit(struct region *r, struct unit *u, struct unit **hint)
     unit **up = &r->units;
     unit **ui = up, **ur = 0;
     ql_iter bli = qli_init(&r->buildings);
+    ql_iter sli = qli_init(&r->ships);
     assert(u);
 
     if (hint) {
@@ -103,8 +104,9 @@ void region_addunit(struct region *r, struct unit *u, struct unit **hint)
                 ui = &x->next;
             }
             else {
+                struct building *b = 0;
                 while (qli_more(bli)) {
-                    struct building *b = (struct building *)qli_get(bli);
+                    b = (struct building *)qli_get(bli);
                     if (b==u->building) {
                         ui = up;
                         break;
@@ -113,7 +115,7 @@ void region_addunit(struct region *r, struct unit *u, struct unit **hint)
                     }
                     qli_next(&bli);
                 }
-                if (ui==up) {
+                if (b==u->building) {
                     break;
                 }
             }
@@ -126,6 +128,20 @@ void region_addunit(struct region *r, struct unit *u, struct unit **hint)
                 ui = &x->next;
             }
             else {
+                struct ship *s = 0;
+                while (qli_more(bli)) {
+                    s = (struct ship *)qli_get(bli);
+                    if (s==u->ship) {
+                        ui = up;
+                        break;
+                    } else if (s==x->ship) {
+                        break;
+                    }
+                    qli_next(&bli);
+                }
+                if (s==u->ship) {
+                    break;
+                }
             }
         } else if (!x->next) {
             ui = &x->next;

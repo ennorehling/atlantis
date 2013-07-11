@@ -50,11 +50,11 @@ static void test_addunit_takes_hint(CuTest *tc)
     CuAssertPtrEquals(tc, u1, u3->next);
 }
 
-static void test_addunit_order_building(CuTest *tc)
+static void test_addunit_order_ships(CuTest *tc)
 {
     faction *f;
     region *r;
-    building *b1, *b2;
+    ship *s1, *s2;
     unit *u1, *u2, *u3;
     
     cleargame();
@@ -63,24 +63,23 @@ static void test_addunit_order_building(CuTest *tc)
     u1 = create_unit(f, 1);
     u2 = create_unit(f, 2);
     u3 = create_unit(f, 3);
-    b1 = create_building(1);
-    b2 = create_building(1);
-    ql_push(&r->buildings, b1);
-    ql_push(&r->buildings, b2);
+    s1 = create_ship(1, SH_LONGBOAT);
+    s2 = create_ship(2, SH_LONGBOAT);
+    ql_push(&r->ships, s1);
+    ql_push(&r->ships, s2);
 
-    region_addunit(r, u1, 0);
-    CuAssertPtrEquals(tc, u1, r->units);
-
-    u2->building = b2;
+    u2->ship = s2;
     region_addunit(r, u2, 0);
     CuAssertPtrEquals(tc, u2, r->units);
-    CuAssertPtrEquals(tc, u1, u2->next);
 
-    u3->building = b1;
+    u1->ship = s1;
+    region_addunit(r, u1, 0);
+    CuAssertPtrEquals(tc, u1, r->units);
+    CuAssertPtrEquals(tc, u2, u1->next);
+
+    u3->ship = s2;
     region_addunit(r, u3, 0);
-    CuAssertPtrEquals(tc, u2, r->units);
     CuAssertPtrEquals(tc, u3, u2->next);
-    CuAssertPtrEquals(tc, u1, u3->next);
 }
 
 static void test_addunit_order_buildings(CuTest *tc)
@@ -97,7 +96,7 @@ static void test_addunit_order_buildings(CuTest *tc)
     u2 = create_unit(f, 2);
     u3 = create_unit(f, 3);
     b1 = create_building(1);
-    b2 = create_building(1);
+    b2 = create_building(2);
     ql_push(&r->buildings, b1);
     ql_push(&r->buildings, b2);
 
@@ -110,7 +109,10 @@ static void test_addunit_order_buildings(CuTest *tc)
     CuAssertPtrEquals(tc, u1, r->units);
     CuAssertPtrEquals(tc, u2, u1->next);
 
+    u3->building = b2;
     region_addunit(r, u3, 0);
+    CuAssertPtrEquals(tc, u1, r->units);
+    CuAssertPtrEquals(tc, u2, u1->next);
     CuAssertPtrEquals(tc, u3, u2->next);
 }
 
@@ -1278,6 +1280,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_region_addunit);
     SUITE_ADD_TEST(suite, test_addunit_takes_hint);
     SUITE_ADD_TEST(suite, test_region_addunit_building);
+    SUITE_ADD_TEST(suite, test_addunit_order_ships);
     SUITE_ADD_TEST(suite, test_addunit_order_buildings);
     SUITE_ADD_TEST(suite, test_addunit_order_buildings_mixed);
     SUITE_ADD_TEST(suite, test_addunit_order_mixed);
