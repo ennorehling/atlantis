@@ -2790,7 +2790,6 @@ void process_form(unit *u, region *r) {
 
             while (findunitg(nextunitid)) ++nextunitid;
             u2 = create_unit(u->faction, nextunitid++);
-            region_addunit(r, u2, 0);
 
             u2->alias = atoi(getstr());
             if (u2->alias == 0)
@@ -2800,6 +2799,7 @@ void process_form(unit *u, region *r) {
             u2->ship = u->ship;
             u2->behind = u->behind;
             u2->guard = u->guard;
+            region_addunit(r, u2, 0);
 
             free(s);
             while (qli_more(oli)) {
@@ -4810,8 +4810,6 @@ int readgame(void)
                 u->stack = stack;
             }
 
-            region_addunit(r, u, up);
-
             if (store.api->r_str(store.handle, temp, sizeof(temp))==0) {
                 unit_setname(u, temp[0] ? temp : 0);
             }
@@ -4837,6 +4835,7 @@ int readgame(void)
             store.api->r_int(store.handle, &no);
             u->guard = no != 0;
 
+
             store.api->r_str(store.handle, u->lastorder, sizeof(u->lastorder));
             store.api->r_int(store.handle, &cs);
 
@@ -4859,7 +4858,11 @@ int readgame(void)
                     u->faction->seendata[i] = true;
                 }
             }
-            
+            if (u->building || u->ship || u->stack) {
+                region_addunit(r, u, 0);
+            } else {
+                region_addunit(r, u, up);
+            }
             if (!u->next) {
                 up = &u->next;
             }

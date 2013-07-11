@@ -214,13 +214,13 @@ static void test_unit_reordering(CuTest *tc)
     unit *u1, *u2, *u3;
     
     cleargame();
-    r = create_region(1, 1, T_PLAIN);
+    r = create_region(0, 0, T_PLAIN);
     f = create_faction(1);
     u1 = make_unit(f, r, 1);
     u2 = make_unit(f, r, 2);
     u3 = make_unit(f, r, 3);
     b1 = create_building(1);
-    b2 = create_building(1);
+    b2 = create_building(2);
     ql_push(&r->buildings, b1);
     ql_push(&r->buildings, b2);
 
@@ -229,56 +229,13 @@ static void test_unit_reordering(CuTest *tc)
     writegame();
     cleargame();
     readgame();
+    r = findregion(0, 0);
     u1 = findunitg(1);
     u2 = findunitg(2);
     u3 = findunitg(3);
     CuAssertPtrEquals(tc, u3, r->units);
     CuAssertPtrEquals(tc, u1, u3->next);
-    CuAssertPtrEquals(tc, u2, u3->next);
-}
-
-static void test_unit_ordering(CuTest *tc)
-{
-    faction *f;
-    region *r;
-    building *b1, *b2;
-    unit *u1, *u2, *u3;
-    
-    cleargame();
-    r = create_region(1, 1, T_PLAIN);
-    f = create_faction(1);
-    u1 = make_unit(f, r, 1);
-    u2 = make_unit(f, r, 2);
-    u3 = make_unit(f, r, 3);
-    b1 = create_building(1);
-    b2 = create_building(1);
-    ql_push(&r->buildings, b1);
-    ql_push(&r->buildings, b2);
-
-    unit_setbuilding(u3, b1);
-    CuAssertPtrEquals(tc, u3, r->units);
-    CuAssertPtrEquals(tc, u1, u3->next);
-
-    unit_setbuilding(u2, b1);
-    CuAssertPtrEquals(tc, u3, r->units);
-    CuAssertPtrEquals(tc, u2, u3->next);
-    
-    unit_setbuilding(u3, 0);
-    CuAssertPtrEquals(tc, u2, r->units);
-    CuAssertPtrEquals(tc, u3, u2->next);
-
-    unit_setbuilding(u1, b2);
-    CuAssertPtrEquals(tc, u2, r->units);
-    CuAssertPtrEquals(tc, u1, u2->next);
-    CuAssertPtrEquals(tc, u3, u1->next);
-
-    unit_setbuilding(u3, b1);
-    CuAssertPtrEquals(tc, u2, r->units);
-    CuAssertPtrEquals(tc, u3, u2->next);
-    CuAssertPtrEquals(tc, u1, u3->next);
-
-    unit_setbuilding(u2, b1);
-    CuAssertPtrEquals(tc, u2, r->units);
+    CuAssertPtrEquals(tc, u2, u1->next);
 }
 
 static void test_unstack_leader(CuTest *tc)
@@ -342,31 +299,6 @@ static void test_stacking(CuTest *tc)
     unit_stack(u3, u1);
     CuAssertPtrEquals(tc, u1, unit_getstack(u2));
     CuAssertPtrEquals(tc, u1, unit_getstack(u3));
-}
-
-static void test_enter_building_moves_units(CuTest *tc)
-{
-    faction *f;
-    region *r;
-    unit *u1, *u2, *u3;
-    building *b;
-    
-    cleargame();
-    r = create_region(1, 1, T_PLAIN);
-    f = create_faction(1);
-    b = create_building(1);
-    ql_push(&r->buildings, b);
-
-    u1 = make_unit(f, r, 1);
-    u2 = make_unit(f, r, 2);
-    u3 = make_unit(f, r, 3);
-
-    unit_setbuilding(u3, b);
-    CuAssertPtrEquals(tc, u3, r->units);
-    CuAssertPtrEquals(tc, u1, r->units->next);
-
-    unit_setbuilding(u2, b);
-    CuAssertPtrEquals(tc, u2, r->units->next);
 }
 
 static void test_stacking_moves_units(CuTest *tc)
@@ -1342,10 +1274,8 @@ int main(void)
     SUITE_ADD_TEST(suite, test_config_teachers);
     SUITE_ADD_TEST(suite, test_shipbuilding);
     SUITE_ADD_TEST(suite, test_freeunit);
-    SUITE_ADD_TEST(suite, test_unit_ordering);
 
-    // SUITE_ADD_TEST(suite, test_unit_reordering);
-    // SUITE_ADD_TEST(suite, test_enter_building_moves_units);
+    SUITE_ADD_TEST(suite, test_unit_reordering);
 
     CuSuiteRun(suite);
     CuSuiteSummary(suite, output);
