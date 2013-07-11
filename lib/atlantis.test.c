@@ -147,6 +147,29 @@ static void test_addunit_order_buildings_mixed(CuTest *tc)
     CuAssertPtrEquals(tc, u2, u1->next);
 }
 
+static void test_addunit_reorders(CuTest *tc)
+{
+    faction *f;
+    region *r;
+    building *b1;
+    unit *u1, *u2;
+    
+    cleargame();
+    r = create_region(1, 1, T_PLAIN);
+    f = create_faction(1);
+    u1 = create_unit(f, 1);
+    u2 = create_unit(f, 2);
+    b1 = create_building(1);
+    ql_push(&r->buildings, b1);
+
+    region_addunit(r, u1, 0);
+    region_addunit(r, u2, 0);
+    CuAssertPtrEquals(tc, u1, r->units);
+    u2->building = b1;
+    region_addunit(r, u2, 0);
+    CuAssertPtrEquals(tc, u2, r->units);
+}
+
 static void test_addunit_order_mixed(CuTest *tc)
 {
     faction *f;
@@ -1284,6 +1307,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_addunit_order_buildings);
     SUITE_ADD_TEST(suite, test_addunit_order_buildings_mixed);
     SUITE_ADD_TEST(suite, test_addunit_order_mixed);
+    SUITE_ADD_TEST(suite, test_addunit_reorders);
     SUITE_ADD_TEST(suite, test_form);
     SUITE_ADD_TEST(suite, test_keywords);
     SUITE_ADD_TEST(suite, test_wrapmap);

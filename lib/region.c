@@ -81,6 +81,7 @@ void region_addunit(struct region *r, struct unit *u, struct unit **hint)
     ql_iter bli = qli_init(&r->buildings);
     ql_iter sli = qli_init(&r->ships);
     assert(u);
+    assert(!u->region || u->region==r);
 
     if (hint) {
         u->region = r;
@@ -148,6 +149,13 @@ void region_addunit(struct region *r, struct unit *u, struct unit **hint)
             break;
         }
         up=&x->next;
+    }
+    if (u->region) {
+        while (!ur && *up) {
+            unit *x = *up;
+            if (x==u) ur = up;
+            up = &x->next;
+        }
     }
     reorder_unit(u, ur, ui);
     u->region = r;
