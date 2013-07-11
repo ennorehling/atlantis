@@ -90,8 +90,10 @@ void region_addunit(struct region *r, struct unit *u, struct unit **hint)
     while (*up) {
         unit *x = *up;
         if (x==u) ur = up;
-        if (u->stack && x->stack==u->stack) {
-            ui = &x->next;
+        if (u->stack) {
+            if (x->stack==u->stack || x==u->stack) {
+                ui = &x->next;
+            }
         } else if (u->building) {
             if (!x->building) {
                 ui = up;
