@@ -52,10 +52,11 @@ int ignore_password = 0;
 
 #define VER_NOHEADER 0 // no version header
 #define VER_HEADER 1 // has a version header
-#define VER_STACKS 2 // can have stacks
+#define VER_UNIT_NEXT 2 // next-pointer chained units
 #define VER_SHIPLEFT_FIX 3 // before this version, ship->left was invalid
+#define VER_STACKS 4 // storing the stack
 
-#define VER_CURRENT VER_SHIPLEFT_FIX
+#define VER_CURRENT VER_STACKS
 
 static void (*store_init)(struct storage *, FILE *) = binstore_init;
 static void (*store_done)(struct storage *) = binstore_done;
@@ -4780,7 +4781,7 @@ int readgame(void)
             ql_push(&r->ships, sh);
         }
 
-        if (version<VER_STACKS) {
+        if (version<VER_UNIT_NEXT) {
             store.api->r_int(store.handle, &n2);
         } else {
             n2 = INT_MAX;
@@ -4791,7 +4792,7 @@ int readgame(void)
             unit *stack = 0;
 
             store.api->r_int(store.handle, &no);
-            if (version>=VER_STACKS) {
+            if (version>=VER_UNIT_NEXT) {
                 if (no<=0) {
                     break;
                 }
@@ -4801,7 +4802,16 @@ int readgame(void)
             store.api->r_int(store.handle, &fno);
             u = create_unit(findfaction(fno), no);
             assert(u->faction);
-            if (u->no>nextunitid) nextunitid = no+1;
+            if (u->no>nextunitid) nextunitid = u->no+1;
+
+            if (version>=VER_STACKS) {
+                store.api->r_int(store.handle, &no);
+                stack = no ? findunitg(no) : 0;
+                u->stack = stack;
+            }
+
+            region_addunit(r, u, stack, up);
+
             if (store.api->r_str(store.handle, temp, sizeof(temp))==0) {
                 unit_setname(u, temp[0] ? temp : 0);
             }
@@ -4850,7 +4860,6 @@ int readgame(void)
                 }
             }
             
-            region_addunit(r, u, stack, up);
             if (!u->next) {
                 up = &u->next;
             }
@@ -5001,7 +5010,7 @@ int writegame(void)
             assert(u->region==r);
             store.api->w_int(store.handle, u->no);
             store.api->w_int(store.handle, u->faction->no);
-//            store.api->w_int(store.handle, u->stack ? u->stack->no : 0);
+            store.api->w_int(store.handle, u->stack ? u->stack->no : 0);
             store.api->w_str(store.handle, unit_getname(u));
             store.api->w_str(store.handle, unit_getdisplay(u));
             store.api->w_int(store.handle, u->number);

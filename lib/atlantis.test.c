@@ -29,6 +29,81 @@ static unit *make_unit(faction *f, region *r, int no) {
     return u;
 }
 
+static void test_unit_reordering(CuTest *tc)
+{
+    faction *f;
+    region *r;
+    building *b1, *b2;
+    unit *u1, *u2, *u3;
+    
+    cleargame();
+    r = create_region(1, 1, T_PLAIN);
+    f = create_faction(1);
+    u1 = make_unit(f, r, 1);
+    u2 = make_unit(f, r, 2);
+    u3 = make_unit(f, r, 3);
+    b1 = create_building(1);
+    b2 = create_building(1);
+    ql_push(&r->buildings, b1);
+    ql_push(&r->buildings, b2);
+
+    u1->building = b2;
+    u3->building = b1;
+    writegame();
+    cleargame();
+    readgame();
+    u1 = findunitg(1);
+    u2 = findunitg(2);
+    u3 = findunitg(3);
+    CuAssertPtrEquals(tc, u3, r->units);
+    CuAssertPtrEquals(tc, u1, u3->next);
+    CuAssertPtrEquals(tc, u2, u3->next);
+}
+
+static void test_unit_ordering(CuTest *tc)
+{
+    faction *f;
+    region *r;
+    building *b1, *b2;
+    unit *u1, *u2, *u3;
+    
+    cleargame();
+    r = create_region(1, 1, T_PLAIN);
+    f = create_faction(1);
+    u1 = make_unit(f, r, 1);
+    u2 = make_unit(f, r, 2);
+    u3 = make_unit(f, r, 3);
+    b1 = create_building(1);
+    b2 = create_building(1);
+    ql_push(&r->buildings, b1);
+    ql_push(&r->buildings, b2);
+
+    unit_setbuilding(u3, b1);
+    CuAssertPtrEquals(tc, u3, r->units);
+    CuAssertPtrEquals(tc, u1, u3->next);
+
+    unit_setbuilding(u2, b1);
+    CuAssertPtrEquals(tc, u3, r->units);
+    CuAssertPtrEquals(tc, u2, u3->next);
+    
+    unit_setbuilding(u3, 0);
+    CuAssertPtrEquals(tc, u2, r->units);
+    CuAssertPtrEquals(tc, u3, u2->next);
+
+    unit_setbuilding(u1, b2);
+    CuAssertPtrEquals(tc, u2, r->units);
+    CuAssertPtrEquals(tc, u1, u2->next);
+    CuAssertPtrEquals(tc, u3, u1->next);
+
+    unit_setbuilding(u3, b1);
+    CuAssertPtrEquals(tc, u2, r->units);
+    CuAssertPtrEquals(tc, u3, u2->next);
+    CuAssertPtrEquals(tc, u1, u3->next);
+
+    unit_setbuilding(u2, b1);
+    CuAssertPtrEquals(tc, u2, r->units);
+}
+
 static void test_unstack_leader(CuTest *tc)
 {
     faction *f;
@@ -857,6 +932,7 @@ static void test_freeunit(CuTest * tc)
     
     CuAssertPtrEquals(tc, 0, u2->stack);
     CuAssertPtrEquals(tc, 0, u3->stack);
+    region_rmunit(r, u1, 0);
     free_unit(u1);
     CuAssertPtrEquals(tc, 0, u2->stack);
     CuAssertPtrEquals(tc, 0, u3->stack);
@@ -1057,6 +1133,8 @@ int main(void)
     SUITE_ADD_TEST(suite, test_config_teachers);
     SUITE_ADD_TEST(suite, test_shipbuilding);
     SUITE_ADD_TEST(suite, test_freeunit);
+    SUITE_ADD_TEST(suite, test_unit_ordering);
+    SUITE_ADD_TEST(suite, test_unit_reordering);
 
     // SUITE_ADD_TEST(suite, test_enter_building_moves_units);
 

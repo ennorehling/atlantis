@@ -135,5 +135,41 @@ void unit_setdisplay(struct unit *self, const char *display)
 
 void unit_setbuilding(struct unit *u, struct building *b)
 {
+    region *r = u->region;
+    ql_iter qli = qli_init(&r->buildings);
+    unit **up;
+
+    if (b==u->building) {
+        return;
+    }
+    region_rmunit(r, u, 0);
+    for (up=&r->units;*up;) {
+        unit *ux = *up;
+        if (!ux->building) break;
+        if (b) {
+            if (b==ux->building) {
+                do {
+                    up = &ux->next;
+                } while ((*up)->building==b);
+                break;
+            } else {
+                struct building *bx = 0;
+                while (qli_more(qli)) {
+                    bx = (struct building *)qli_next(&qli);
+                    if (bx==ux->building) {
+                        break;
+                    } else if (bx==b) {
+                        break;
+                    }
+                }
+                if (bx==b) {
+                    break;
+                }
+            }
+        }
+        up = &ux->next;
+    }
     u->building = b;
+    u->next = *up;
+    *up = u;
 }
