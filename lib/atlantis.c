@@ -1058,7 +1058,7 @@ faction * addplayer(region * r, const char * email, int no)
 
     while (findunitg(nextunitid)) ++nextunitid;
     u = create_unit(f, nextunitid++);
-    region_addunit(r, u, 0, 0);
+    region_addunit(r, u, 0);
     strcpy(u->lastorder, "work");
     u->combatspell = -1;
     u->number = 1;
@@ -2790,7 +2790,7 @@ void process_form(unit *u, region *r) {
 
             while (findunitg(nextunitid)) ++nextunitid;
             u2 = create_unit(u->faction, nextunitid++);
-            region_addunit(r, u2, 0, 0);
+            region_addunit(r, u2, 0);
 
             u2->alias = atoi(getstr());
             if (u2->alias == 0)
@@ -3881,7 +3881,7 @@ void processorders(void)
 
                 leave(r, u);
                 region_rmunit(r, u, up);
-                region_addunit(r2, u, 0, 0);
+                region_addunit(r2, u, 0);
                 u->thisorder[0] = 0;
 
                 sprintf(buf, "%s ", unitid(u));
@@ -3967,13 +3967,13 @@ void processorders(void)
 
                 region_rmunit(r, u, up);
                 u->thisorder[0] = 0;
-                region_addunit(r2, u, 0, 0);
+                region_addunit(r2, u, 0);
                 for (ui=&r->units;*ui;) {
                     unit *u2 = *ui;
                     if (u2->ship == u->ship) {
                         region_rmunit(r, u2, ui);
                         u2->thisorder[0] = 0;
-                        region_addunit(r2, u2, 0, &u->next);
+                        region_addunit(r2, u2, &u->next);
                     } else {
                         ui = &u2->next;
                     }
@@ -4530,7 +4530,7 @@ void processorders(void)
 
                             u3->building = u2->building;
                             u3->ship = u2->ship;
-                            region_addunit(u2->region, u3, 0, &u2->next);
+                            region_addunit(u2->region, u3, &u2->next);
                             sprintf(buf2, "%s teleports %s to %s.", unitid(u), unitid(u3), regionid(u2->region, u->faction));
                             addevent(u->faction, buf2);
                         }
@@ -4810,7 +4810,7 @@ int readgame(void)
                 u->stack = stack;
             }
 
-            region_addunit(r, u, stack, up);
+            region_addunit(r, u, up);
 
             if (store.api->r_str(store.handle, temp, sizeof(temp))==0) {
                 unit_setname(u, temp[0] ? temp : 0);

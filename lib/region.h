@@ -50,7 +50,7 @@ struct region * findregion(int x, int y);
 
 const char * region_getname(const struct region *r);
 void region_setname(struct region *r, const char *name);
-void region_addunit(struct region *r, struct unit *u, struct unit *stack, struct unit **hint);
+void region_addunit(struct region *r, struct unit *u, struct unit **hint);
 bool region_rmunit(struct region *r, struct unit *u, struct unit **hint);
 
 #endif

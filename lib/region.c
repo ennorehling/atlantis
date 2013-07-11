@@ -61,29 +61,78 @@ void region_setname(struct region *r, const char *name)
     }
 }
 
-void region_addunit(struct region *r, struct unit *u, struct unit *stack, struct unit **hint)
+static void reorder_unit(unit *u, unit **ur, unit **ui) {
+    assert(ui || !"no insert position given");
+    assert (!u->region || ur || !"unit must be removed");
+    assert (!ur || *ur==u || !"removal position does not match unit");
+    if (ur!=ui) { /* else: nothing to do */
+        if (ur) {
+            *ur = u->next;
+        }
+        u->next = *ui;
+        *ui = u;
+    }
+}
+
+void region_addunit(struct region *r, struct unit *u, struct unit **hint)
 {
-    unit **up, *top = 0;
+    unit **up = &r->units;
+    unit **ui = up, **ur = 0;
+    ql_iter bli = qli_init(&r->buildings);
     assert(u);
-    assert(!stack || stack->region==r);
-    u->region = r;
-	up = hint ? hint : &r->units;
-    up = stack ? &stack->next : up;
+
+    if (hint) {
+        u->region = r;
+        u->next = *hint;
+        *hint = u;
+        return;
+    }
     while (*up) {
         unit *x = *up;
-        up = &x->next;
-        if (top) {
-             if (x->stack!=stack) {
-                 break;
-             }
+        if (x==u) ur = up;
+        if (u->stack && x->stack==u->stack) {
+            ui = &x->next;
+        } else if (u->building) {
+            if (!x->building) {
+                ui = up;
+                break;
+            }
+            else if (x->building==u->building) {
+                ui = &x->next;
+            }
+            else {
+                while (qli_more(bli)) {
+                    struct building *b = (struct building *)qli_get(bli);
+                    if (b==u->building) {
+                        ui = up;
+                        break;
+                    } else if (b==x->building) {
+                        break;
+                    }
+                    qli_next(&bli);
+                }
+                if (ui==up) {
+                    break;
+                }
+            }
+        } else if (u->ship) {
+            if (!x->ship) {
+                ui = up;
+                break;
+            }
+            else if (x->ship==u->ship) {
+                ui = &x->next;
+            }
+            else {
+            }
+        } else if (!x->next) {
+            ui = &x->next;
+            break;
         }
-        else if (stack && stack==x->stack) {
-            top = stack;
-        }
+        up=&x->next;
     }
-    u->stack = stack;
-    u->next = *up;
-    *up = u;
+    reorder_unit(u, ur, ui);
+    u->region = r;
 }
 
 bool region_rmunit(struct region *r, struct unit *u, struct unit **hint)
