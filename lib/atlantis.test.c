@@ -166,7 +166,47 @@ static void test_addunit_reorders(CuTest *tc)
     region_addunit(r, u2, 0);
     CuAssertPtrEquals(tc, u1, r->units);
     u2->building = b1;
+}
+
+static void test_setbuilding_reorders(CuTest *tc)
+{
+    faction *f;
+    region *r;
+    building *b1;
+    unit *u1, *u2;
+    
+    cleargame();
+    r = create_region(1, 1, T_PLAIN);
+    f = create_faction(1);
+    u1 = create_unit(f, 1);
+    u2 = create_unit(f, 2);
+    b1 = create_building(1);
+    ql_push(&r->buildings, b1);
+
+    region_addunit(r, u1, 0);
     region_addunit(r, u2, 0);
+    unit_setbuilding(u2, b1);
+    CuAssertPtrEquals(tc, u2, r->units);
+}
+
+static void test_setship_reorders(CuTest *tc)
+{
+    faction *f;
+    region *r;
+    ship *s1;
+    unit *u1, *u2;
+    
+    cleargame();
+    r = create_region(1, 1, T_PLAIN);
+    f = create_faction(1);
+    u1 = create_unit(f, 1);
+    u2 = create_unit(f, 2);
+    s1 = create_ship(1, SH_LONGBOAT);
+    ql_push(&r->ships, s1);
+
+    region_addunit(r, u1, 0);
+    region_addunit(r, u2, 0);
+    unit_setship(u2, s1);
     CuAssertPtrEquals(tc, u2, r->units);
 }
 
@@ -1240,6 +1280,8 @@ int main(void)
     SUITE_ADD_TEST(suite, test_addunit_order_buildings_mixed);
     SUITE_ADD_TEST(suite, test_addunit_order_mixed);
     SUITE_ADD_TEST(suite, test_addunit_reorders);
+    SUITE_ADD_TEST(suite, test_setship_reorders);
+    SUITE_ADD_TEST(suite, test_setbuilding_reorders);
     SUITE_ADD_TEST(suite, test_form);
     SUITE_ADD_TEST(suite, test_keywords);
     SUITE_ADD_TEST(suite, test_wrapmap);

@@ -130,15 +130,15 @@ void region_addunit(struct region *r, struct unit *u, struct unit **hint)
             }
             else {
                 struct ship *s = 0;
-                while (qli_more(bli)) {
-                    s = (struct ship *)qli_get(bli);
+                while (qli_more(sli)) {
+                    s = (struct ship *)qli_get(sli);
                     if (s==u->ship) {
                         ui = up;
                         break;
                     } else if (s==x->ship) {
                         break;
                     }
-                    qli_next(&bli);
+                    qli_next(&sli);
                 }
                 if (s==u->ship) {
                     break;

@@ -2955,6 +2955,281 @@ static void cmd_find(unit *u, const char *s) {
     ql_push(&u->faction->messages, buf2);
 }
 
+typedef struct job {
+    const char *order;
+    struct unit *unit;
+} job;
+
+quicklist *select_orders(region *r, int keywords[]) {
+    unit *u;
+    quicklist *ql = 0;
+
+    for (u=r->units;u;u=u->next) {
+        ql_iter oli;
+        for (oli = qli_init(&u->orders); qli_more(oli); ) {
+            const char *s = (const char *)qli_next(&oli);
+            int kwd = igetkeyword(s);
+            int k;
+            for (k=0;keywords[k]>=0;++k) {
+                if (keywords[k]==kwd) {
+                    job * j =(job *) malloc(sizeof(job));
+                    j->unit = u;
+                    j->order = s;
+                    ql_push(&ql, j);
+                    break;
+                }
+            }
+        }
+    }
+    return ql;
+}
+
+static void do_build(job *j) {
+    const char *s = j->order;
+    unit *u = j->unit;
+    region *r = u->region;
+    building *b;
+    ship *sh;
+    int i, n;
+    ship_t stype;
+
+    i = igetkeyword(s);
+    assert(i==K_BUILD);
+
+    switch (i = getkeyword()) {
+    case K_BUILDING:
+        if (!effskill(u, SK_BUILDING)) {
+            mistakeu(u, "You don't have the skill");
+            break;
+        }
+
+        if (!u->items[I_STONE]) {
+            mistakeu(u, "No stone available");
+            break;
+        }
+
+        b = getbuilding(r);
+
+        if (!b) {
+            b = (building *)malloc(sizeof(building));
+            if (b) {
+                memset(b, 0, sizeof(building));
+
+                do {
+                    b->no++;
+                    sprintf(buf2, "Building %d", b->no);
+                    building_setname(b, buf2);
+                }
+                while (findbuilding(b->no));
+
+                ql_push(&r->buildings, b);
+            }
+            leave(r, u);
+            u->owner = 1;
+            unit_setbuilding(u, b);
+        }
+
+        if (b) {
+            n = u->number * effskill(u, SK_BUILDING);
+            n = MIN(n, u->items[I_STONE]);
+            b->size += n;
+            u->items[I_STONE] -= n;
+
+            u->skills[SK_BUILDING] += n * 10;
+
+            sprintf(buf, "%s adds %d to %s.", unitid(u), n,
+                    buildingid(b));
+            addevent(u->faction, buf);
+        }
+        break;
+
+    case K_SHIP:
+        if (!effskill(u, SK_SHIPBUILDING)) {
+            mistakeu(u, "You don't have the skill");
+            break;
+        }
+
+        if (!u->items[I_WOOD]) {
+            mistakeu(u, "No wood available");
+            break;
+        }
+
+        sh = getship(r);
+
+        if (sh == 0) {
+            mistakeu(u, "Ship not found");
+            break;
+        }
+
+        if (!sh->left) {
+            mistakeu(u, "Ship is already complete");
+            break;
+        }
+
+        BUILDSHIP:
+        n = u->number * effskill(u, SK_SHIPBUILDING);
+        n = MIN(n, sh->left);
+        n = MIN(n, u->items[I_WOOD]);
+        sh->left -= n;
+        u->items[I_WOOD] -= n;
+
+        u->skills[SK_SHIPBUILDING] += MIN(n, u->number) * 10;
+
+        sprintf(buf, "%s adds %d to %s.", unitid(u), n,
+                shipid(sh));
+        addevent(u->faction, buf);
+        break;
+
+    case K_LONGBOAT:
+        stype = SH_LONGBOAT;
+        goto CREATESHIP;
+
+    case K_CLIPPER:
+        stype = SH_CLIPPER;
+        goto CREATESHIP;
+
+    case K_GALLEON:
+        stype = SH_GALLEON;
+        goto CREATESHIP;
+
+        CREATESHIP:
+        if (!effskill(u, SK_SHIPBUILDING)) {
+            mistakeu(u, "You don't have the skill");
+            break;
+        }
+
+        n = 0;
+        do {
+            n++;
+        }
+        while (findship(n));
+
+        sh = create_ship(n, stype);
+        sh->left = shipcost[stype];
+        sprintf(buf2, "Ship %d", n);
+        ship_setname(sh, buf2);
+        ql_push(&r->ships, sh);
+
+        leave(r, u);
+        u->owner = 1;
+        unit_setship(u, sh);
+        goto BUILDSHIP;
+
+    default:
+        mistakeu(u, "Order not recognized");
+    }
+}
+
+void do_leave_and_enter(job *j) {
+    const char *s = j->order;
+    unit *u2, *u = j->unit;
+    region *r = u->region;
+    ship *sh;
+    building *b;
+
+    switch (igetkeyword(s)) {
+    case K_BOARD:
+        sh = getship(r);
+
+        if (!sh) {
+            mistakes(u, s, "Ship not found");
+            break;
+        }
+
+        if (!mayboard(r, u, sh)) {
+            mistakes(u, s, "Not permitted to board");
+            break;
+        }
+
+        leave(r, u);
+        u->owner = 0;
+        if (shipowner(r, sh) == 0)
+            u->owner = 1;
+        unit_setship(u, sh);
+        break;
+
+    case K_ENTER:
+        b = getbuilding(r);
+
+        if (!b) {
+            mistakes(u, s, "Building not found");
+            break;
+        }
+
+        if (!mayenter(r, u, b)) {
+            mistakes(u, s, "Not permitted to enter");
+            break;
+        }
+
+        leave(r, u);
+        u->owner = 0;
+        if (buildingowner(r, b) == 0)
+            u->owner = 1;
+        unit_setbuilding(u, b);
+        break;
+
+    case K_LEAVE:
+        if (r->terrain == T_OCEAN) {
+            mistakes(u, s, "Ship is at sea");
+            break;
+        }
+
+        leave(r, u);
+        break;
+
+    case K_PROMOTE:
+        if (!u->building && !u->ship) {
+            mistakes(u, s, "No building or ship to transfer ownership of");
+            break;
+        }
+
+        if (!u->owner) {
+            mistakes(u, s, "Not owned by you");
+            break;
+        }
+
+        if (getseen(r, u->faction, &u2)!=U_UNIT) {
+            mistakes(u, s, "Unit not found");
+            break;
+        }
+
+        if (!accepts(u2, u)) {
+            mistakes(u, s, "Unit does not accept ownership");
+            break;
+        }
+
+        if (u->building) {
+            if (u2->building != u->building) {
+                mistakes(u, s, "Unit not in same building");
+                break;
+            }
+        } else if (u2->ship != u->ship) {
+            mistakes(u, s, "Unit not on same ship");
+            break;
+        }
+
+        u->owner = 0;
+        u2->owner = 1;
+        break;
+    }
+}
+
+void process_leave_and_enter(region *r) {
+    int keywords[] = { K_BOARD, K_ENTER, K_LEAVE, K_PROMOTE, -1 };
+    quicklist *ql = select_orders(r, keywords);
+    ql_foreach(ql, (ql_cb)do_leave_and_enter);
+    ql_foreach(ql, free);
+    ql_free(ql);
+}
+
+void process_build(region *r) {
+    int keywords[] = { K_BUILD, -1 };
+    quicklist *ql = select_orders(r, keywords);
+    ql_foreach(ql, (ql_cb)do_build);
+    ql_foreach(ql, free);
+    ql_free(ql);
+}
+
 void processorders(void)
 {
     int i, j, k;
@@ -3219,100 +3494,7 @@ void processorders(void)
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        unit *u;
-
-        for (u=r->units;u;u=u->next) {
-            ql_iter oli;
-            for (oli = qli_init(&u->orders); qli_more(oli); ) {
-                const char *s = (const char *)qli_next(&oli);
-
-                switch (igetkeyword(s)) {
-                case K_BOARD:
-                    sh = getship(r);
-
-                    if (!sh) {
-                        mistakes(u, s, "Ship not found");
-                        break;
-                    }
-
-                    if (!mayboard(r, u, sh)) {
-                        mistakes(u, s, "Not permitted to board");
-                        break;
-                    }
-
-                    leave(r, u);
-                    u->ship = sh;
-                    u->owner = 0;
-                    if (shipowner(r, sh) == 0)
-                        u->owner = 1;
-                    break;
-
-                case K_ENTER:
-                    b = getbuilding(r);
-
-                    if (!b) {
-                        mistakes(u, s, "Building not found");
-                        break;
-                    }
-
-                    if (!mayenter(r, u, b)) {
-                        mistakes(u, s, "Not permitted to enter");
-                        break;
-                    }
-
-                    leave(r, u);
-                    u->building = b;
-                    u->owner = 0;
-                    if (buildingowner(r, b) == 0)
-                        u->owner = 1;
-                    break;
-
-                case K_LEAVE:
-                    if (r->terrain == T_OCEAN) {
-                        mistakes(u, s, "Ship is at sea");
-                        break;
-                    }
-
-                    leave(r, u);
-                    break;
-
-                case K_PROMOTE:
-                    if (!u->building && !u->ship) {
-                        mistakes(u, s, "No building or ship to transfer ownership of");
-                        break;
-                    }
-
-                    if (!u->owner) {
-                        mistakes(u, s, "Not owned by you");
-                        break;
-                    }
-
-                    if (getseen(r, u->faction, &u2)!=U_UNIT) {
-                        mistakes(u, s, "Unit not found");
-                        break;
-                    }
-
-                    if (!accepts(u2, u)) {
-                        mistakes(u, s, "Unit does not accept ownership");
-                        break;
-                    }
-
-                    if (u->building) {
-                        if (u2->building != u->building) {
-                            mistakes(u, s, "Unit not in same building");
-                            break;
-                        }
-                    } else if (u2->ship != u->ship) {
-                        mistakes(u, s, "Unit not on same ship");
-                        break;
-                    }
-
-                    u->owner = 0;
-                    u2->owner = 1;
-                    break;
-                }
-            }
-        }
+        process_leave_and_enter(r);
     }
     process_combat();
 
@@ -3990,7 +4172,6 @@ void processorders(void)
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
         unit *u;
-        ship_t stype;
         if (r->terrain == T_OCEAN)
             continue;
 
@@ -3998,134 +4179,9 @@ void processorders(void)
         workorders = 0;
         memset(produceorders, 0, sizeof produceorders);
 
+        process_build(r);
         for (u=r->units;u;u=u->next) {
             switch (igetkeyword(u->thisorder)) {
-            case K_BUILD:
-                switch (i = getkeyword()) {
-                case K_BUILDING:
-                    if (!effskill(u, SK_BUILDING)) {
-                        mistakeu(u, "You don't have the skill");
-                        break;
-                    }
-
-                    if (!u->items[I_STONE]) {
-                        mistakeu(u, "No stone available");
-                        break;
-                    }
-
-                    b = getbuilding(r);
-
-                    if (!b) {
-                        b = (building *)malloc(sizeof(building));
-                        if (b) {
-                            memset(b, 0, sizeof(building));
-
-                            do {
-                                b->no++;
-                                sprintf(buf2, "Building %d", b->no);
-                                building_setname(b, buf2);
-                            }
-                            while (findbuilding(b->no));
-
-                            ql_push(&r->buildings, b);
-                        }
-                        leave(r, u);
-                        u->building = b;
-                        u->owner = 1;
-                    }
-
-                    if (b) {
-                        n = u->number * effskill(u, SK_BUILDING);
-                        n = MIN(n, u->items[I_STONE]);
-                        b->size += n;
-                        u->items[I_STONE] -= n;
-
-                        u->skills[SK_BUILDING] += n * 10;
-
-                        sprintf(buf, "%s adds %d to %s.", unitid(u), n,
-                                buildingid(b));
-                        addevent(u->faction, buf);
-                    }
-                    break;
-
-                case K_SHIP:
-                    if (!effskill(u, SK_SHIPBUILDING)) {
-                        mistakeu(u, "You don't have the skill");
-                        break;
-                    }
-
-                    if (!u->items[I_WOOD]) {
-                        mistakeu(u, "No wood available");
-                        break;
-                    }
-
-                    sh = getship(r);
-
-                    if (sh == 0) {
-                        mistakeu(u, "Ship not found");
-                        break;
-                    }
-
-                    if (!sh->left) {
-                        mistakeu(u, "Ship is already complete");
-                        break;
-                    }
-
-                  BUILDSHIP:
-                    n = u->number * effskill(u, SK_SHIPBUILDING);
-                    n = MIN(n, sh->left);
-                    n = MIN(n, u->items[I_WOOD]);
-                    sh->left -= n;
-                    u->items[I_WOOD] -= n;
-
-                    u->skills[SK_SHIPBUILDING] += MIN(n, u->number) * 10;
-
-                    sprintf(buf, "%s adds %d to %s.", unitid(u), n,
-                            shipid(sh));
-                    addevent(u->faction, buf);
-                    break;
-
-                case K_LONGBOAT:
-                    stype = SH_LONGBOAT;
-                    goto CREATESHIP;
-
-                case K_CLIPPER:
-                    stype = SH_CLIPPER;
-                    goto CREATESHIP;
-
-                case K_GALLEON:
-                    stype = SH_GALLEON;
-                    goto CREATESHIP;
-
-                  CREATESHIP:
-                    if (!effskill(u, SK_SHIPBUILDING)) {
-                        mistakeu(u, "You don't have the skill");
-                        break;
-                    }
-
-                    n = 0;
-                    do {
-                        n++;
-                    }
-                    while (findship(n));
-
-                    sh = create_ship(n, stype);
-                    sh->left = shipcost[stype];
-                    sprintf(buf2, "Ship %d", n);
-                    ship_setname(sh, buf2);
-                    ql_push(&r->ships, sh);
-
-                    leave(r, u);
-                    u->ship = sh;
-                    u->owner = 1;
-                    goto BUILDSHIP;
-
-                default:
-                    mistakeu(u, "Order not recognized");
-                }
-
-                break;
-
             case K_ENTERTAIN:
                 o = (order *)malloc(sizeof(order));
                 o->unit = u;

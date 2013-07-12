@@ -65,4 +65,7 @@ void unit_setname(struct unit *u, const char *name);
 const char * unit_getdisplay(const struct unit *u);
 void unit_setdisplay(struct unit *u, const char *display);
 
+void unit_setbuilding(struct unit *self, struct building *b);
+void unit_setship(struct unit *self, struct ship *s);
+
 #endif
