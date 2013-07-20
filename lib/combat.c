@@ -668,7 +668,6 @@ void process_combat(void)
                                     f2->attacking = false;
                                 }
                                 for (u3=r->units_;u3;u3=u3->next) {
-                                    unit *u3 = (unit *)qli_next(&qli);
                                     ql_iter oli;
                                     for (oli = qli_init(&u3->orders); qli_more(oli);) {
                                         char *s = (char *)qli_next(&oli);
