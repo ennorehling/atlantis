@@ -168,6 +168,7 @@ bool region_rmunit(struct region *r, struct unit *u, struct unit **hint)
         unit *x = *up;
         if (x==u) {
             *up = x->next;
+            u->region = 0;
             return true;
         }
         up = &x->next;
