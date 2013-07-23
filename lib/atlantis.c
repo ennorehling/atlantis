@@ -55,8 +55,12 @@ int ignore_password = 0;
 #define VER_UNIT_NEXT 2 // next-pointer chained units
 #define VER_SHIPLEFT_FIX 3 // before this version, ship->left was invalid
 #define VER_STACKS 4 // storing the stack
+#define VER_FEATURES 5 // store feature flags
 
-#define VER_CURRENT VER_STACKS
+#define VER_CURRENT VER_FEATURES
+
+#define HAS_STACKS 0x01
+#define HAS_FACTION_MONEY 0x02
 
 static void (*store_init)(struct storage *, FILE *) = binstore_init;
 static void (*store_done)(struct storage *) = binstore_done;
@@ -4694,6 +4698,7 @@ int readgame(void)
     ship *sh;
     unit *u;
     int minx, miny, maxx, maxy;
+    int features;
     storage store;
     int version = VER_NOHEADER;
 
@@ -4715,6 +4720,11 @@ int readgame(void)
     }
     assert(version<=VER_CURRENT);
     if (turn!=n) return -1;
+    if (version>=VER_FEATURES) {
+        store.api->r_int(store.handle, &features);
+    } else if (version>=VER_STACKS) {
+        features = HAS_STACKS;
+    }
 
     /* Read factions */
 
@@ -4860,7 +4870,7 @@ int readgame(void)
             assert(u->faction);
             if (u->no>nextunitid) nextunitid = u->no+1;
 
-            if (version>=VER_STACKS) {
+            if (features&HAS_STACKS) {
                 store.api->r_int(store.handle, &no);
                 stack = no ? findunitg(no) : 0;
                 u->stack = stack;
@@ -4984,7 +4994,12 @@ int writegame(void)
 {
     storage store;
     int i;
+    int features = 0;
     ql_iter rli, fli;
+
+    if (config.features&CFG_STACKS) {
+        features |= HAS_STACKS;
+    }
 
     sprintf(buf, "data/%d", turn);
     printf("Writing turn %d...\n", turn);
@@ -4993,6 +5008,7 @@ int writegame(void)
     store.api->w_int(store.handle, -1);
     store.api->w_int(store.handle, VER_CURRENT);
     store.api->w_int(store.handle, turn);
+    store.api->w_int(store.handle, features);
 
     /* Write factions */
 
@@ -5069,7 +5085,9 @@ int writegame(void)
             assert(u->region==r);
             store.api->w_int(store.handle, u->no);
             store.api->w_int(store.handle, u->faction->no);
-            store.api->w_int(store.handle, u->stack ? u->stack->no : 0);
+            if (features&HAS_STACKS) {
+                store.api->w_int(store.handle, u->stack ? u->stack->no : 0);
+            }
             store.api->w_str(store.handle, unit_getname(u));
             store.api->w_str(store.handle, unit_getdisplay(u));
             store.api->w_int(store.handle, u->number);
