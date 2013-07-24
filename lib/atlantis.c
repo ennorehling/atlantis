@@ -4799,16 +4799,15 @@ int readgame(void)
             fprintf(stderr, "duplicate region '%s' = '%s'\n", name, r->name_);
             if (r->units || r->buildings || r->ships) {
                 r = &dummy;
-            } else {
-                r = create_region(x, y, (terrain_t)n);
             }
+            r->terrain = (terrain_t)n;
         } else {
             r = create_region(x, y, (terrain_t)n);
+            minx = MIN(minx, r->x);
+            maxx = MAX(maxx, r->x);
+            miny = MIN(miny, r->y);
+            maxy = MAX(maxy, r->y);
         }
-        minx = MIN(minx, r->x);
-        maxx = MAX(maxx, r->x);
-        miny = MIN(miny, r->y);
-        maxy = MAX(maxy, r->y);
         region_setname(r, name[0] ? name : 0);
         store.api->r_int(store.handle, &r->peasants);
         store.api->r_int(store.handle, &r->money);

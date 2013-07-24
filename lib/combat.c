@@ -167,7 +167,7 @@ static void addbattle(battle * b, const char *s)
     ql_push(&b->events, _strdup(s));
 }
 
-static void battlerecord(char *s)
+static void battlerecord(const char *s)
 {
     ql_iter fli;
 
