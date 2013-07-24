@@ -177,8 +177,6 @@ static void battlerecord(char *s)
             addbattle(f->thisbattle, s);
         }
     }
-    if (s[0])
-        puts(s);
 }
 
 int reportcasualtiesdh;

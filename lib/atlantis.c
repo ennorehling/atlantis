@@ -4787,19 +4787,29 @@ int readgame(void)
         int x, y, n;
         char name[DISPLAYSIZE];
         unit **up = 0;
+        region dummy = { 0 };
 
         store.api->r_int(store.handle, &x);
         store.api->r_int(store.handle, &y);
         store.api->r_int(store.handle, &n);
         assert(n<NUMTERRAINS);
-        r = create_region(x, y, (terrain_t)n);
+        store.api->r_str(store.handle, name, sizeof(name));
+        r = findregion(x, y);
+        if (r) {
+            fprintf(stderr, "duplicate region '%s' = '%s'\n", name, r->name_);
+            if (r->units || r->buildings || r->ships) {
+                r = &dummy;
+            } else {
+                r = create_region(x, y, (terrain_t)n);
+            }
+        } else {
+            r = create_region(x, y, (terrain_t)n);
+        }
         minx = MIN(minx, r->x);
         maxx = MAX(maxx, r->x);
         miny = MIN(miny, r->y);
         maxy = MAX(maxy, r->y);
-        if (store.api->r_str(store.handle, name, sizeof(name))==0) {
-            region_setname(r, name[0] ? name : 0);
-        }
+        region_setname(r, name[0] ? name : 0);
         store.api->r_int(store.handle, &r->peasants);
         store.api->r_int(store.handle, &r->money);
 
@@ -4932,6 +4942,11 @@ int readgame(void)
             if (!u->next) {
                 up = &u->next;
             }
+        }
+        if (r==&dummy) {
+            assert(!r->units);
+            assert(!r->buildings);
+            assert(!r->ships);
         }
     }
 
