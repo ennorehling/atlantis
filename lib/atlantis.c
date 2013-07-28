@@ -4698,7 +4698,7 @@ int readgame(void)
     ship *sh;
     unit *u;
     int minx, miny, maxx, maxy;
-    int features;
+    int features = 0;
     storage store;
     int version = VER_NOHEADER;
 
