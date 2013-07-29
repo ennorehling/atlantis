@@ -115,14 +115,14 @@ int findkeyword(const char *s)
     return sp - keywords;
 }
 
-int igetkeyword(const char *s)
+keyword_t igetkeyword(const char *s)
 {
-    return findkeyword(igetstr(s));
+    return (keyword_t)findkeyword(igetstr(s));
 }
 
-int getkeyword(void)
+keyword_t getkeyword(void)
 {
-    return findkeyword(getstr());
+    return (keyword_t)findkeyword(getstr());
 }
 
 int findstr(const char **v, const char *s, int n)

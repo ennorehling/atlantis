@@ -651,7 +651,7 @@ static void test_origin(CuTest * tc)
     r3 = create_region(2, 2, T_PLAIN);
     region_setname(r1, "foo");
     region_setname(r3, "bar");
-    makeworld();
+    update_world(0, 0, 2, 2);
     f = addplayer(r1, "enno@example.com", 0);
     CuAssertStrEquals(tc, "foo (0,0)", regionid(r1, f));
     CuAssertStrEquals(tc, "(0,1)", regionid(r2, f));
@@ -919,8 +919,8 @@ static void test_faction_name(CuTest * tc)
 {
     const char * name = "Sacco & Vanzetti";
     faction * f;
-	region * r;
-	unit * u;
+    region * r;
+    unit * u;
 
     cleargame();
     f = create_faction(1);
@@ -934,6 +934,118 @@ static void test_faction_name(CuTest * tc)
     readgame();
     f = findfaction(1);
     CuAssertStrEquals(tc, name, faction_getname(f));
+}
+
+static void test_connectregions(CuTest * tc)
+{
+    region *r1, *r2;
+
+    cleargame();
+    config.width = 3;
+    config.height = 3;
+    r1 = create_region(0, 0, T_PLAIN);
+    r2 = create_region(0, 1, T_PLAIN);
+    connectregions();
+    CuAssertPtrEquals(tc, r1, r2->connect[0]);
+    CuAssertPtrEquals(tc, 0, r1->connect[0]);
+    CuAssertPtrEquals(tc, r2, r1->connect[1]);
+    CuAssertPtrEquals(tc, 0, r1->connect[2]);
+    CuAssertPtrEquals(tc, 0, r1->connect[3]);
+}
+
+static void test_cfg_upkeep(CuTest * tc)
+{
+    unit *u1;
+    faction *f1;
+    region *r1;
+
+    cleargame();
+    config.upkeep = 0;
+    r1 = create_region(0, 0, T_PLAIN);
+    f1 = create_faction(1);
+    u1 = create_unit(f1, 1);
+    u1->number = 2;
+    u1->money = 50;
+    region_addunit(r1, u1, 0);
+
+    config.upkeep = 15;
+    processorders();
+    CuAssertIntEquals(tc, 20, u1->money);
+
+    config.upkeep = 0;
+    processorders();
+    CuAssertIntEquals(tc, 20, u1->money);
+}
+
+static void test_cfg_moves_on(CuTest * tc)
+{
+    unit *u1;
+    faction *f1;
+    region *r1, *r2;
+    stream strm;
+    char line[64];
+
+    cleargame();
+    config.upkeep = 0;
+    config.features = CFG_MOVES;
+    config.moves = 2;
+    r1 = create_region(0, 0, T_PLAIN);
+    r2 = create_region(0, 1, T_PLAIN);
+    r2 = create_region(0, 2, T_PLAIN);
+    update_world(0, 0, 2, 2);
+    connectregions();
+    f1 = create_faction(1);
+    u1 = create_unit(f1, 1);
+    u1->number = 1;
+    region_addunit(r1, u1, 0);
+
+    faction_setpassword(f1, "mypassword");
+    mstream_init(&strm);
+    sprintf(line, "FACTION %d mypassword", f1->no);
+    strm.api->writeln(strm.handle, line);
+    sprintf(line, "UNIT %d", u1->no);
+    strm.api->writeln(strm.handle, line);
+    strm.api->writeln(strm.handle, "MOVE S S");
+    strm.api->rewind(strm.handle);
+
+    read_orders(&strm);
+    processorders();
+    CuAssertPtrEquals(tc, r2, u1->region);
+}
+
+static void test_cfg_moves_off(CuTest * tc)
+{
+    unit *u1;
+    faction *f1;
+    region *r1, *r2;
+    stream strm;
+    char line[64];
+
+    cleargame();
+    config.features = 0;
+    config.moves = 0;
+    r1 = create_region(0, 0, T_PLAIN);
+    r2 = create_region(0, 2, T_PLAIN);
+    r2 = create_region(0, 1, T_PLAIN);
+    update_world(0, 0, 2, 2);
+    connectregions();
+    f1 = create_faction(1);
+    u1 = create_unit(f1, 1);
+    u1->number = 1;
+    region_addunit(r1, u1, 0);
+
+    faction_setpassword(f1, "mypassword");
+    mstream_init(&strm);
+    sprintf(line, "FACTION %d mypassword", f1->no);
+    strm.api->writeln(strm.handle, line);
+    sprintf(line, "UNIT %d", u1->no);
+    strm.api->writeln(strm.handle, line);
+    strm.api->writeln(strm.handle, "MOVE S S");
+    strm.api->rewind(strm.handle);
+
+    read_orders(&strm);
+    processorders();
+    CuAssertPtrEquals(tc, r2, u1->region);
 }
 
 static void test_region_addunit(CuTest * tc)
@@ -1258,10 +1370,13 @@ static void test_config_terrain(CuTest * tc)
 
 static void test_config_json(CuTest * tc)
 {
-    cJSON *json = cJSON_Parse("{ \"width\": 10, \"height\": 20, \"stacks\": true, \"teachers\": true }");
+    cJSON *json = cJSON_Parse("{ \"upkeep\": 13, \"moves\": 2, \"width\": 10, \"height\": 20, \"stacks\": true, \"teachers\": true }");
     read_config_json(json);
     CuAssertIntEquals(tc, 10, config.width);
     CuAssertIntEquals(tc, 20, config.height);
+    CuAssertIntEquals(tc, 2, config.moves);
+    CuAssertIntEquals(tc, 13, config.upkeep);
+    CuAssertIntEquals(tc, CFG_MOVES, config.features&CFG_MOVES);
     CuAssertIntEquals(tc, CFG_STACKS, config.features&CFG_STACKS);
     CuAssertIntEquals(tc, CFG_TEACHERS, config.features&CFG_TEACHERS);
     cJSON_Delete(json);
@@ -1272,6 +1387,10 @@ int main(void)
     CuString *output = CuStringNew();
     CuSuite *suite = CuSuiteNew();
 
+    SUITE_ADD_TEST(suite, test_connectregions);
+    SUITE_ADD_TEST(suite, test_cfg_upkeep);
+    SUITE_ADD_TEST(suite, test_cfg_moves_on);
+    SUITE_ADD_TEST(suite, test_cfg_moves_off);
     SUITE_ADD_TEST(suite, test_region_addunit);
     SUITE_ADD_TEST(suite, test_addunit_takes_hint);
     SUITE_ADD_TEST(suite, test_region_addunit_building);
@@ -1325,4 +1444,3 @@ int main(void)
     printf("%s\n", output->buffer);
     return suite->failCount;
 }
-

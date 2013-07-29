@@ -9,14 +9,17 @@
 #ifndef ATL_SETTINGS_H
 #define ATL_SETTINGS_H
 
-#define CFG_STACKS   0x01
-#define CFG_TEACHERS 0x02
+#define CFG_STACKS    0x01
+#define CFG_TEACHERS  0x02
+#define CFG_MOVES     0x04
 
 struct stream;
 struct cJSON;
 
 typedef struct settings {
     int width, height;
+    int moves;
+    int upkeep;
     unsigned int features;
 } settings;
 

@@ -30,6 +30,17 @@ void read_config_json(cJSON *json) {
     if (item && item->type == cJSON_True) {
         config.features |= CFG_TEACHERS;
     }
+    item = cJSON_GetObjectItem(json, "moves");
+    if (item && item->type == cJSON_Number) {
+        config.moves = item->valueint;
+        if (config.moves>0) {
+            config.features |= CFG_MOVES;
+        }
+    }
+    item = cJSON_GetObjectItem(json, "upkeep");
+    if (item && item->type == cJSON_Number) {
+        config.upkeep = item->valueint;
+    }
     item = cJSON_GetObjectItem(json, "terrain");
     if (item && item->type == cJSON_Array) {
         cJSON *t, *c;

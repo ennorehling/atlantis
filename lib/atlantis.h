@@ -45,7 +45,9 @@ int readgame(void);
 void writemap(FILE *);
 void writesummary(void);
 void makeworld(void);
+void update_world(int minx, int miny, int maxx, int maxy);
 int autoworld(const char * playerfile);
+void connectregions(void);
 
 int transform(int *x, int *y, int kwd);
 void rnd_seed(unsigned long x);

@@ -829,13 +829,10 @@ FILE * cfopen(const char *filename, const char *mode)
     return F;
 }
 
-int transform(int *x, int *y, int direction)
+static int transform_kwd(int *x, int *y, keyword_t kwd)
 {
-    keyword_t kwd;
     assert(x || !"invalid reference to X coordinate");
     assert(y || !"invalid reference to Y coordinate");
-
-    kwd = (direction<MAXDIRECTIONS) ? directions[direction] : MAXKEYWORDS;
     if (kwd==K_NORTH) {
         --*y;
     }
@@ -866,6 +863,14 @@ int transform(int *x, int *y, int direction)
         if (*y>=config.height) *y-=config.height;
     }
     return 0;
+}
+
+int transform(int *x, int *y, int direction)
+{
+    keyword_t kwd;
+    assert(direction<=MAXDIRECTIONS);
+    kwd = (direction<MAXDIRECTIONS) ? directions[direction] : MAXKEYWORDS;
+    return transform_kwd(x, y, kwd);
 }
 
 int effskill(const unit * u, int i)
@@ -1115,7 +1120,7 @@ void connectregion(region * r)
 void connectregions(void)
 {
     ql_iter rli;
-
+    assert(config.width>0 && config.height>0 || !"call update_world first");
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
         connectregion(r);
@@ -2744,10 +2749,9 @@ int magicians(faction * f)
 
 region *movewhere(region * r)
 {
-    int x = r->x, y = r->y;
-    int dir, kwd = getkeyword();
+    int dir = -1;
+    keyword_t kwd = (keyword_t)getkeyword();
 
-    transform(&x, &y, kwd);
     switch (kwd) {
     case K_NORTH:
         dir = 0;
@@ -4628,7 +4632,7 @@ void processorders(void)
                 if (genrand_int31() % 100 < PEASANTMOVE) {
                     i = genrand_int31() % MAXDIRECTIONS;
 
-                    if (r->connect[i]->terrain != T_OCEAN) {
+                    if (r->connect[i] && r->connect[i]->terrain != T_OCEAN) {
                         r->peasants--;
                         r->connect[i]->immigrants++;
                     }
@@ -4636,25 +4640,27 @@ void processorders(void)
             }
         }
 
-        for (u=r->units;u;u=u->next) {
-            getmoney(r, u, u->number * MAINTENANCE);
-            n = u->money / MAINTENANCE;
+        if (config.upkeep>0) {
+            for (u=r->units;u;u=u->next) {
+                getmoney(r, u, u->number * config.upkeep);
+                n = u->money / config.upkeep;
 
-            if (u->number > n) {
-                if (n)
-                    sprintf(buf, "%s loses %d to starvation.", unitid(u),
-                            u->number - n);
-                else
-                    sprintf(buf, "%s starves to death.", unitid(u));
-                addevent(u->faction, buf);
+                if (u->number > n) {
+                    if (n)
+                        sprintf(buf, "%s loses %d to starvation.", unitid(u),
+                                u->number - n);
+                    else
+                        sprintf(buf, "%s starves to death.", unitid(u));
+                    addevent(u->faction, buf);
 
-                for (i = 0; i != MAXSKILLS; i++)
-                    u->skills[i] = distribute(u->number, n, u->skills[i]);
+                    for (i = 0; i != MAXSKILLS; i++)
+                        u->skills[i] = distribute(u->number, n, u->skills[i]);
 
-                u->number = n;
+                    u->number = n;
+                }
+
+                u->money -= u->number * config.upkeep;
             }
-
-            u->money -= u->number * MAINTENANCE;
         }
     }
 
