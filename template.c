@@ -1,8 +1,12 @@
 #include <filestream.h>
 #include <cJSON.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <bool.h>
+
+static bool auto_tax = false;
 
 static int json_getint(cJSON *json, const char *key, int def) {
   json = cJSON_GetObjectItem(json, key);
@@ -12,6 +16,30 @@ static int json_getint(cJSON *json, const char *key, int def) {
 static const char * json_getstr(cJSON *json, const char *key, const char *def) {
   json = cJSON_GetObjectItem(json, key);
   return json ? json->valuestring : def;
+}
+
+static int unit_get_item(cJSON *unit, const char *name) {
+    cJSON *chld, *items = cJSON_GetObjectItem(unit, "items");
+    if (items && items->type==cJSON_Array) {
+        for (chld = items->child; chld; chld = chld->next) {
+            if (chld->type==cJSON_Object && strcmp(json_getstr(chld, "name", ""), name)==0) {
+                return json_getint(chld, "count", 0);
+            }
+        }
+    }
+    return 0;
+}
+
+static int unit_get_skill(cJSON *unit, const char *name) {
+    cJSON *chld, *items = cJSON_GetObjectItem(unit, "skills");
+    if (items && items->type==cJSON_Array) {
+        for (chld = items->child; chld; chld = chld->next) {
+            if (chld->type==cJSON_Object && strcmp(json_getstr(chld, "skill", ""), name)==0) {
+                return json_getint(chld, "level", 0);
+            }
+        }
+    }
+    return 0;
 }
 
 void print_template(cJSON *json, FILE *F) {
@@ -50,11 +78,30 @@ void print_template(cJSON *json, FILE *F) {
 
             chld = cJSON_GetObjectItem(unit, "faction");
             if (chld && fno==chld->valueint) {
+                int number = cJSON_GetObjectItem(unit, "number")->valueint;
                 fprintf(F, "UNIT %d\n", cJSON_GetObjectItem(unit, "id")->valueint);
                 fprintf(F, ";%s, %d, $%d\n",
                         cJSON_GetObjectItem(unit, "name")->valuestring,
-                        cJSON_GetObjectItem(unit, "number")->valueint,
+                        number,
                         json_getint(unit, "money", 0));
+                if (auto_tax) {
+                    const char * weapons[] = {"longbow", "sword", "crossbow", 0};
+                    int i, total = 0;
+                    for (i=0;weapons[i];++i) {
+                        const char * weapon = weapons[i];
+                        int items = unit_get_item(unit, weapon);
+                        int level = unit_get_skill(unit, weapon);
+                        if (level>0) {
+                            total += items;
+                            if (items<number) {
+                                fprintf(F, ";%s: %d\n", weapon, items);
+                            }
+                        }
+                    }
+                    if (total>0) {
+                        fputs("    tax\n", F);
+                    }
+                }
                 fprintf(F, "    %s\n", json_getstr(unit, "default", ""));
             }
         }
@@ -67,18 +114,30 @@ int main (int argc, char **argv) {
     long len;
     char *data;
     cJSON *json;
-    if (argc>=1) {
-        in = fopen(argv[1], "r");
-        if (!in || errno) {
-            perror("could not open input file");
-            return errno;
-        }
-    }
-    if (argc>=2) {
-        out = fopen(argv[2], "w");
-        if (!out || errno) {
-            perror("could not open output file");
-            return errno;
+    int i = 0;
+    
+    while (++i!=argc) {
+        if (argv[i][0]=='-') {
+            switch (argv[i][1]) {
+            case 'a':
+                auto_tax = true;
+                break;
+            }
+        } else {
+            if (in==stdin) {
+                in = fopen(argv[i], "r");
+                if (!in || errno) {
+                    perror("could not open input file");
+                    return errno;
+                }
+            }
+            else {
+                out = fopen(argv[i], "w");
+                if (!out || errno) {
+                    perror("could not open output file");
+                    return errno;
+                }
+            }
         }
     }
     fseek(in,0,SEEK_END);
