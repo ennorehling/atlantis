@@ -825,7 +825,7 @@ void process_combat(void)
                                     for (i = 0; i != ntroops; i++) {
                                         ta[i]->attacked = 1;
 
-                                        if (ta[i]->side == attacker->side) {
+                                        if (ta[i]->side == attacker_side) {
                                             ta[i]->attacked = 0;
                                             toattack[attacker_side]++;
                                         }
