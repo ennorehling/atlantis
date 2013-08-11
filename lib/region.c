@@ -65,7 +65,7 @@ static void reorder_unit(unit *u, unit **ur, unit **ui) {
     assert(ui || !"no insert position given");
     assert (!u->region || ur || !"unit must be removed");
     assert (!ur || *ur==u || !"removal position does not match unit");
-    if (ur!=ui) { /* else: nothing to do */
+    if (ur!=ui && ui!=&u->next) { /* else: nothing to do */
         if (ur) {
             *ur = u->next;
         }

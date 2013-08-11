@@ -50,6 +50,33 @@ static void test_addunit_takes_hint(CuTest *tc)
     CuAssertPtrEquals(tc, u1, u3->next);
 }
 
+static void test_addunit_order_new_ship(CuTest *tc)
+{
+    faction *f;
+    region *r;
+    ship *s1, *s2;
+    unit *u1, *u2, *u3;
+    
+    cleargame();
+    r = create_region(1, 1, T_PLAIN);
+    f = create_faction(1);
+    u1 = create_unit(f, 1);
+    u2 = create_unit(f, 2);
+    s1 = create_ship(1, SH_LONGBOAT);
+    s2 = create_ship(1, SH_LONGBOAT);
+    ql_push(&r->ships, s1);
+
+    u1->ship = s1;
+    region_addunit(r, u1, 0);
+    region_addunit(r, u2, 0);
+    CuAssertPtrEquals(tc, u1, r->units);
+    CuAssertPtrEquals(tc, u2, u1->next);
+
+    u1->ship = s2;
+    region_addunit(r, u1, 0);
+    CuAssertPtrEquals(tc, u1, r->units);
+    CuAssertPtrEquals(tc, u2, u1->next);
+}
 static void test_addunit_order_ships(CuTest *tc)
 {
     faction *f;
@@ -1394,6 +1421,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_region_addunit);
     SUITE_ADD_TEST(suite, test_addunit_takes_hint);
     SUITE_ADD_TEST(suite, test_region_addunit_building);
+    SUITE_ADD_TEST(suite, test_addunit_order_new_ship);
     SUITE_ADD_TEST(suite, test_addunit_order_ships);
     SUITE_ADD_TEST(suite, test_addunit_order_buildings);
     SUITE_ADD_TEST(suite, test_addunit_order_buildings_mixed);
