@@ -90,7 +90,7 @@ int strpcmp(const void *s1, const void *s2)
     return _strcmpl(*(char **) s1, *(char **) s2);
 }
 
-int findkeyword(const char *s)
+keyword_t findkeyword(const char *s)
 {
     const char **sp;
 
