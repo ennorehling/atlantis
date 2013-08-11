@@ -93,9 +93,9 @@ void print_template(cJSON *json, FILE *F) {
                         int level = unit_get_skill(unit, weapon);
                         if (level>0) {
                             total += items;
-                            if (items<number) {
-                                fprintf(F, ";%s: %d\n", weapon, items);
-                            }
+                        }
+                        if (items>0) {
+                            fprintf(F, ";%s: %d\n", weapon, items);
                         }
                     }
                     if (total>0) {
@@ -153,6 +153,8 @@ int main (int argc, char **argv) {
     if (json) {
         print_template(json, out);
         cJSON_Delete(json);
+    } else {
+        perror("could not parse JSON data");
     }
     free(data);
     if (out!=stdout) fclose(out);

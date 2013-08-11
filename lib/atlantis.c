@@ -1453,7 +1453,7 @@ void spunit(strlist ** SP, const faction * f, region * r, const unit * u, int in
     strcpy(buf, unitid(u));
 
     if (battle || cansee(f, r, u) == 2) {
-        scat(", faction ");
+        scat(", ");
         scat(factionid(u->faction));
     }
 
@@ -2439,11 +2439,13 @@ void report(faction * f)
         for (qli=qli_init(&r->buildings);qli_more(qli);) {
             building *b = (building *)qli_next(&qli);
             unit *u;
+            const char * str;
+
             sprintf(buf, "%s, size %d", buildingid(b), b->size);
 
-            if (building_getdisplay(b)) {
+            if ((str = building_getdisplay(b))!=0 && str[0]) {
                 scat("; ");
-                scat(building_getdisplay(b));
+                scat(str);
             }
 
             scat(".");
@@ -2470,14 +2472,15 @@ void report(faction * f)
 
         for (qli = qli_init(&r->ships); qli_more(qli);) {
             ship *sh = (ship *)qli_next(&qli);
+            const char * str;
 
             sprintf(buf, "%s, %s", shipid(sh), shiptypenames[sh->type]);
             if (sh->left)
                 scat(", under construction");
 
-            if (ship_getdisplay(sh)) {
+            if ((str = ship_getdisplay(sh))!=0 && str[0]) {
                 scat("; ");
-                scat(ship_getdisplay(sh));
+                scat(str);
             }
 
             scat(".");

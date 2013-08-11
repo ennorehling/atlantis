@@ -283,7 +283,7 @@ cJSON * json_report(faction * f) {
         cJSON_AddItemToObject(json, "allies", chld = cJSON_CreateArray());
         for (qli = qli_init(&f->allies.factions); qli_more(qli);) {
             faction *rf = (faction *)qli_next(&qli);
-            cJSON_AddItemToArray(json, cJSON_CreateNumber(rf->no));
+            cJSON_AddItemToArray(chld, cJSON_CreateNumber(rf->no));
         }
     }
     cJSON_AddItemToObject(json, "regions", chld = cJSON_CreateArray());
