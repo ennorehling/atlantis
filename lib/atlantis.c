@@ -1749,7 +1749,7 @@ void getmoney(region * r, unit * ux, int n)
 
     n -= ux->money;
 
-    for (u=r->units;u;u=u->next) {
+    for (u=r->units;u && n>0;u=u->next) {
         if (u->faction == ux->faction && u != ux) {
             i = MIN(u->money, n);
             u->money -= i;

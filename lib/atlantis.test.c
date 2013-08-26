@@ -963,6 +963,29 @@ static void test_faction_name(CuTest * tc)
     CuAssertStrEquals(tc, name, faction_getname(f));
 }
 
+
+static void test_moneypool(CuTest *tc) {
+    unit *u1, *u2;
+    region *r;
+    faction *f;
+
+    cleargame();
+    config.upkeep = 10;
+    r = create_region(0, 0, T_PLAIN);
+    f = create_faction(1);
+    u1 = create_unit(f, 1);
+    u1->number = 1;
+    region_addunit(r, u1, 0);
+    u2 = create_unit(f, 2);
+    u2->number = 1;
+    region_addunit(r, u2, 0);
+    u1->money = 100;
+    u2->money = 100;
+    processorders();
+    CuAssertIntEquals(tc, 90, u1->money);
+    CuAssertIntEquals(tc, 90, u2->money);
+}
+
 static void test_connectregions(CuTest * tc)
 {
     region *r1, *r2;
@@ -1415,6 +1438,7 @@ int main(void)
     CuSuite *suite = CuSuiteNew();
 
     SUITE_ADD_TEST(suite, test_connectregions);
+    SUITE_ADD_TEST(suite, test_moneypool);
     SUITE_ADD_TEST(suite, test_cfg_upkeep);
     SUITE_ADD_TEST(suite, test_cfg_moves_on);
     SUITE_ADD_TEST(suite, test_cfg_moves_off);
