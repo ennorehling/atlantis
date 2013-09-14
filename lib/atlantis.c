@@ -3260,6 +3260,13 @@ void processorders(void)
 
     puts("Processing FORM orders...");
 
+    for (fli = qli_init(&factions); qli_more(fli);) {
+        faction *f = (faction *)qli_next(&fli);
+        if (f->lastorders<turn) {
+            sprintf(buf2, "Your faction has not received orders for the past %d turns.", turn-f->lastorders);
+            ql_push(&f->mistakes, _strdup(buf2));
+        }
+    }
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
         unit *u;
