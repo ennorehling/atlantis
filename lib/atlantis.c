@@ -876,8 +876,9 @@ int effskill(const unit * u, int i)
     int n, j, result;
 
     n = 0;
-    if (u->number)
+    if (u->number) {
         n = u->skills[i] / u->number;
+    }
     j = 30;
     result = 0;
 
@@ -896,9 +897,9 @@ int cansee(const faction * f, region * r, const unit * ux)
     int cansee;
     unit *u;
 
-    if (ux->faction == f)
+    if (ux->faction == f) {
         return 2;
-
+    }
     cansee = 0;
     if (ux->guard || ux->building || ux->ship)
         cansee = 1;
