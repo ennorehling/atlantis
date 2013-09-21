@@ -21,7 +21,6 @@ struct unit;
 struct ship;
 struct building;
 
-extern int turn;
 extern int ignore_password;
 extern const keyword_t directions[];
 
@@ -44,7 +43,6 @@ int writegame(void);
 int readgame(void);
 void writemap(FILE *);
 void writesummary(void);
-void makeworld(void);
 void update_world(int minx, int miny, int maxx, int maxy);
 int autoworld(const char * playerfile);
 void connectregions(void);
@@ -58,7 +56,6 @@ int cansee(const struct faction * f, struct region * r, const struct unit * u);
 struct region *movewhere(struct region * r);
 int effskill(const struct unit * u, int i);
 
-void makeblock(int x1, int y1);
 struct faction * addplayer(struct region * r, const char * email, int no);
 const char *regionid(const struct region * r, const struct faction *f);
 

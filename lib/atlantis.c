@@ -73,8 +73,6 @@ typedef struct order {
 
 char buf2[256];
 
-int turn;
-
 const char *keywords[] = {
     "accept",
     "address",
@@ -1129,47 +1127,6 @@ void connectregions(void)
 
 char newblock[BLOCKSIZE][BLOCKSIZE];
 
-void transmute(int from, int to, int n, int count)
-{
-    int i, x, y;
-
-    do {
-        i = 0;
-
-        do {
-            x = genrand_int31() % BLOCKSIZE;
-            y = genrand_int31() % BLOCKSIZE;
-            i += count;
-        }
-        while (i <= 10 &&
-               !(newblock[x][y] == from &&
-                 ((x != 0 && newblock[x - 1][y] == to) ||
-                  (x != BLOCKSIZE - 1 && newblock[x + 1][y] == to) ||
-                  (y != 0 && newblock[x][y - 1] == to) ||
-                  (y != BLOCKSIZE - 1 && newblock[x][y + 1] == to))));
-
-        if (i > 10)
-            break;
-
-        newblock[x][y] = (char) to;
-    }
-    while (--n);
-}
-
-void seed(terrain_t to, int n)
-{
-    int x, y;
-
-    do {
-        x = genrand_int31() % BLOCKSIZE;
-        y = genrand_int31() % BLOCKSIZE;
-    }
-    while (newblock[x][y] != T_PLAIN);
-
-    newblock[x][y] = (char) to;
-    transmute(T_PLAIN, to, n, 1);
-}
-
 bool regionnameinuse(const char *s)
 {
     ql_iter rli;
@@ -1181,12 +1138,6 @@ bool regionnameinuse(const char *s)
             return true;
     }
     return false;
-}
-
-int blockcoord(int x)
-{
-    return (x / (BLOCKSIZE + BLOCKBORDER * 2)) * (BLOCKSIZE +
-                                                  BLOCKBORDER * 2);
 }
 
 void initregion(region *r) {
@@ -1252,8 +1203,8 @@ void autoblock(int bx, int by)
     int x, y;
     for (x = 0; x != BLOCKSIZE; ++x) {
         for (y = 0; y != BLOCKSIZE; ++y) {
-            int rx = BLOCKBORDER + bx * BLOCKSIZE + x;
-            int ry = BLOCKBORDER + by * BLOCKSIZE + y;
+            int rx = bx * BLOCKSIZE + x;
+            int ry = by * BLOCKSIZE + y;
             region * r = findregion(rx, ry);
             if (!r) {
                 terrain_t t = (terrain_t)newblock[x][y];
@@ -1282,7 +1233,7 @@ int autoworld(const char * playerfile)
             if (email) {
                 name = strtok(0, ";\n");
                 for (;;) {
-                    if (perblock-- && autoplayer(BLOCKBORDER + bx * BLOCKSIZE, BLOCKBORDER + by * BLOCKSIZE, no, email, name)) {
+                    if (perblock-- && autoplayer(bx * BLOCKSIZE, by * BLOCKSIZE, no, email, name)) {
                         ++no;
                         ++block;
                         break;
@@ -1309,46 +1260,6 @@ int autoworld(const char * playerfile)
     }
     fclose(F);
     return 0;
-}
-
-void makeblock(int x1, int y1)
-{
-    int x, y;
-    region *r;
-
-    if (x1 < 0)
-        while (x1 != blockcoord(x1))
-            x1--;
-
-    if (y1 < 0)
-        while (y1 != blockcoord(y1))
-            y1--;
-
-    x1 = blockcoord(x1);
-    y1 = blockcoord(y1);
-
-    memset(newblock, T_OCEAN, sizeof newblock);
-    newblock[BLOCKSIZE / 2][BLOCKSIZE / 2] = T_PLAIN;
-    transmute(T_OCEAN, T_PLAIN, 31, 0);
-    seed(T_MOUNTAIN, 1);
-    seed(T_MOUNTAIN, 1);
-    seed(T_FOREST, 1);
-    seed(T_FOREST, 1);
-    seed(T_SWAMP, 1);
-    seed(T_SWAMP, 1);
-
-    for (x = 0; x != BLOCKSIZE + BLOCKBORDER * 2; x++) {
-        for (y = 0; y != BLOCKSIZE + BLOCKBORDER * 2; y++) {
-            int t = T_OCEAN;
-
-            if (x >= BLOCKBORDER && x < BLOCKBORDER + BLOCKSIZE &&
-                y >= BLOCKBORDER && y < BLOCKBORDER + BLOCKSIZE) {
-                t = newblock[x - BLOCKBORDER][y - BLOCKBORDER];
-            }
-            r = create_region(x1 + x, y1 + y, (terrain_t)t);
-            initregion(r);
-        }
-    }
 }
 
 const char *gamedate(void)
@@ -2021,36 +1932,6 @@ void update_world(int minx, int miny, int maxx, int maxy) {
             f->origin_y -= miny;
         }
     }
-}
-
-void makeworld(void)
-{
-    int x, y, minx, miny, maxx, maxy;
-    ql_iter rli;
-
-    minx = INT_MAX;
-    maxx = INT_MIN;
-    miny = INT_MAX;
-    maxy = INT_MIN;
-
-    for (rli = qli_init(&regions); qli_more(rli);) {
-        region *r = (region *)qli_next(&rli);
-        minx = MIN(minx, r->x);
-        maxx = MAX(maxx, r->x);
-        miny = MIN(miny, r->y);
-        maxy = MAX(maxy, r->y);
-    }
-
-    for (x=minx-BLOCKBORDER;x<=maxx+BLOCKBORDER;++x) {
-        for (y=miny-BLOCKBORDER;y<=maxy+BLOCKBORDER;++y) {
-            region * r = findregion(x, y);
-            if (!r) {
-                r = create_region(x, y, T_OCEAN);
-            }
-        }
-    }
-    update_world(minx, miny, maxx, maxy);
-    connectregions();
 }
 
 void writemap(FILE * F)
@@ -3241,6 +3122,156 @@ void process_build(region *r) {
     ql_free(ql);
 }
 
+void process_movement(void) {
+    ql_iter rli;
+
+    puts("Processing MOVE orders...");
+
+    for (rli = qli_init(&regions); qli_more(rli);) {
+        region *r = (region *)qli_next(&rli);
+        unit **up;
+        for (up=&r->units;*up;) {
+            unit *u = *up;
+            region *r2;
+
+            switch (igetkeyword(u->thisorder)) {
+            case K_MOVE:
+                r2 = movewhere(r);
+
+                if (!r2) {
+                    mistakeu(u, "Direction not recognized");
+                    up=&u->next;
+                    break;
+                }
+
+                if (r->terrain == T_OCEAN) {
+                    mistakeu(u, "Currently at sea");
+                    up = &u->next;
+                    break;
+                }
+
+                if (r2->terrain == T_OCEAN) {
+                    sprintf(buf, "%s discovers that (%d,%d) is ocean.",
+                            unitid(u), r2->x, r2->y);
+                    addevent(u->faction, buf);
+                    up = &u->next;
+                    break;
+                }
+
+                if (!canmove(u)) {
+                    mistakeu(u, "Carrying too much weight to move");
+                    up = &u->next;
+                    break;
+                }
+
+                leave(r, u);
+                region_rmunit(r, u, up);
+                region_addunit(r2, u, 0);
+                u->thisorder[0] = 0;
+
+                sprintf(buf, "%s ", unitid(u));
+                if (canride(u))
+                    scat("rides");
+                else
+                    scat("walks");
+                scat(" from ");
+                scat(regionid(r, u->faction));
+                scat(" to ");
+                scat(regionid(r2, u->faction));
+                scat(".");
+                addevent(u->faction, buf);
+                break;
+            default:
+                up = &u->next;
+            }
+        }
+    }
+    /* SAIL orders */
+
+    puts("Processing SAIL orders...");
+
+    for (rli = qli_init(&regions); qli_more(rli);) {
+        region *r = (region *)qli_next(&rli);
+        unit **up;
+        for (up=&r->units;*up;) {
+            unit *u = *up;
+
+            if (igetkeyword(u->thisorder) == K_SAIL) {
+                region *r2 = movewhere(r);
+                unit **ui;
+                ql_iter qli;
+
+                if (!r2) {
+                    mistakeu(u, "Direction not recognized");
+                    up = &u->next;
+                    continue;
+                }
+
+                if (!u->ship) {
+                    mistakeu(u, "Not on a ship");
+                    up = &u->next;
+                    continue;
+                }
+
+                if (!u->owner) {
+                    mistakeu(u, "Ship not owned by you");
+                    up = &u->next;
+                    continue;
+                }
+
+                if (r2->terrain != T_OCEAN && !iscoast(r2)) {
+                    sprintf(buf, "%s discovers that (%d,%d) is inland.",
+                            unitid(u), r2->x, r2->y);
+                    addevent(u->faction, buf);
+                    up = &u->next;
+                    continue;
+                }
+
+                if (u->ship->left) {
+                    mistakeu(u, "Ship still under construction");
+                    up = &u->next;
+                    continue;
+                }
+
+                if (!cansail(r, u->ship)) {
+                    mistakeu(u, "Too heavily loaded to sail");
+                    up = &u->next;
+                    continue;
+                }
+
+                
+                for (qli=qli_init(&r->ships);qli_more(qli);) {
+                    ship *sh = (ship *)qli_get(qli);
+                    if (sh==u->ship) {
+                        qli_delete(&qli);
+                        break;
+                    }
+                    qli_next(&qli);
+                }
+                ql_push(&r2->ships, u->ship);
+
+                region_rmunit(r, u, up);
+                u->thisorder[0] = 0;
+                region_addunit(r2, u, 0);
+                for (ui=&r->units;*ui;) {
+                    unit *u2 = *ui;
+                    if (u2->ship == u->ship) {
+                        region_rmunit(r, u2, ui);
+                        u2->thisorder[0] = 0;
+                        region_addunit(r2, u2, &u->next);
+                    } else {
+                        ui = &u2->next;
+                    }
+                }
+            } else {
+                up = &u->next;
+            }
+        }
+    }
+    /* Do production orders */
+
+}
+
 void processorders(void)
 {
     int i, j, k;
@@ -4040,150 +4071,7 @@ void processorders(void)
 
     /* MOVE orders */
 
-    puts("Processing MOVE orders...");
-
-    for (rli = qli_init(&regions); qli_more(rli);) {
-        region *r = (region *)qli_next(&rli);
-        unit **up;
-        for (up=&r->units;*up;) {
-            unit *u = *up;
-            region *r2;
-
-            switch (igetkeyword(u->thisorder)) {
-            case K_MOVE:
-                r2 = movewhere(r);
-
-                if (!r2) {
-                    mistakeu(u, "Direction not recognized");
-                    up=&u->next;
-                    break;
-                }
-
-                if (r->terrain == T_OCEAN) {
-                    mistakeu(u, "Currently at sea");
-                    up = &u->next;
-                    break;
-                }
-
-                if (r2->terrain == T_OCEAN) {
-                    sprintf(buf, "%s discovers that (%d,%d) is ocean.",
-                            unitid(u), r2->x, r2->y);
-                    addevent(u->faction, buf);
-                    up = &u->next;
-                    break;
-                }
-
-                if (!canmove(u)) {
-                    mistakeu(u, "Carrying too much weight to move");
-                    up = &u->next;
-                    break;
-                }
-
-                leave(r, u);
-                region_rmunit(r, u, up);
-                region_addunit(r2, u, 0);
-                u->thisorder[0] = 0;
-
-                sprintf(buf, "%s ", unitid(u));
-                if (canride(u))
-                    scat("rides");
-                else
-                    scat("walks");
-                scat(" from ");
-                scat(regionid(r, u->faction));
-                scat(" to ");
-                scat(regionid(r2, u->faction));
-                scat(".");
-                addevent(u->faction, buf);
-                break;
-            default:
-                up = &u->next;
-            }
-        }
-    }
-    /* SAIL orders */
-
-    puts("Processing SAIL orders...");
-
-    for (rli = qli_init(&regions); qli_more(rli);) {
-        region *r = (region *)qli_next(&rli);
-        unit **up;
-        for (up=&r->units;*up;) {
-            unit *u = *up;
-
-            if (igetkeyword(u->thisorder) == K_SAIL) {
-                region *r2 = movewhere(r);
-                unit **ui;
-                ql_iter qli;
-
-                if (!r2) {
-                    mistakeu(u, "Direction not recognized");
-                    up = &u->next;
-                    continue;
-                }
-
-                if (!u->ship) {
-                    mistakeu(u, "Not on a ship");
-                    up = &u->next;
-                    continue;
-                }
-
-                if (!u->owner) {
-                    mistakeu(u, "Ship not owned by you");
-                    up = &u->next;
-                    continue;
-                }
-
-                if (r2->terrain != T_OCEAN && !iscoast(r2)) {
-                    sprintf(buf, "%s discovers that (%d,%d) is inland.",
-                            unitid(u), r2->x, r2->y);
-                    addevent(u->faction, buf);
-                    up = &u->next;
-                    continue;
-                }
-
-                if (u->ship->left) {
-                    mistakeu(u, "Ship still under construction");
-                    up = &u->next;
-                    continue;
-                }
-
-                if (!cansail(r, u->ship)) {
-                    mistakeu(u, "Too heavily loaded to sail");
-                    up = &u->next;
-                    continue;
-                }
-
-                
-                for (qli=qli_init(&r->ships);qli_more(qli);) {
-                    ship *sh = (ship *)qli_get(qli);
-                    if (sh==u->ship) {
-                        qli_delete(&qli);
-                        break;
-                    }
-                    qli_next(&qli);
-                }
-                ql_push(&r2->ships, u->ship);
-
-                region_rmunit(r, u, up);
-                u->thisorder[0] = 0;
-                region_addunit(r2, u, 0);
-                for (ui=&r->units;*ui;) {
-                    unit *u2 = *ui;
-                    if (u2->ship == u->ship) {
-                        region_rmunit(r, u2, ui);
-                        u2->thisorder[0] = 0;
-                        region_addunit(r2, u2, &u->next);
-                    } else {
-                        ui = &u2->next;
-                    }
-                }
-            } else {
-                up = &u->next;
-            }
-        }
-    }
-    /* Do production orders */
+    process_movement();
 
     puts("Processing production orders...");
 
@@ -5155,31 +5043,7 @@ void initgame(void)
     if (turn < 0) {
         turn = 0;
         _mkdir("data");
-        makeblock(0, 0);
     } else {
         readgame();
     }
-}
-
-void createcontinent(void)
-{
-    int x, y;
-    char buf[16];
-
-    printf("X? ");
-    fgets(buf, sizeof(buf), stdin);
-    if (buf[0] == 0)
-        return;
-
-    x = atoi(buf);
-
-    printf("Y? ");
-    fgets(buf, sizeof(buf), stdin);
-    if (buf[0] == 0)
-        return;
-    y = atoi(buf);
-
-    makeblock(x, y);
-
-    writemap(stdout);
 }

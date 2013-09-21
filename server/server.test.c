@@ -1,6 +1,7 @@
 #include <atlantis.h>
 #include <region.h>
 #include <faction.h>
+#include <game.h>
 #include <ship.h>
 #include <building.h>
 #include <unit.h>
