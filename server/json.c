@@ -1,6 +1,7 @@
 #include "rtl.h"
 #include "atlantis.h"
 #include "faction.h"
+#include "game.h"
 #include "battle.h"
 #include "region.h"
 #include "building.h"

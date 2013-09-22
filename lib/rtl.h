@@ -12,7 +12,7 @@ char *rtl_strlwr(char *str);
 #if !defined(HAVE__MEMICMP)
 #if defined(HAVE_MEMICMP)
 #define _memicmp(a, b, n) memicmp(a, b, n)
-#elif defined(HAVE_STRINGS_H)
+#elif defined(HAVE_STRNCASECMP)
 #include <strings.h>
 #define _memicmp(a, b, n) strncasecmp(a, b, n)
 #else
@@ -27,7 +27,7 @@ char *rtl_strlwr(char *str);
 #define _strcmpl(a, b) _stricmp(a, b)
 #elif defined(HAVE_STRICMP)
 #define _strcmpl(a, b) stricmp(a, b)
-#elif defined(HAVE_STRINGS_H)
+#elif defined(HAVE_STRCASECMP)
 #include <strings.h>
 #define _strcmpl(a, b) strcasecmp(a, b)
 #else

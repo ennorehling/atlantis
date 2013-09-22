@@ -33,8 +33,7 @@ void read_config_json(struct cJSON*);
 
 #define ORDERGAP 4
 #define MAXPERBLOCK 5
-#define BLOCKSIZE 7
-#define BLOCKBORDER 1
+#define BLOCKSIZE 8
 #define BLOCKMAX 2
 #define MAINTENANCE 10
 #define STARTMONEY 5000

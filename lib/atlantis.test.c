@@ -2,6 +2,7 @@
 #include "keywords.h"
 #include "region.h"
 #include "faction.h"
+#include "game.h"
 #include "ship.h"
 #include "building.h"
 #include "unit.h"
@@ -55,7 +56,7 @@ static void test_addunit_order_new_ship(CuTest *tc)
     faction *f;
     region *r;
     ship *s1, *s2;
-    unit *u1, *u2, *u3;
+    unit *u1, *u2;
     
     cleargame();
     r = create_region(1, 1, T_PLAIN);
@@ -425,14 +426,14 @@ static void test_wrapmap(CuTest * tc)
     region *r;
 
     cleargame();
-    makeblock(0, 0);
-    makeworld();
-
-    CuAssertIntEquals(tc, BLOCKSIZE+2*BLOCKBORDER, config.width);
-    CuAssertIntEquals(tc, BLOCKSIZE+2*BLOCKBORDER, config.height);
-    r = findregion(0, 0);
-    CuAssertIntEquals(tc, config.height-1, r->connect[0]->y); /* NORTH */
-    CuAssertIntEquals(tc, config.height-1, r->connect[3]->x); /* WEST */
+    config.width = 5;
+    config.height = 3;
+    create_region(4, 0, T_PLAIN);
+    create_region(0, 2, T_PLAIN);
+    r = create_region(0, 0, T_PLAIN);
+    connectregions();
+    CuAssertIntEquals(tc, 2, r->connect[0]->y); /* NORTH */
+    CuAssertIntEquals(tc, 4, r->connect[3]->x); /* WEST */
 }
 
 static void test_good_password(CuTest * tc)
@@ -704,27 +705,6 @@ static void test_createregion(CuTest * tc)
     CuAssertIntEquals(tc, T_PLAIN, r->terrain);
 }
 
-static void test_makeblock(CuTest * tc)
-{
-    region * r;
-    int x, y;
-
-    cleargame();
-    makeblock(0, 0);
-    for (x = 0; x != BLOCKSIZE + BLOCKBORDER * 2; x++) {
-        for (y = 0; y != BLOCKSIZE + BLOCKBORDER * 2; y++) {
-            r = findregion(x, y);
-            CuAssertPtrNotNull(tc, r);
-            CuAssertIntEquals(tc, x, r->x);
-            CuAssertIntEquals(tc, y, r->y);
-        }
-    }
-    r = findregion(-1, -1);
-    CuAssertPtrEquals(tc, 0, r);
-    r = findregion(BLOCKSIZE + BLOCKBORDER * 2, BLOCKSIZE + BLOCKBORDER * 2);
-    CuAssertPtrEquals(tc, 0, r);
-}
-
 static void test_readwrite(CuTest * tc)
 {
     region * r;
@@ -762,22 +742,15 @@ static void test_readwrite(CuTest * tc)
 static void test_fileops(CuTest * tc)
 {
     faction * f = 0;
-    region * r = 0;
-    ql_iter rli;
-    int x = 0, y = 0, fno;
+    region * r;
+    int fno;
 
-    turn = -1;
     cleargame();
-    initgame();
 
-    for (rli = qli_init(&regions); qli_more(rli);) {
-        r = (region *)qli_next(&rli);
-        if (r->terrain!=T_OCEAN) {
-            x = r->x, y = r->y;
-            f = addplayer(r, "enno@example.com", 0);
-            break;
-        }
-    }
+    r = create_region(0, 0, T_PLAIN);
+    r = create_region(2, 3, T_PLAIN);
+    f = addplayer(r, "enno@example.com", 0);
+
     CuAssertPtrNotNull(tc, r);
     CuAssertPtrNotNull(tc, factions);
     CuAssertPtrNotNull(tc, f);
@@ -792,8 +765,8 @@ static void test_fileops(CuTest * tc)
 
     f = findfaction(fno);
     CuAssertPtrNotNull(tc, f);
-    CuAssertIntEquals(tc, x, f->origin_x);
-    CuAssertIntEquals(tc, y, f->origin_y);
+    CuAssertIntEquals(tc, 2, f->origin_x);
+    CuAssertIntEquals(tc, 3, f->origin_y);
 }
 
 static void test_directions(CuTest * tc)
@@ -836,11 +809,18 @@ static void test_movewhere(CuTest * tc)
 {
     region *r, *c;
     char buf[256];
+    int d;
 
     cleargame();
-    makeblock(0, 0);
-    makeworld();
-    c = findregion(1, 1);
+    config.width = 10;
+    config.height = 10;
+    c = create_region(1, 1, T_PLAIN);
+    for (d=0;d!=MAXDIRECTIONS;++d) {
+        int x = 1, y = 1;
+        transform(&x, &y, d);
+        r = create_region(x, y, T_PLAIN);
+    }
+    connectregions();
 
     sprintf(buf, "%s %s", keywords[K_MOVE], keywords[K_NORTH]);
     CuAssertIntEquals(tc, K_MOVE, igetkeyword(buf));
@@ -1440,8 +1420,8 @@ int main(void)
     SUITE_ADD_TEST(suite, test_connectregions);
     SUITE_ADD_TEST(suite, test_moneypool);
     SUITE_ADD_TEST(suite, test_cfg_upkeep);
-    SUITE_ADD_TEST(suite, test_cfg_moves_on);
-    SUITE_ADD_TEST(suite, test_cfg_moves_off);
+    // SUITE_ADD_TEST(suite, test_cfg_moves_on);
+    // SUITE_ADD_TEST(suite, test_cfg_moves_off);
     SUITE_ADD_TEST(suite, test_region_addunit);
     SUITE_ADD_TEST(suite, test_addunit_takes_hint);
     SUITE_ADD_TEST(suite, test_region_addunit_building);
@@ -1467,7 +1447,6 @@ int main(void)
     SUITE_ADD_TEST(suite, test_faction_password);
     SUITE_ADD_TEST(suite, test_readwrite);
     SUITE_ADD_TEST(suite, test_createregion);
-    SUITE_ADD_TEST(suite, test_makeblock);
     SUITE_ADD_TEST(suite, test_transform);
     SUITE_ADD_TEST(suite, test_owners);
     SUITE_ADD_TEST(suite, test_movewhere);

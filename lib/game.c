@@ -6,6 +6,7 @@
 #include <string.h>
 
 int nextunitid = 1;
+int turn;
 
 void cleargame(void)
 {
@@ -17,5 +18,6 @@ void cleargame(void)
     ql_foreach(factions, (ql_cb)free_faction);
     ql_free(factions);
     factions = 0;
+    turn = 0;
 }
 

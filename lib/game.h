@@ -4,5 +4,6 @@
 void cleargame(void);
 
 extern int nextunitid;
+extern int turn;
 
 #endif
