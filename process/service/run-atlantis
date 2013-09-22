@@ -1,0 +1,26 @@
+#!/bin/sh
+export ATLANTIS=$HOME/atlantis
+
+function quit {
+  echo $*
+  exit
+}
+
+if [ ! -e $ATLANTIS/game-$1/turn ] ; then
+  echo "There is no directory for this game ($1)"
+  exit 2
+fi
+    
+TURN=`cat $ATLANTIS/game-$1/turn`
+$ATLANTIS/bin/backup $1 $TURN
+let NEXT=$TURN+1
+cd $ATLANTIS
+[ -e $ATLANTIS/game-$1/data/$TURN ] || quit "game-$1: data for $TURN not found"
+[ ! -e $ATLANTIS/game-$1/data/$NEXT ] || quit "game-$1: data for $NEXT exists"
+bin/combine-orders $1 > game-$1/orders.$TURN || quit "game-$1: could not create orders"
+cd $ATLANTIS/game-$1
+../bin/server -cconfig.json -t$TURN -porders.$TURN || quit "game-$1: failed to run turn $TURN"
+[ -e $ATLANTIS/game-$1/data/$NEXT ] || quit "game-$1: failed to create data for $NEXT"
+echo $NEXT > $ATLANTIS/game-$1/turn
+$ATLANTIS/bin/send-reports $1 || quit "game-$1: failed to send reports"
+$ATLANTIS/bin/backup $1 $TURN

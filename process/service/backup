@@ -1,0 +1,31 @@
+#!/bin/sh
+GAME=$1
+TURN=$2
+
+if [ -z $GAME ] || [ -z $TURN ]; then
+  echo "usage: $0 game-no turn"
+  exit 1
+fi
+
+if [ -z $ATLANTIS ]; then
+  ATLANTIS=$HOME/atlantis
+fi
+
+if [ ! -d $ATLANTIS ]; then
+  echo "ATLANTIS environment is not a directory: $ATLANTIS"
+  exit 2
+fi
+
+if [ ! -f $ATLANTIS/game-$GAME/turn ]; then
+  echo "No such game directory: $ATLANTIS/game-$GAME"
+  exit 3
+fi
+
+BACKUP=$ATLANTIS/backup/game-$GAME
+mkdir -p $BACKUP
+(
+cd $ATLANTIS/game-$GAME
+let NEXT=$TURN+1
+tar czf $BACKUP/$TURN.tar.gz orders.$TURN data/$TURN data/$NEXT
+)
+
