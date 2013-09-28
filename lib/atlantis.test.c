@@ -1065,7 +1065,42 @@ static void test_sailing(CuTest * tc)
     update_world(0, 0, 4, 4);
     connectregions();
 
-    ql_push(&u->orders, _strdup("SAIL E E"));
+    ql_push(&u->orders, _strdup("SAIL E"));
+    processorders();
+
+    CuAssertPtrEquals(tc, r, u->region);
+    CuAssertPtrEquals(tc, u->ship, (ship *)ql_get(r->ships, 0));
+}
+
+static void test_sailing_far(CuTest * tc)
+{
+    region *r;
+    terrain *t;
+    faction *f;
+    unit *u;
+    ship *sh;
+
+    cleargame();
+    config.upkeep = 0;
+
+    t = create_terrain("ocean");
+    r = create_region(0, 0, t);
+    f = create_faction(1);
+    sh = create_ship(1, SH_CLIPPER);
+    ql_push(&r->ships, sh);
+    u = create_unit(f, 1);
+    u->number = 1;
+    u->ship = sh;
+    u->owner = true;
+    region_addunit(r, u, 0);
+
+    r = create_region(1, 0, t);
+    r = create_region(2, 0, t);
+    r = create_region(3, 0, t);
+    update_world(0, 0, 4, 4);
+    connectregions();
+
+    ql_push(&u->orders, _strdup("SAIL E E E"));
     processorders();
 
     CuAssertPtrEquals(tc, r, u->region);
@@ -1503,6 +1538,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_moneypool);
     SUITE_ADD_TEST(suite, test_cfg_upkeep);
     SUITE_ADD_TEST(suite, test_sailing);
+    SUITE_ADD_TEST(suite, test_sailing_far);
     // SUITE_ADD_TEST(suite, test_cfg_moves_on);
     // SUITE_ADD_TEST(suite, test_cfg_moves_off);
     SUITE_ADD_TEST(suite, test_region_addunit);

@@ -55,3 +55,8 @@ void ship_setdisplay(struct ship *self, const char *display)
         self->display_ = 0;
     }
 }
+
+int ship_speed(const struct ship *sh)
+{
+    return sh->type == SH_CLIPPER ? 3 : 2;
+}

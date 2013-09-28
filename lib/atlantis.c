@@ -3170,46 +3170,56 @@ void do_sail(job * j)
     region *r = u->region;
 
     if (u->thisorder[0] && igetkeyword(s) == K_SAIL) {
-        region *r2 = movewhere(r);
 
-        if (!r2) {
-            mistakeu(u, "Direction not recognized");
-        } else if (!u->ship) {
+        if (!u->ship) {
             mistakeu(u, "Not on a ship");
         } else if (!u->owner) {
             mistakeu(u, "Ship not owned by you");
-        } else if (!region_isocean(r2) && !iscoast(r2)) {
-            sprintf(buf, "%s discovers that (%d,%d) is inland.",
-                    unitid(u), r2->x, r2->y);
-            addevent(u->faction, buf);
         } else if (u->ship->left) {
             mistakeu(u, "Ship still under construction");
         } else if (!cansail(r, u->ship)) {
             mistakeu(u, "Too heavily loaded to sail");
         } else {
+            int moves = ship_speed(u->ship);
+            region *loc = r;
             ql_iter qli;
             unit **ui;
-            for (qli=qli_init(&r->ships);qli_more(qli);) {
-                ship *sh = (ship *)qli_get(qli);
-                if (sh==u->ship) {
-                    qli_delete(&qli);
+            while (moves--) {
+                region *r2 = movewhere(loc);
+                if (!r2) {
+                    mistakeu(u, "Direction not recognized");
+                    break;
+                } else if (!region_isocean(r2) && !iscoast(r2)) {
+                    sprintf(buf, "%s discovers that (%d,%d) is inland.",
+                            unitid(u), r2->x, r2->y);
+                    addevent(u->faction, buf);
                     break;
                 }
-                qli_next(&qli);
+                loc = r2;
             }
-            ql_push(&r2->ships, u->ship);
+            if (loc!=r) {
+                for (qli=qli_init(&r->ships);qli_more(qli);) {
+                    ship *sh = (ship *)qli_get(qli);
+                    if (sh==u->ship) {
+                        qli_delete(&qli);
+                        break;
+                    }
+                    qli_next(&qli);
+                }
+                ql_push(&loc->ships, u->ship);
 
-            region_rmunit(r, u, 0);
-            u->thisorder[0] = 0;
-            region_addunit(r2, u, 0);
-            for (ui=&r->units;*ui;) {
-                unit *u2 = *ui;
-                if (u2->ship == u->ship) {
-                    region_rmunit(r, u2, ui);
-                    u2->thisorder[0] = 0;
-                    region_addunit(r2, u2, &u->next);
-                } else {
-                    ui = &u2->next;
+                region_rmunit(r, u, 0);
+                u->thisorder[0] = 0;
+                region_addunit(loc, u, 0);
+                for (ui=&r->units;*ui;) {
+                    unit *u2 = *ui;
+                    if (u2->ship == u->ship) {
+                        region_rmunit(r, u2, ui);
+                        u2->thisorder[0] = 0;
+                        region_addunit(loc, u2, &u->next);
+                    } else {
+                        ui = &u2->next;
+                    }
                 }
             }
         }

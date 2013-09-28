@@ -39,5 +39,5 @@ const char * ship_getname(const struct ship *self);
 void ship_setname(struct ship *self, const char *name);
 const char * ship_getdisplay(const struct ship *self);
 void ship_setdisplay(struct ship *self, const char *display);
-
+int ship_speed(const struct ship *sh);
 #endif
