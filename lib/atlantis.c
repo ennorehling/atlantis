@@ -1932,7 +1932,7 @@ void writemap(FILE * F)
             if (r->y == y) {
                 int t;
                 for (t=0;t!=NUMTERRAINS;++t) {
-                    if (get_terrain(t)==r->terrain) {
+                    if (get_terrain((terrain_t)t)==r->terrain) {
                         buf[r->x - minx] = ".+MFS"[t];
                         break;
                     }
