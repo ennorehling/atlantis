@@ -53,10 +53,10 @@ static int toattack[2];
 static int shields[2];
 static int runeswords[2];
 
-static void maketroops(quicklist **troops, unit * u, int terrain)
+static void maketroops(quicklist **troops, unit * u, const terrain *terrain)
 {
     int i;
-    troop *t;
+    troop *trp;
     static int skills[MAXSKILLS];
     static int items[MAXITEMS];
 
@@ -69,82 +69,82 @@ static void maketroops(quicklist **troops, unit * u, int terrain)
         infront[u->side] += u->number;
 
     for (i = u->number; i; i--) {
-        t = (troop *)malloc(sizeof(troop));
-        memset(t, 0, sizeof(troop));
+        trp = (troop *)malloc(sizeof(troop));
+        memset(trp, 0, sizeof(troop));
 
-        t->unit = u;
-        t->side = u->side;
-        t->skill = -2;
-        t->behind = u->behind;
+        trp->unit = u;
+        trp->side = u->side;
+        trp->skill = -2;
+        trp->behind = u->behind;
 
         if (u->combatspell >= 0)
-            t->missile = true;
+            trp->missile = true;
         else if (items[I_RUNESWORD] && skills[SK_SWORD]) {
-            t->weapon = I_SWORD;
-            t->skill = skills[SK_SWORD] + 2;
-            t->runesword = 1;
+            trp->weapon = I_SWORD;
+            trp->skill = skills[SK_SWORD] + 2;
+            trp->runesword = 1;
             items[I_RUNESWORD]--;
             runeswords[u->side]++;
 
             if (items[I_HORSE] && skills[SK_RIDING] >= 2
-                && terrain == T_PLAIN) {
-                t->skill += 2;
+                && terrain == get_terrain(T_PLAIN)) {
+                trp->skill += 2;
                 items[I_HORSE]--;
             }
         } else if (items[I_LONGBOW] && skills[SK_LONGBOW]) {
-            t->weapon = I_LONGBOW;
-            t->missile = true;
-            t->skill = skills[SK_LONGBOW];
+            trp->weapon = I_LONGBOW;
+            trp->missile = true;
+            trp->skill = skills[SK_LONGBOW];
             items[I_LONGBOW]--;
         } else if (items[I_CROSSBOW] && skills[SK_CROSSBOW]) {
-            t->weapon = I_CROSSBOW;
-            t->missile = true;
-            t->skill = skills[SK_CROSSBOW];
+            trp->weapon = I_CROSSBOW;
+            trp->missile = true;
+            trp->skill = skills[SK_CROSSBOW];
             items[I_CROSSBOW]--;
         } else if (items[I_SWORD] && skills[SK_SWORD]) {
-            t->weapon = I_SWORD;
-            t->skill = skills[SK_SWORD];
+            trp->weapon = I_SWORD;
+            trp->skill = skills[SK_SWORD];
             items[I_SWORD]--;
 
             if (items[I_HORSE] && skills[SK_RIDING] >= 2
-                && terrain == T_PLAIN) {
-                t->skill += 2;
+                && terrain == get_terrain(T_PLAIN)) {
+                trp->skill += 2;
                 items[I_HORSE]--;
             }
         }
 
         if (u->spells[SP_HEAL] || items[I_AMULET_OF_HEALING] > 0) {
-            t->canheal = true;
+            trp->canheal = true;
             items[I_AMULET_OF_HEALING]--;
         }
 
         if (items[I_RING_OF_POWER]) {
-            t->power = 1;
+            trp->power = 1;
             items[I_RING_OF_POWER]--;
         }
 
         if (items[I_SHIELDSTONE]) {
-            t->shieldstone = 1;
+            trp->shieldstone = 1;
             items[I_SHIELDSTONE]--;
         }
 
         if (items[I_CLOAK_OF_INVULNERABILITY]) {
-            t->invulnerable = 1;
+            trp->invulnerable = 1;
             items[I_CLOAK_OF_INVULNERABILITY]--;
         } else if (items[I_PLATE_ARMOR]) {
-            t->armor = 2;
+            trp->armor = 2;
             items[I_PLATE_ARMOR]--;
         } else if (items[I_CHAIN_MAIL]) {
-            t->armor = 1;
+            trp->armor = 1;
             items[I_CHAIN_MAIL]--;
         }
 
         if (u->building && u->building->sizeleft) {
-            t->inside = 2;
+            trp->inside = 2;
             u->building->sizeleft--;
         }
 
-        ql_push(troops, t);
+        ql_push(troops, trp);
     }
 }
 
@@ -610,7 +610,7 @@ void process_combat(void)
                             char *s = (char *)qli_next(&oli);
                             if (igetkeyword(s) == K_ATTACK) {
                                 int leader[2];
-                                troop *t;
+                                troop *trp;
                                 quicklist *troops = 0;
                                 int maxtactics[2];
                                 int winnercasualties = 0, deadpeasants = 0, lmoney = 0;
@@ -651,8 +651,8 @@ void process_combat(void)
 
                                 if (!u2) {
                                     for (i = r->peasants; i; i--) {
-                                        t = (troop *)calloc(1, sizeof(troop));
-                                        ql_push(&troops, t);
+                                        trp = (troop *)calloc(1, sizeof(troop));
+                                        ql_push(&troops, trp);
                                     }
 
                                     left[0] = r->peasants;
@@ -991,10 +991,10 @@ void process_combat(void)
                                 /* Distribute loot */
 
                                 for (n = lmoney; n; n--) {
-                                    troop *t = get_troop(ta, ntroops, defender->side, 0xFF);
-                                    if (t->unit) {
-                                        t->unit->money++;
-                                        t->unit->n++;
+                                    troop *trp = get_troop(ta, ntroops, defender->side, 0xFF);
+                                    if (trp->unit) {
+                                        trp->unit->money++;
+                                        trp->unit->n++;
                                     } else {
                                         r->money++;
                                     }

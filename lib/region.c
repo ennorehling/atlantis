@@ -12,10 +12,13 @@
 
 quicklist *regions;
 
-region * create_region(int x, int y, terrain_t t)
+struct quicklist *terrains;
+
+region * create_region(int x, int y, const terrain * t)
 {
     region * r;
 
+    assert(t);
     r = (region *)malloc(sizeof(region));
     if (r) {
         memset(r, 0, sizeof(region));
@@ -175,4 +178,45 @@ bool region_rmunit(struct region *r, struct unit *u, struct unit **hint)
     }
     return false;
 
+}
+
+bool region_isocean(const struct region *r)
+{
+    return r->terrain == get_terrain(T_OCEAN);
+}
+
+struct terrain *create_terrain(const char * name)
+{
+    terrain * t = (terrain *)calloc(1, sizeof(terrain));
+    ql_push(&terrains, t);
+    t->name = _strdup(name);
+    return t;
+}
+
+void free_terrain(terrain *t)
+{
+    free(t->name);
+    free(t);
+}
+
+const char *terrainnames[NUMTERRAINS] = {
+    "ocean", "plain", "mountain", "forest", "swamp"
+};
+
+struct terrain *get_terrain(terrain_t t)
+{
+    assert(t<NUMTERRAINS && t>=0);
+    return get_terrain_by_name(terrainnames[t]);
+}
+
+struct terrain *get_terrain_by_name(const char *name)
+{
+    ql_iter qli;
+    for (qli=qli_init(&terrains);qli_more(qli);) {
+        terrain *t = (terrain *)qli_next(&qli);
+        if (strcmp(name, t->name)==0) {
+            return t;
+        }
+    }
+    return 0;
 }

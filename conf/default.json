@@ -2,5 +2,37 @@
   "width": 18,
   "height": 18,
   "stacks": false,
-  "teachers": true
+  "teachers": true,
+  "terrain": [
+    {
+      "name": "ocean",
+      "work": 0,
+      "food": 0,
+      "output": [0, 0, 0, 0]
+    },
+    {
+      "name: "plain",
+      "work": 15,
+      "food": 100000,
+      "output": [0, 0, 0, 200]
+    },
+    {
+      "name": "mountain",
+      "work": 12,
+      "food": 20000,
+      "output": [200, 0, 200, 0]
+    },
+    {
+      "name": "forest",
+      "work": 12,
+      "food": 20000,
+      "output": [0, 200, 0, 0]
+    },
+    {
+      "name": "swamp",
+      "work": 12,
+      "food": 10000,
+      "output": [0, 100, 0, 0]
+    }
+  ]
 }

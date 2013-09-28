@@ -46,7 +46,7 @@ const char *regionid(const region * r, const faction * f)
     assert(r);
     x = (r->x - x + config.width) % config.width;
     y = (r->y - y + config.height) % config.height;
-    if (r->terrain == T_OCEAN) {
+    if (region_isocean(r)) {
         sprintf(buf, "(%d,%d)", x, y);
     }
     else {

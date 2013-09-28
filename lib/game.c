@@ -12,6 +12,9 @@ void cleargame(void)
 {
     nextunitid = 1;
     memset(&config, 0, sizeof(config));
+    ql_foreach(terrains, (ql_cb)free_terrain);
+    ql_free(terrains);
+    terrains = 0;
     ql_foreach(regions, (ql_cb)free_region);
     ql_free(regions);
     regions = 0;
