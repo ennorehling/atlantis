@@ -1026,7 +1026,7 @@ faction * addplayer(region * r, const char * email, int no)
     faction_setaddr(f, email);
 
     for (i=0;i!=4;++i) {
-        sprintf(buf2+i*4, "%4x", genrand_int32());
+        sprintf(buf2+i*4, "%4x", (unsigned int)genrand_int32());
     }
     buf2[16] = 0;
     faction_setpassword(f, buf2);

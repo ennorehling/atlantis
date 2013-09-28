@@ -3,6 +3,7 @@
 #include "unit.h"
 #include "ship.h"
 #include "building.h"
+#include "rtl.h"
 
 #include <quicklist.h>
 
