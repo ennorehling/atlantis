@@ -1769,7 +1769,7 @@ NEXTPLAYER:
                     }
                 }
                 for (;;) {
-                    int kwd;
+                    keyword_t kwd;
                     if (getbuf(strm, buf, sizeof(buf))!=0) {
                         break;
                     }
@@ -3011,9 +3011,9 @@ void do_leave_and_enter(job *j) {
         }
 
         leave(r, u);
-        u->owner = 0;
+        u->owner = false;
         if (shipowner(r, sh) == 0)
-            u->owner = 1;
+            u->owner = true;
         unit_setship(u, sh);
         break;
 
@@ -3163,89 +3163,70 @@ void process_move(void) {
     }
 }
 
+void do_sail(job * j)
+{
+    const char *s = j->order;
+    unit *u = j->unit;
+    region *r = u->region;
+
+    if (igetkeyword(s) == K_SAIL) {
+        region *r2 = movewhere(r);
+
+        if (!r2) {
+            mistakeu(u, "Direction not recognized");
+        } else if (!u->ship) {
+            mistakeu(u, "Not on a ship");
+        } else if (!u->owner) {
+            mistakeu(u, "Ship not owned by you");
+        } else if (!region_isocean(r2) && !iscoast(r2)) {
+            sprintf(buf, "%s discovers that (%d,%d) is inland.",
+                    unitid(u), r2->x, r2->y);
+            addevent(u->faction, buf);
+        } else if (u->ship->left) {
+            mistakeu(u, "Ship still under construction");
+        } else if (!cansail(r, u->ship)) {
+            mistakeu(u, "Too heavily loaded to sail");
+        } else {
+            ql_iter qli;
+            unit **ui;
+            for (qli=qli_init(&r->ships);qli_more(qli);) {
+                ship *sh = (ship *)qli_get(qli);
+                if (sh==u->ship) {
+                    qli_delete(&qli);
+                    break;
+                }
+                qli_next(&qli);
+            }
+            ql_push(&r2->ships, u->ship);
+
+            region_rmunit(r, u, 0);
+            u->thisorder[0] = 0;
+            region_addunit(r2, u, 0);
+            for (ui=&r->units;*ui;) {
+                unit *u2 = *ui;
+                if (u2->ship == u->ship) {
+                    region_rmunit(r, u2, ui);
+                    u2->thisorder[0] = 0;
+                    region_addunit(r2, u2, &u->next);
+                } else {
+                    ui = &u2->next;
+                }
+            }
+        }
+    }
+}
 void process_sail(void) {
     ql_iter rli;
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
-        unit **up;
-        for (up=&r->units;*up;) {
-            unit *u = *up;
+        int keywords[] = { K_SAIL, -1 };
+        quicklist * jobs = select_orders(r, keywords);
 
-            if (igetkeyword(u->thisorder) == K_SAIL) {
-                region *r2 = movewhere(r);
-                unit **ui;
-                ql_iter qli;
-
-                if (!r2) {
-                    mistakeu(u, "Direction not recognized");
-                    up = &u->next;
-                    continue;
-                }
-
-                if (!u->ship) {
-                    mistakeu(u, "Not on a ship");
-                    up = &u->next;
-                    continue;
-                }
-
-                if (!u->owner) {
-                    mistakeu(u, "Ship not owned by you");
-                    up = &u->next;
-                    continue;
-                }
-
-                if (!region_isocean(r2) && !iscoast(r2)) {
-                    sprintf(buf, "%s discovers that (%d,%d) is inland.",
-                            unitid(u), r2->x, r2->y);
-                    addevent(u->faction, buf);
-                    up = &u->next;
-                    continue;
-                }
-
-                if (u->ship->left) {
-                    mistakeu(u, "Ship still under construction");
-                    up = &u->next;
-                    continue;
-                }
-
-                if (!cansail(r, u->ship)) {
-                    mistakeu(u, "Too heavily loaded to sail");
-                    up = &u->next;
-                    continue;
-                }
-
-                
-                for (qli=qli_init(&r->ships);qli_more(qli);) {
-                    ship *sh = (ship *)qli_get(qli);
-                    if (sh==u->ship) {
-                        qli_delete(&qli);
-                        break;
-                    }
-                    qli_next(&qli);
-                }
-                ql_push(&r2->ships, u->ship);
-
-                region_rmunit(r, u, up);
-                u->thisorder[0] = 0;
-                region_addunit(r2, u, 0);
-                for (ui=&r->units;*ui;) {
-                    unit *u2 = *ui;
-                    if (u2->ship == u->ship) {
-                        region_rmunit(r, u2, ui);
-                        u2->thisorder[0] = 0;
-                        region_addunit(r2, u2, &u->next);
-                    } else {
-                        ui = &u2->next;
-                    }
-                }
-            } else {
-                up = &u->next;
-            }
-        }
+        ql_foreach(jobs, (ql_cb)do_sail);
+        ql_foreach(jobs, free);
+        ql_free(jobs);
     }
-    /* Do production orders */
-
 }
 
 void processorders(void)

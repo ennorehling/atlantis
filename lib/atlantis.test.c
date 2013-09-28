@@ -32,10 +32,10 @@ static unit *make_unit(faction *f, region *r, int no) {
     return u;
 }
 
-void init_terrains(void) {
+void setup_terrains(void) {
     int i;
     for (i=0;i!=NUMTERRAINS;++i) {
-        terrain * t = create_terrain(terrainnames[i]);
+        create_terrain(terrainnames[i]);
     }
 }
 
@@ -46,7 +46,7 @@ static void test_addunit_takes_hint(CuTest *tc)
     unit *u1, *u2, *u3;
     
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = create_faction(1);
     u1 = create_unit(f, 1);
@@ -69,7 +69,7 @@ static void test_addunit_order_new_ship(CuTest *tc)
     unit *u1, *u2;
     
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = create_faction(1);
     u1 = create_unit(f, 1);
@@ -98,7 +98,7 @@ static void test_addunit_order_ships(CuTest *tc)
     unit *u1, *u2, *u3;
     
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = create_faction(1);
     u1 = create_unit(f, 1);
@@ -131,7 +131,7 @@ static void test_addunit_order_buildings(CuTest *tc)
     unit *u1, *u2, *u3;
     
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = create_faction(1);
     u1 = create_unit(f, 1);
@@ -166,7 +166,7 @@ static void test_addunit_order_buildings_mixed(CuTest *tc)
     unit *u1, *u2, *u3;
     
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = create_faction(1);
     u1 = create_unit(f, 1);
@@ -198,7 +198,7 @@ static void test_addunit_reorders(CuTest *tc)
     unit *u1, *u2;
     
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = create_faction(1);
     u1 = create_unit(f, 1);
@@ -220,7 +220,7 @@ static void test_setbuilding_reorders(CuTest *tc)
     unit *u1, *u2;
     
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = create_faction(1);
     u1 = create_unit(f, 1);
@@ -242,7 +242,7 @@ static void test_setship_reorders(CuTest *tc)
     unit *u1, *u2;
     
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = create_faction(1);
     u1 = create_unit(f, 1);
@@ -265,7 +265,7 @@ static void test_addunit_order_mixed(CuTest *tc)
     unit *u1, *u2, *u3, *u4, *u5;
     
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = create_faction(1);
     u1 = create_unit(f, 1);
@@ -301,7 +301,7 @@ static void test_unit_reordering(CuTest *tc)
     unit *u1, *u2, *u3;
     
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(0, 0, get_terrain(T_PLAIN));
     f = create_faction(1);
     u1 = make_unit(f, r, 1);
@@ -316,7 +316,7 @@ static void test_unit_reordering(CuTest *tc)
     u3->building = b1;
     writegame();
     cleargame();
-    init_terrains();
+    setup_terrains();
     readgame();
     r = findregion(0, 0);
     u1 = findunitg(1);
@@ -334,7 +334,7 @@ static void test_unstack_leader(CuTest *tc)
     unit *u1, *u2, *u3;
     
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = create_faction(1);
     u1 = make_unit(f, r, 1);
@@ -360,7 +360,7 @@ static void test_stacking(CuTest *tc)
     unit *u1, *u2, *u3;
     
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = create_faction(1);
     u1 = make_unit(f, r, 1);
@@ -399,7 +399,7 @@ static void test_stacking_moves_units(CuTest *tc)
     unit *u1, *u2, *u3;
     
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = create_faction(1);
     u1 = make_unit(f, r, 1);
@@ -450,7 +450,7 @@ static void test_wrapmap(CuTest * tc)
     region *r;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     config.width = 5;
     config.height = 3;
     create_region(4, 0, get_terrain(T_PLAIN));
@@ -470,7 +470,7 @@ static void test_good_password(CuTest * tc)
     stream strm;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     turn = 0;
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = addplayer(r, 0, 0);
@@ -499,7 +499,7 @@ static void test_quoted_password(CuTest * tc)
     stream strm;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     turn = 0;
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = addplayer(r, 0, 0);
@@ -528,7 +528,7 @@ static void test_bad_password(CuTest * tc)
     stream strm;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     turn = 0;
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = addplayer(r, 0, 0);
@@ -557,7 +557,7 @@ static void test_password_cmd(CuTest * tc)
     stream strm;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     turn = 0;
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = addplayer(r, 0, 0);
@@ -590,7 +590,7 @@ static void test_form(CuTest * tc)
     faction *f;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     f = create_faction(1);
     r = create_region(0, 0, get_terrain(T_PLAIN));
     u = make_unit(f, r, 1);
@@ -619,7 +619,7 @@ static void test_orders(CuTest * tc)
     stream strm;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     turn = 0;
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = addplayer(r, 0, 0);
@@ -654,7 +654,7 @@ static void test_addplayers(CuTest * tc)
     int n;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(0, 0, get_terrain(T_FOREST));
     mstream_init(&strm);
 
@@ -683,7 +683,7 @@ static void test_addplayer(CuTest * tc)
     const char * email = "enno@example.com";
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     turn = 1;
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = addplayer(r, email, 0);
@@ -707,7 +707,7 @@ static void test_origin(CuTest * tc)
     faction * f;
     
     cleargame();
-    init_terrains();
+    setup_terrains();
     r1 = create_region(1, 1, get_terrain(T_PLAIN));
     r2 = create_region(1, 2, get_terrain(T_OCEAN));
     r3 = create_region(2, 2, get_terrain(T_PLAIN));
@@ -725,7 +725,7 @@ static void test_createregion(CuTest * tc)
     region * r;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(1, 1, get_terrain(T_OCEAN));
     CuAssertPtrNotNull(tc, r);
     CuAssertPtrEquals(tc, 0, (void *)region_getname(r));
@@ -749,7 +749,7 @@ static void test_readwrite(CuTest * tc)
 
     errno = 0;
     cleargame();
-    init_terrains();
+    setup_terrains();
     f = create_faction(fno);
     r = create_region(0, 0, get_terrain(T_PLAIN));
     u = make_unit(f, r, uno);
@@ -762,7 +762,7 @@ static void test_readwrite(CuTest * tc)
     CuAssertIntEquals(tc, 0, errno);
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     CuAssertPtrEquals(tc, 0, findfaction(fno));
     CuAssertPtrEquals(tc, 0, findunitg(uno));
     CuAssertPtrEquals(tc, 0, findregion(0, 0));
@@ -783,7 +783,7 @@ static void test_fileops(CuTest * tc)
     int fno;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
 
     r = create_region(0, 0, get_terrain(T_PLAIN));
     r = create_region(2, 3, get_terrain(T_PLAIN));
@@ -795,7 +795,7 @@ static void test_fileops(CuTest * tc)
     fno = f->no;
     writegame();
     cleargame();
-    init_terrains();
+    setup_terrains();
     CuAssertPtrEquals(tc, 0, findregion(0, 0));
 
     CuAssertIntEquals(tc, 0, readgame());
@@ -831,7 +831,7 @@ static void test_owners(CuTest * tc) {
     faction *f;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     f = create_faction(1);
     r = create_region(0, 0, get_terrain(T_PLAIN));
     u = make_unit(f, r, 1);
@@ -852,7 +852,7 @@ static void test_movewhere(CuTest * tc)
     int d;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     config.width = 10;
     config.height = 10;
     c = create_region(1, 1, get_terrain(T_PLAIN));
@@ -952,14 +952,14 @@ static void test_region_name(CuTest * tc)
     region * r;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(0, 0, get_terrain(T_PLAIN));
     CuAssertPtrEquals(tc, 0, (void *)region_getname(r));
     region_setname(r, name);
     CuAssertStrEquals(tc, name, region_getname(r));
     writegame();
     cleargame();
-    init_terrains();
+    setup_terrains();
     readgame();
     r = findregion(0, 0);
     CuAssertStrEquals(tc, name, region_getname(r));
@@ -973,7 +973,7 @@ static void test_faction_name(CuTest * tc)
     unit * u;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     f = create_faction(1);
     r = create_region(0, 0, get_terrain(T_PLAIN));
     u = make_unit(f, r, 1);
@@ -982,7 +982,7 @@ static void test_faction_name(CuTest * tc)
     CuAssertStrEquals(tc, name, faction_getname(f));
     writegame();
     cleargame();
-    init_terrains();
+    setup_terrains();
     readgame();
     f = findfaction(1);
     CuAssertStrEquals(tc, name, faction_getname(f));
@@ -995,7 +995,7 @@ static void test_moneypool(CuTest *tc) {
     faction *f;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     config.upkeep = 10;
     r = create_region(0, 0, get_terrain(T_PLAIN));
     f = create_faction(1);
@@ -1024,7 +1024,7 @@ static void test_connectregions(CuTest * tc)
     region *r1, *r2;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     config.width = 3;
     config.height = 3;
     r1 = create_region(0, 0, get_terrain(T_PLAIN));
@@ -1037,6 +1037,40 @@ static void test_connectregions(CuTest * tc)
     CuAssertPtrEquals(tc, 0, r1->connect[3]);
 }
 
+static void test_sailing(CuTest * tc)
+{
+    region *r;
+    terrain *t;
+    faction *f;
+    unit *u;
+    ship *sh;
+
+    cleargame();
+    config.upkeep = 0;
+
+    t = create_terrain("ocean");
+    r = create_region(0, 0, t);
+    f = create_faction(1);
+    sh = create_ship(1, SH_LONGBOAT);
+    ql_push(&r->ships, sh);
+    u = create_unit(f, 1);
+    u->number = 1;
+    u->ship = sh;
+    u->owner = true;
+    region_addunit(r, u, 0);
+
+    r = create_region(1, 0, t);
+    // r = create_region(2, 0, t);
+    update_world(0, 0, 4, 4);
+    connectregions();
+
+    ql_push(&u->orders, _strdup("SAIL E"));
+    processorders();
+
+    CuAssertPtrEquals(tc, r, u->region);
+    CuAssertPtrEquals(tc, sh, (ship *)ql_get(r->ships, 0));
+}
+
 static void test_cfg_upkeep(CuTest * tc)
 {
     unit *u1;
@@ -1044,7 +1078,7 @@ static void test_cfg_upkeep(CuTest * tc)
     region *r1;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     config.upkeep = 0;
     r1 = create_region(0, 0, get_terrain(T_PLAIN));
     f1 = create_faction(1);
@@ -1067,8 +1101,6 @@ static void test_cfg_moves_on(CuTest * tc)
     unit *u1;
     faction *f1;
     region *r1, *r2;
-    stream strm;
-    char line[64];
 
     cleargame();
     config.upkeep = 0;
@@ -1084,16 +1116,8 @@ static void test_cfg_moves_on(CuTest * tc)
     u1->number = 1;
     region_addunit(r1, u1, 0);
 
-    faction_setpassword(f1, "mypassword");
-    mstream_init(&strm);
-    sprintf(line, "FACTION %d mypassword", f1->no);
-    strm.api->writeln(strm.handle, line);
-    sprintf(line, "UNIT %d", u1->no);
-    strm.api->writeln(strm.handle, line);
-    strm.api->writeln(strm.handle, "MOVE S S");
-    strm.api->rewind(strm.handle);
+    ql_push(&u1->orders, _strdup("MOVE S S"));
 
-    read_orders(&strm);
     processorders();
     CuAssertPtrEquals(tc, r2, u1->region);
 }
@@ -1103,8 +1127,6 @@ static void test_cfg_moves_off(CuTest * tc)
     unit *u1;
     faction *f1;
     region *r1, *r2;
-    stream strm;
-    char line[64];
 
     cleargame();
     config.features = 0;
@@ -1119,16 +1141,8 @@ static void test_cfg_moves_off(CuTest * tc)
     u1->number = 1;
     region_addunit(r1, u1, 0);
 
-    faction_setpassword(f1, "mypassword");
-    mstream_init(&strm);
-    sprintf(line, "FACTION %d mypassword", f1->no);
-    strm.api->writeln(strm.handle, line);
-    sprintf(line, "UNIT %d", u1->no);
-    strm.api->writeln(strm.handle, line);
-    strm.api->writeln(strm.handle, "MOVE S S");
-    strm.api->rewind(strm.handle);
+    ql_push(&u1->orders, _strdup("MOVE S S"));
 
-    read_orders(&strm);
     processorders();
     CuAssertPtrEquals(tc, r2, u1->region);
 }
@@ -1139,7 +1153,7 @@ static void test_region_addunit(CuTest * tc)
     region * r;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(0, 0, get_terrain(T_PLAIN));
     u1 = create_unit(0, 1);
     u2 = create_unit(0, 1);
@@ -1160,7 +1174,7 @@ static void test_region_addunit_building(CuTest * tc)
     region * r;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(0, 0, get_terrain(T_PLAIN));
     u1 = create_unit(0, 1);
     u2 = create_unit(0, 1);
@@ -1187,7 +1201,7 @@ static void test_unit_name(CuTest * tc)
     region * r;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(0, 0, get_terrain(T_PLAIN));
     f = create_faction(1);
     u = make_unit(f, r, 1);
@@ -1195,7 +1209,7 @@ static void test_unit_name(CuTest * tc)
     CuAssertStrEquals(tc, name, unit_getname(u));
     writegame();
     cleargame();
-    init_terrains();
+    setup_terrains();
     readgame();
     u = findunitg(1);
     CuAssertPtrNotNull(tc, u);
@@ -1209,14 +1223,14 @@ static void test_remove_empty(CuTest * tc)
     region * r;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(0, 0, get_terrain(T_PLAIN));
     f = create_faction(1);
     u = make_unit(f, r, 1);
     u->number = 0;
     writegame();
     cleargame();
-    init_terrains();
+    setup_terrains();
     readgame();
     CuAssertPtrEquals(tc, 0, findunitg(1));
     CuAssertPtrEquals(tc, 0, findfaction(1));
@@ -1230,7 +1244,7 @@ static void test_unit_display(CuTest * tc)
     region * r;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(0, 0, get_terrain(T_PLAIN));
     f = create_faction(1);
     u = make_unit(f, r, 1);
@@ -1238,7 +1252,7 @@ static void test_unit_display(CuTest * tc)
     CuAssertStrEquals(tc, display, unit_getdisplay(u));
     writegame();
     cleargame();
-    init_terrains();
+    setup_terrains();
     readgame();
     u = findunitg(1);
     CuAssertStrEquals(tc, display, unit_getdisplay(u));
@@ -1252,7 +1266,7 @@ static void test_faction_addr(CuTest * tc)
 	region *r;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     f = create_faction(1);
     r = create_region(0, 0, get_terrain(T_PLAIN));
     u = make_unit(f, r, 1);
@@ -1261,7 +1275,7 @@ static void test_faction_addr(CuTest * tc)
     CuAssertStrEquals(tc, addr, faction_getaddr(f));
     writegame();
     cleargame();
-    init_terrains();
+    setup_terrains();
     readgame();
     f = findfaction(1);
     CuAssertStrEquals(tc, addr, faction_getaddr(f));
@@ -1305,7 +1319,7 @@ static void test_freeunit(CuTest * tc)
     unit *u1, *u2, *u3;
     
     cleargame();
-    init_terrains();
+    setup_terrains();
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = create_faction(1);
     u1 = make_unit(f, r, 1);
@@ -1326,11 +1340,9 @@ static void test_shipbuilding(CuTest * tc)
     unit *u;
     faction * f;
     ship * sh;
-    char line[256];
-    stream strm;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     turn = 0;
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = create_faction(1);
@@ -1340,15 +1352,9 @@ static void test_shipbuilding(CuTest * tc)
     u->money = 10 * u->number;
     u->skills[SK_SHIPBUILDING] = 90 * u->number;
     u->items[I_WOOD] = 100;
-    mstream_init(&strm);
 
-    sprintf(line, "FACTION %d mypassword", f->no);
-    strm.api->writeln(strm.handle, line);
-    strm.api->writeln(strm.handle, "UNIT 1");
-    strm.api->writeln(strm.handle, "BUILD LONGBOAT");
+    ql_push(&u->orders, _strdup("BUILD LONGBOAT"));
 
-    strm.api->rewind(strm.handle);
-    read_orders(&strm);
     processorders();
     sh = (ship *)ql_get(r->ships, 0);
     CuAssertPtrNotNull(tc, sh);
@@ -1357,8 +1363,6 @@ static void test_shipbuilding(CuTest * tc)
     CuAssertIntEquals(tc, SH_LONGBOAT, sh->type);
     CuAssertIntEquals(tc, 100 * u->number, u->skills[SK_SHIPBUILDING]);
     CuAssertIntEquals(tc, 80, u->items[I_WOOD]);
-
-    mstream_done(&strm);
 }
 
 static void test_config_stacks(CuTest * tc)
@@ -1370,7 +1374,7 @@ static void test_config_stacks(CuTest * tc)
     stream strm;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     turn = 0;
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = create_faction(1);
@@ -1416,7 +1420,7 @@ static void test_config_teachers(CuTest * tc)
     stream strm;
 
     cleargame();
-    init_terrains();
+    setup_terrains();
     turn = 0;
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = create_faction(1);
@@ -1497,6 +1501,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_connectregions);
     SUITE_ADD_TEST(suite, test_moneypool);
     SUITE_ADD_TEST(suite, test_cfg_upkeep);
+    SUITE_ADD_TEST(suite, test_sailing);
     // SUITE_ADD_TEST(suite, test_cfg_moves_on);
     // SUITE_ADD_TEST(suite, test_cfg_moves_off);
     SUITE_ADD_TEST(suite, test_region_addunit);

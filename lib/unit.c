@@ -11,10 +11,13 @@
 
 unit * create_unit(struct faction *f, int no)
 {
-    char name[NAMESIZE];
-    unit * self = (unit *)calloc(1, sizeof(unit));
+    unit * self;
 
+    assert(no>0);
+
+    self = (unit *)calloc(1, sizeof(unit));
     if (self) {
+        char name[NAMESIZE];
         self->faction = f;
         self->no = no;
         self->combatspell = -1;
