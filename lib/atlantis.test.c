@@ -1012,6 +1012,13 @@ static void test_moneypool(CuTest *tc) {
     CuAssertIntEquals(tc, 90, u2->money);
 }
 
+static void test_createterrain(CuTest * tc)
+{
+    terrain * t = create_terrain("ocean");
+    CuAssertPtrEquals(tc, t, get_terrain_by_name("ocean"));
+    CuAssertPtrEquals(tc, t, get_terrain(T_OCEAN));
+}
+
 static void test_connectregions(CuTest * tc)
 {
     region *r1, *r2;
@@ -1486,6 +1493,7 @@ int main(void)
     CuString *output = CuStringNew();
     CuSuite *suite = CuSuiteNew();
 
+    SUITE_ADD_TEST(suite, test_createterrain);
     SUITE_ADD_TEST(suite, test_connectregions);
     SUITE_ADD_TEST(suite, test_moneypool);
     SUITE_ADD_TEST(suite, test_cfg_upkeep);
