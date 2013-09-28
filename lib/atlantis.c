@@ -3099,10 +3099,8 @@ void process_build(region *r) {
     ql_free(ql);
 }
 
-void process_movement(void) {
+void process_move(void) {
     ql_iter rli;
-
-    puts("Processing MOVE orders...");
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
@@ -3163,9 +3161,10 @@ void process_movement(void) {
             }
         }
     }
-    /* SAIL orders */
+}
 
-    puts("Processing SAIL orders...");
+void process_sail(void) {
+    ql_iter rli;
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
@@ -4046,9 +4045,12 @@ void processorders(void)
         }
     }
 
-    /* MOVE orders */
+    puts("Processing MOVE orders...");
+    process_move();
 
-    process_movement();
+    puts("Processing SAIL orders...");
+    process_sail();
+
 
     puts("Processing production orders...");
 
