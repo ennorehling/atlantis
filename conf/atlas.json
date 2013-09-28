@@ -12,7 +12,7 @@
       "output": [0, 0, 0, 0]
     },
     {
-      "name: "plain",
+      "name": "plain",
       "work": 15,
       "food": 100000,
       "output": [0, 0, 0, 200]
