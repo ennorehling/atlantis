@@ -3169,7 +3169,7 @@ void do_sail(job * j)
     unit *u = j->unit;
     region *r = u->region;
 
-    if (igetkeyword(s) == K_SAIL) {
+    if (u->thisorder[0] && igetkeyword(s) == K_SAIL) {
         region *r2 = movewhere(r);
 
         if (!r2) {

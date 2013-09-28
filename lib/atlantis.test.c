@@ -1059,12 +1059,13 @@ static void test_sailing(CuTest * tc)
     u->owner = true;
     region_addunit(r, u, 0);
 
+    r = create_region(3, 0, t);
+    r = create_region(2, 0, t);
     r = create_region(1, 0, t);
-    // r = create_region(2, 0, t);
     update_world(0, 0, 4, 4);
     connectregions();
 
-    ql_push(&u->orders, _strdup("SAIL E"));
+    ql_push(&u->orders, _strdup("SAIL E E"));
     processorders();
 
     CuAssertPtrEquals(tc, r, u->region);
