@@ -1,6 +1,7 @@
 #include <atlantis.h>
 #include <region.h>
 #include <faction.h>
+#include <game.h>
 #include <ship.h>
 #include <building.h>
 #include <unit.h>
@@ -29,7 +30,7 @@ static void test_json_report(CuTest * tc) {
 
     cleargame();
     turn = 0;
-    r = create_region(1, 1, T_PLAIN);
+    r = create_region(1, 1, create_terrain("plain"));
     f = addplayer(r, 0, 0);
     u = r->units;
     update_world(0, 0, 1, 1);

@@ -9,6 +9,7 @@
 #include <atlantis.h>
 #include <region.h>
 #include <faction.h>
+#include <game.h>
 #include <settings.h>
 
 #include <rtl.h>
@@ -233,10 +234,6 @@ int main(int argc, char **argv)
         fgets(buf, sizeof(buf), stdin);
 
         switch (tolower(buf[0])) {
-        case 'c':
-            createcontinent();
-            break;
-
         case 'm':
             writemap(stdout);
             break;

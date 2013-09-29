@@ -18,7 +18,6 @@ int getunit(struct region * r, const struct faction *f, struct unit **uptr);
 struct unit *getunitg(struct region *r, const struct faction *f);
 
 extern const char *keywords[];
-extern const char *terrainnames[];
 extern const char *skillnames[];
 extern const char *itemnames[][2];
 extern const char *spellnames[];
