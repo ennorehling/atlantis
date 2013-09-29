@@ -23,8 +23,6 @@
 #include <string.h>
 #include <cJSON.h>
 
-extern const char *terrainnames[];
-
 static unit *make_unit(faction *f, region *r, int no) {
     unit * u = create_unit(f, no);
     u->number = 1;
@@ -36,6 +34,16 @@ void setup_terrains(void) {
     int i;
     for (i=0;i!=NUMTERRAINS;++i) {
         create_terrain(terrainnames[i]);
+    }
+}
+
+void setup_ships(void) {
+    int i;
+    for (i=0;i!=NUMSHIPS;++i) {
+        ship_type * stype = create_shiptype(shipnames[i]);
+        stype->speed = i==SH_CLIPPER ? 3 : 2;
+        stype->cost = 100 + i * 100;
+        stype->capacity = 200 + i * 600;
     }
 }
 
@@ -70,12 +78,13 @@ static void test_addunit_order_new_ship(CuTest *tc)
     
     cleargame();
     setup_terrains();
+    setup_ships();
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = create_faction(1);
     u1 = create_unit(f, 1);
     u2 = create_unit(f, 2);
-    s1 = create_ship(1, SH_LONGBOAT);
-    s2 = create_ship(1, SH_LONGBOAT);
+    s1 = create_ship(1, get_shiptype(SH_LONGBOAT));
+    s2 = create_ship(1, get_shiptype(SH_LONGBOAT));
     ql_push(&r->ships, s1);
 
     u1->ship = s1;
@@ -99,13 +108,14 @@ static void test_addunit_order_ships(CuTest *tc)
     
     cleargame();
     setup_terrains();
+    setup_ships();
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = create_faction(1);
     u1 = create_unit(f, 1);
     u2 = create_unit(f, 2);
     u3 = create_unit(f, 3);
-    s1 = create_ship(1, SH_LONGBOAT);
-    s2 = create_ship(2, SH_LONGBOAT);
+    s1 = create_ship(1, get_shiptype(SH_LONGBOAT));
+    s2 = create_ship(2, get_shiptype(SH_LONGBOAT));
     ql_push(&r->ships, s1);
     ql_push(&r->ships, s2);
 
@@ -243,11 +253,12 @@ static void test_setship_reorders(CuTest *tc)
     
     cleargame();
     setup_terrains();
+    setup_ships();
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = create_faction(1);
     u1 = create_unit(f, 1);
     u2 = create_unit(f, 2);
-    s1 = create_ship(1, SH_LONGBOAT);
+    s1 = create_ship(1, get_shiptype(SH_LONGBOAT));
     ql_push(&r->ships, s1);
 
     region_addunit(r, u1, 0);
@@ -266,6 +277,7 @@ static void test_addunit_order_mixed(CuTest *tc)
     
     cleargame();
     setup_terrains();
+    setup_ships();
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = create_faction(1);
     u1 = create_unit(f, 1);
@@ -274,7 +286,7 @@ static void test_addunit_order_mixed(CuTest *tc)
     u4 = create_unit(f, 4);
     u5 = create_unit(f, 5);
     b1 = create_building(1);
-    s1 = create_ship(1, SH_LONGBOAT);
+    s1 = create_ship(1, get_shiptype(SH_LONGBOAT));
     ql_push(&r->buildings, b1);
     ql_push(&r->ships, s1);
 
@@ -832,10 +844,11 @@ static void test_owners(CuTest * tc) {
 
     cleargame();
     setup_terrains();
+    setup_ships();
     f = create_faction(1);
     r = create_region(0, 0, get_terrain(T_PLAIN));
     u = make_unit(f, r, 1);
-    s = create_ship(1, SH_LONGBOAT);
+    s = create_ship(1, get_shiptype(SH_LONGBOAT));
     CuAssertPtrEquals(tc, 0, shipowner(r, s));
     u->ship = s;
     CuAssertPtrEquals(tc, u, shipowner(r, s));
@@ -1046,12 +1059,13 @@ static void test_sailing(CuTest * tc)
     ship *sh;
 
     cleargame();
+    setup_ships();
     config.upkeep = 0;
 
     t = create_terrain("ocean");
     r = create_region(0, 0, t);
     f = create_faction(1);
-    sh = create_ship(1, SH_LONGBOAT);
+    sh = create_ship(1, get_shiptype(SH_LONGBOAT));
     ql_push(&r->ships, sh);
     u = create_unit(f, 1);
     u->number = 1;
@@ -1081,12 +1095,13 @@ static void test_sailing_far(CuTest * tc)
     ship *sh;
 
     cleargame();
+    setup_ships();
     config.upkeep = 0;
 
     t = create_terrain("ocean");
     r = create_region(0, 0, t);
     f = create_faction(1);
-    sh = create_ship(1, SH_CLIPPER);
+    sh = create_ship(1, get_shiptype(SH_CLIPPER));
     ql_push(&r->ships, sh);
     u = create_unit(f, 1);
     u->number = 1;
@@ -1379,6 +1394,7 @@ static void test_shipbuilding(CuTest * tc)
 
     cleargame();
     setup_terrains();
+    setup_ships();
     turn = 0;
     r = create_region(1, 1, get_terrain(T_PLAIN));
     f = create_faction(1);
@@ -1396,7 +1412,7 @@ static void test_shipbuilding(CuTest * tc)
     CuAssertPtrNotNull(tc, sh);
     CuAssertPtrEquals(tc, sh, u->ship);
     CuAssertIntEquals(tc, 80, sh->left);
-    CuAssertIntEquals(tc, SH_LONGBOAT, sh->type);
+    CuAssertPtrEquals(tc, get_shiptype(SH_LONGBOAT), (ship_type *)sh->type);
     CuAssertIntEquals(tc, 100 * u->number, u->skills[SK_SHIPBUILDING]);
     CuAssertIntEquals(tc, 80, u->items[I_WOOD]);
 }
@@ -1494,15 +1510,32 @@ static void test_config_teachers(CuTest * tc)
     mstream_done(&strm);
 }
 
+static void test_config_ships(CuTest * tc)
+{
+    cJSON *json = cJSON_Parse("{ \"ships\": [ {\"name\": \"longboat\", \"capacity\": 100, \"cost\": 10, \"speed\" : 2 } ] }");
+    ship_type * stype;
+
+    cleargame();
+    read_config_json(json);
+    stype = get_shiptype_by_name("longboat");
+    CuAssertPtrNotNull(tc, stype);
+    CuAssertPtrEquals(tc, stype, get_shiptype(SH_LONGBOAT));
+    CuAssertIntEquals(tc, 100, stype->capacity);
+    CuAssertIntEquals(tc, 10, stype->cost);
+    CuAssertIntEquals(tc, 2, stype->speed);
+    cJSON_Delete(json);
+}
+
 static void test_config_terrain(CuTest * tc)
 {
     cJSON *json = cJSON_Parse("{ \"terrain\": [ {\"name\": \"swamp\", \"work\": 13, \"food\": 1000, \"output\" : [1, 2, 3, 4] } ] }");
-    const terrain * t;
+    terrain * t;
 
     cleargame();
     read_config_json(json);
     t = get_terrain_by_name("swamp");
     CuAssertPtrNotNull(tc, t);
+    CuAssertPtrEquals(tc, t, get_terrain(T_SWAMP));
     CuAssertIntEquals(tc, 13, t->foodproductivity);
     CuAssertIntEquals(tc, 1000, t->maxfoodoutput);
     CuAssertIntEquals(tc, 1, t->maxoutput[I_IRON]);
@@ -1581,6 +1614,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_stacking_moves_units);
     SUITE_ADD_TEST(suite, test_config_json);
     SUITE_ADD_TEST(suite, test_config_terrain);
+    SUITE_ADD_TEST(suite, test_config_ships);
     SUITE_ADD_TEST(suite, test_config_stacks);
     SUITE_ADD_TEST(suite, test_config_teachers);
     SUITE_ADD_TEST(suite, test_shipbuilding);

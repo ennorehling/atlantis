@@ -1,6 +1,8 @@
 #include "game.h"
-#include "region.h"
+
 #include "faction.h"
+#include "region.h"
+#include "ship.h"
 
 #include <quicklist.h>
 #include <string.h>
@@ -12,6 +14,9 @@ void cleargame(void)
 {
     nextunitid = 1;
     memset(&config, 0, sizeof(config));
+    ql_foreach(shiptypes, (ql_cb)free_shiptype);
+    ql_free(shiptypes);
+    shiptypes = 0;
     ql_foreach(terrains, (ql_cb)free_terrain);
     ql_free(terrains);
     terrains = 0;

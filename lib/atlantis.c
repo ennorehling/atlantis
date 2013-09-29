@@ -57,8 +57,9 @@ int ignore_password = 0;
 #define VER_STACKS 4 // storing the stack
 #define VER_FEATURES 5 // store feature flags
 #define VER_TERRAINS 6 // terrains as names, not ids
+#define VER_SHIPTYPE 7 // store ship->type as string, not enum
 
-#define VER_CURRENT VER_TERRAINS
+#define VER_CURRENT VER_SHIPTYPE
 
 #define HAS_STACKS 0x01
 #define HAS_FACTION_MONEY 0x02
@@ -445,18 +446,6 @@ const char *regionnames[] = {
 };
 
 const keyword_t directions[MAXDIRECTIONS] = { K_NORTH, K_SOUTH, K_EAST, K_WEST, K_MIR, K_YDD };
-
-int shipcapacity[NUMSHIPS] = {
-    200,
-    800,
-    1800,
-};
-
-int shipcost[NUMSHIPS] = {
-    100,
-    200,
-    300,
-};
 
 char itemskill[] = {
     SK_MINING,
@@ -2332,7 +2321,7 @@ void report(faction * f)
             ship *sh = (ship *)qli_next(&qli);
             const char * str;
 
-            sprintf(buf, "%s, %s", shipid(sh), shiptypenames[sh->type]);
+            sprintf(buf, "%s, %s", shipid(sh), sh->type->name);
             if (sh->left)
                 scat(", under construction");
 
@@ -2551,7 +2540,7 @@ int cansail(region * r, ship * sh)
         if (u->ship == sh)
             n += itemweight(u) + horseweight(u) + (u->number * 10);
     }
-    return n <= shipcapacity[sh->type];
+    return n <= sh->type->capacity;
 }
 
 int spellitem(int i)
@@ -2860,7 +2849,7 @@ static void do_build(job *j) {
     building *b;
     ship *sh;
     int i, n;
-    ship_t stype;
+    const ship_type *stype;
 
     i = igetkeyword(s);
     assert(i==K_BUILD);
@@ -2950,15 +2939,15 @@ static void do_build(job *j) {
         break;
 
     case K_LONGBOAT:
-        stype = SH_LONGBOAT;
+        stype = get_shiptype(SH_LONGBOAT);
         goto CREATESHIP;
 
     case K_CLIPPER:
-        stype = SH_CLIPPER;
+        stype = get_shiptype(SH_CLIPPER);
         goto CREATESHIP;
 
     case K_GALLEON:
-        stype = SH_GALLEON;
+        stype = get_shiptype(SH_GALLEON);
         goto CREATESHIP;
 
         CREATESHIP:
@@ -2974,7 +2963,7 @@ static void do_build(job *j) {
         while (findship(n));
 
         sh = create_ship(n, stype);
-        sh->left = shipcost[stype];
+        sh->left = stype->cost;
         sprintf(buf2, "Ship %d", n);
         ship_setname(sh, buf2);
         ql_push(&r->ships, sh);
@@ -4720,16 +4709,21 @@ int readgame(void)
             char temp[DISPLAYSIZE];
 
             store.api->r_int(store.handle, &no);
-            sh = create_ship(no, SH_LONGBOAT);
+            sh = create_ship(no, get_shiptype(SH_LONGBOAT));
 
-            if (store.api->r_str(store.handle, name, sizeof(temp))==0) {
+            if (store.api->r_str(store.handle, name, sizeof(name))==0) {
                 ship_setname(sh, name);
             }
             if (store.api->r_str(store.handle, temp, sizeof(temp))==0) {
                 ship_setdisplay(sh, temp);
             }
-            store.api->r_int(store.handle, &type);
-            sh->type = (ship_t)type;
+            if (version>=VER_SHIPTYPE) {
+                store.api->r_str(store.handle, temp, sizeof(temp));
+                sh->type = get_shiptype_by_name(temp);
+            } else {
+                store.api->r_int(store.handle, &type);
+                sh->type = get_shiptype((ship_t)type);
+            }
             store.api->r_int(store.handle, &sh->left);
             if (version<VER_SHIPLEFT_FIX) {
                 sh->left = 0;
@@ -4971,7 +4965,7 @@ int writegame(void)
             store.api->w_int(store.handle, sh->no);
             store.api->w_str(store.handle, ship_getname(sh));
             store.api->w_str(store.handle, ship_getdisplay(sh));
-            store.api->w_int(store.handle, sh->type);
+            store.api->w_str(store.handle, sh->type->name);
             store.api->w_int(store.handle, sh->left);
         }
 

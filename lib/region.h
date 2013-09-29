@@ -32,6 +32,8 @@ typedef enum {
 } terrain_t;
 #define NUMTERRAINS 5
 
+extern const char *terrainnames[];
+
 typedef struct region {
     int x, y;
     char * name_;

@@ -1,6 +1,7 @@
 #include "settings.h"
 
 #include "region.h"
+#include "ship.h"
 #include "parser.h"
 
 #include <stream.h>
@@ -40,6 +41,30 @@ void read_config_json(cJSON *json) {
     item = cJSON_GetObjectItem(json, "upkeep");
     if (item && item->type == cJSON_Number) {
         config.upkeep = item->valueint;
+    }
+    item = cJSON_GetObjectItem(json, "ships");
+    if (item && item->type == cJSON_Array) {
+        cJSON *j, *c;
+        for (j=item->child;j;j=j->next) {
+            if (j->type==cJSON_Object) {
+                c = cJSON_GetObjectItem(j, "name");
+                if (c && c->type==cJSON_String) {
+                    ship_type *stype = get_shiptype_by_name(c->valuestring);
+                    if (!stype) {
+                        stype = create_shiptype(c->valuestring);
+                    }
+                    if ((c = cJSON_GetObjectItem(j, "capacity"))!=0 && c->type==cJSON_Number) {
+                        stype->capacity = c->valueint;
+                    }
+                    if ((c = cJSON_GetObjectItem(j, "cost"))!=0 && c->type==cJSON_Number) {
+                        stype->cost = c->valueint;
+                    }
+                    if ((c = cJSON_GetObjectItem(j, "speed"))!=0 && c->type==cJSON_Number) {
+                        stype->speed = c->valueint;
+                    }
+                }
+            }
+        }
     }
     item = cJSON_GetObjectItem(json, "terrain");
     if (item && item->type == cJSON_Array) {

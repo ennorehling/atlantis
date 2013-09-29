@@ -38,7 +38,7 @@ static cJSON * show_ship(const faction *f, const ship * s) {
     DBG_UNREFERENCED_PARAMETER(f);
     json = cJSON_CreateObject();
     cJSON_AddNumberToObject(json, "id", s->no);
-    cJSON_AddStringToObject(json, "type", shiptypenames[s->type]);
+    cJSON_AddStringToObject(json, "type", s->type->name);
     if ((str = ship_getname(s))!=0) {
         cJSON_AddStringToObject(json, "name", str);
     }
