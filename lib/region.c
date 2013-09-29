@@ -13,8 +13,8 @@
 #include <stdlib.h>
 
 quicklist *regions;
-#define RMAXHASH  4096
-#define RHASHMASK (4096-1)
+#define RMAXHASH  (1<<12)
+#define RHASHMASK (RMAXHASH-1)
 struct region *regionhash[RMAXHASH];
 struct quicklist *terrains;
 
