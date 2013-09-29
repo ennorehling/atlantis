@@ -198,7 +198,6 @@ int main(int argc, char **argv)
         }
     }
 
-    initgame();
     if (cfgfile) {
         FILE * F = fopen(cfgfile, "r");
         if (F) {
@@ -225,6 +224,7 @@ int main(int argc, char **argv)
             return errno ? errno : -1;
         }
     }
+    initgame();
     if (orders) {
         return processturn(orders);
     }

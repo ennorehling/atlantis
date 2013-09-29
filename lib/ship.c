@@ -18,8 +18,9 @@ const char *shipnames[] = {
 
 ship *create_ship(int no, const struct ship_type *type) {
     ship *s = (ship *)calloc(1, sizeof(ship));
+    assert(type);
+    assert(no>0);
     if (s) {
-        assert(no);
         s->type = type;
         s->left = 0;
         s->no = no;

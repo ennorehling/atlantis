@@ -4673,6 +4673,7 @@ int readgame(void)
             miny = MIN(miny, r->y);
             maxy = MAX(maxy, r->y);
         }
+        fputs(regionid(r, 0), stderr); fputc('\n', stderr); fflush(stderr);
         region_setname(r, name[0] ? name : 0);
         store.api->r_int(store.handle, &r->peasants);
         store.api->r_int(store.handle, &r->money);
