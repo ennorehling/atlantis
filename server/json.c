@@ -185,6 +185,7 @@ static cJSON * show_region(const faction *f, region * r) {
         }
     }
     cJSON_AddStringToObject(json, "terrain", r->terrain->name);
+    cJSON_AddNumberToObject(json, "id", r->uid);
     cJSON_AddNumberToObject(json, "x", x);
     cJSON_AddNumberToObject(json, "y", y);
     if (r->peasants) {
