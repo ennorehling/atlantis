@@ -46,15 +46,16 @@ typedef struct region {
     struct quicklist *ships;
     struct unit *units;
     int immigrants;
+    struct region *nexthash_;
 } region;
 
 extern struct quicklist *regions;
-extern struct quicklist *terrains;
 
 struct region * create_region(unsigned int uid, int x, int y, const struct terrain *t);
 void free_region(struct region *r);
 struct region * findregion(int x, int y);
 struct region * get_region(unsigned int uid);
+void free_regions(void);
 
 const char * region_getname(const struct region *r);
 void region_setname(struct region *r, const char *name);
@@ -67,4 +68,6 @@ void free_terrain(terrain *t);
 struct terrain *create_terrain(const char * name);
 struct terrain *get_terrain(terrain_t t);
 struct terrain *get_terrain_by_name(const char *name);
+void free_terrains(void);
+
 #endif

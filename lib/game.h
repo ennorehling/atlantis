@@ -1,7 +1,9 @@
 #ifndef ATL_GAME_H
 #define ATL_GAME_H
 
-void cleargame(void);
+#include "bool.h"
+
+void cleargame(bool clearconfig);
 
 extern int nextunitid;
 extern int turn;

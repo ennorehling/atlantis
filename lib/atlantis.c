@@ -900,32 +900,6 @@ faction *getfaction(void)
     return findfaction(atoi(getstr()));
 }
 
-region * get_region(unsigned int uid)
-{
-    ql_iter rli;
-
-    for (rli = qli_init(&regions); qli_more(rli);) {
-        region *r = (region *)qli_next(&rli);
-        if (r->uid == uid)
-            return r;
-    }
-
-    return 0;
-}
-
-region *findregion(int x, int y)
-{
-    ql_iter rli;
-
-    for (rli = qli_init(&regions); qli_more(rli);) {
-        region *r = (region *)qli_next(&rli);
-        if (r->x == x && r->y == y)
-            return r;
-    }
-
-    return 0;
-}
-
 building *findbuilding(int n)
 {
     ql_iter rli;

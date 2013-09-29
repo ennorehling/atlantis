@@ -38,7 +38,6 @@ void report(struct faction * f);
 const char *gamedate(void);
 
 void initgame(void);
-void cleargame(void);
 int writegame(void);
 int readgame(void);
 void writemap(FILE *);

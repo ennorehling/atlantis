@@ -13,21 +13,31 @@
 #include <stdlib.h>
 
 quicklist *regions;
-
+#define RMAXHASH  4096
+#define RHASHMASK (4096-1)
+struct region *regionhash[RMAXHASH];
 struct quicklist *terrains;
 
 region * create_region(unsigned int uid, int x, int y, const terrain * t)
 {
-    region * r;
+    region * r = 0;
+    region **bucket = 0;
+
+    while (!uid || r) {
+        uid = (unsigned int)genrand_int31();
+        r = get_region(uid);
+    };
 
     assert(t);
     r = (region *)malloc(sizeof(region));
     if (r) {
         memset(r, 0, sizeof(region));
 
-        do {
-            r->uid = uid ? uid : (unsigned int)genrand_int31();
-        } while (!r->uid);
+        bucket = &regionhash[uid & RHASHMASK];
+        r->nexthash_ = *bucket;
+        *bucket = r;
+
+        r->uid = uid;
         r->x = x;
         r->y = y;
         r->terrain = t;
@@ -38,6 +48,13 @@ region * create_region(unsigned int uid, int x, int y, const terrain * t)
 }
 
 void free_region(region *r) {
+    region **bucket;
+
+    bucket = &regionhash[r->uid & RHASHMASK];
+    while (*bucket!=r) {
+        bucket = &(*bucket)->nexthash_;
+    }
+    *bucket = r->nexthash_;
     free(r->name_);
     while (r->units) {
         unit *u = r->units;
@@ -51,6 +68,28 @@ void free_region(region *r) {
     ql_free(r->buildings);
     r->buildings = 0;
     free(r);
+}
+
+region * get_region(unsigned int uid)
+{
+    region *r = regionhash[uid & RHASHMASK];
+    while (r && r->uid!=uid) {
+        r = r->nexthash_;
+    }
+    return r;
+}
+
+region *findregion(int x, int y)
+{
+    ql_iter rli;
+
+    for (rli = qli_init(&regions); qli_more(rli);) {
+        region *r = (region *)qli_next(&rli);
+        if (r->x == x && r->y == y)
+            return r;
+    }
+
+    return 0;
 }
 
 const char * region_getname(const struct region *r)
@@ -224,4 +263,16 @@ struct terrain *get_terrain_by_name(const char *name)
         }
     }
     return 0;
+}
+
+void free_regions(void) {
+    ql_foreach(regions, (ql_cb)free_region);
+    ql_free(regions);
+    regions = 0;
+}
+
+void free_terrains(void) {
+    ql_foreach(terrains, (ql_cb)free_terrain);
+    ql_free(terrains);
+    terrains = 0;
 }

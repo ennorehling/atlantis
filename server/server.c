@@ -243,7 +243,7 @@ int main(int argc, char **argv)
 
         case 'g':
             turn = 0;
-            cleargame();
+            cleargame(false);
             autoworld("players");
             writemap(stdout);
             break;
