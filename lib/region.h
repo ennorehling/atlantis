@@ -35,6 +35,7 @@ typedef enum {
 extern const char *terrainnames[];
 
 typedef struct region {
+    unsigned int uid;
     int x, y;
     char * name_;
     struct region *connect[MAXDIRECTIONS];
@@ -50,9 +51,10 @@ typedef struct region {
 extern struct quicklist *regions;
 extern struct quicklist *terrains;
 
-struct region * create_region(int x, int y, const struct terrain *t);
+struct region * create_region(unsigned int uid, int x, int y, const struct terrain *t);
 void free_region(struct region *r);
 struct region * findregion(int x, int y);
+struct region * get_region(unsigned int uid);
 
 const char * region_getname(const struct region *r);
 void region_setname(struct region *r, const char *name);

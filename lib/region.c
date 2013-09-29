@@ -6,6 +6,7 @@
 #include "rtl.h"
 
 #include <quicklist.h>
+#include <mtrand.h>
 
 #include <assert.h>
 #include <string.h>
@@ -15,7 +16,7 @@ quicklist *regions;
 
 struct quicklist *terrains;
 
-region * create_region(int x, int y, const terrain * t)
+region * create_region(unsigned int uid, int x, int y, const terrain * t)
 {
     region * r;
 
@@ -24,6 +25,9 @@ region * create_region(int x, int y, const terrain * t)
     if (r) {
         memset(r, 0, sizeof(region));
 
+        do {
+            r->uid = uid ? uid : (unsigned int)genrand_int31();
+        } while (!r->uid);
         r->x = x;
         r->y = y;
         r->terrain = t;

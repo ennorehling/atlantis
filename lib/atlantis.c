@@ -58,8 +58,9 @@ int ignore_password = 0;
 #define VER_FEATURES 5 // store feature flags
 #define VER_TERRAINS 6 // terrains as names, not ids
 #define VER_SHIPTYPE 7 // store ship->type as string, not enum
+#define VER_REGIONUID 8 // regions have a uid and we store the graph
 
-#define VER_CURRENT VER_SHIPTYPE
+#define VER_CURRENT VER_REGIONUID
 
 #define HAS_STACKS 0x01
 #define HAS_FACTION_MONEY 0x02
@@ -899,6 +900,19 @@ faction *getfaction(void)
     return findfaction(atoi(getstr()));
 }
 
+region * get_region(unsigned int uid)
+{
+    ql_iter rli;
+
+    for (rli = qli_init(&regions); qli_more(rli);) {
+        region *r = (region *)qli_next(&rli);
+        if (r->uid == uid)
+            return r;
+    }
+
+    return 0;
+}
+
 region *findregion(int x, int y)
 {
     ql_iter rli;
@@ -1134,7 +1148,7 @@ faction * autoplayer(int bx, int by, int no, const char * email, const char * na
         region * r;
 
         newblock[x][y] = T_FOREST;
-        r = create_region(bx + x, by + y, get_terrain(T_FOREST));
+        r = create_region(0, bx + x, by + y, get_terrain(T_FOREST));
         initregion(r);
         connectregion(r);
         f = addplayer(r, email, no);
@@ -1144,7 +1158,7 @@ faction * autoplayer(int bx, int by, int no, const char * email, const char * na
                 int cx = r->x, cy = r->y;
                 terrain_t t = (terrain_t)(genrand_int31() % NUMTERRAINS);
                 transform(&cx, &cy, d);
-                rc = create_region(cx, cy, get_terrain(t));
+                rc = create_region(0, cx, cy, get_terrain(t));
                 r->connect[d] = rc;
                 initregion(rc);
             }
@@ -1167,7 +1181,7 @@ void autoblock(int bx, int by)
             region * r = findregion(rx, ry);
             if (!r) {
                 terrain_t t = (terrain_t)newblock[x][y];
-                r = create_region(rx, ry, get_terrain(t));
+                r = create_region(0, rx, ry, get_terrain(t));
                 initregion(r);
             }
         }
@@ -4647,12 +4661,15 @@ int readgame(void)
     if (n<0) return -3;
 
     while (--n >= 0) {
-        int x, y, n;
+        int x, y, n, uid = 0;
         char name[DISPLAYSIZE];
         unit **up = 0;
         region dummy = { 0 };
         const terrain *t;
 
+        if (version>=VER_REGIONUID) {
+            store.api->r_int(store.handle, &uid);
+        }
         store.api->r_int(store.handle, &x);
         store.api->r_int(store.handle, &y);
         if (version>=VER_TERRAINS) {
@@ -4672,7 +4689,7 @@ int readgame(void)
             }
             r->terrain = t;
         } else {
-            r = create_region(x, y, t);
+            r = create_region((unsigned int)uid, x, y, t);
             minx = MIN(minx, r->x);
             maxx = MAX(maxx, r->x);
             miny = MIN(miny, r->y);
@@ -4940,6 +4957,7 @@ int writegame(void)
         unit *u;
         ql_iter qli;
 
+        store.api->w_int(store.handle, r->uid);
         store.api->w_int(store.handle, r->x);
         store.api->w_int(store.handle, r->y);
         store.api->w_str(store.handle, r->terrain->name);

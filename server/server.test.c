@@ -30,7 +30,7 @@ static void test_json_report(CuTest * tc) {
 
     cleargame();
     turn = 0;
-    r = create_region(1, 1, create_terrain("plain"));
+    r = create_region(0, 1, 1, create_terrain("plain"));
     f = addplayer(r, 0, 0);
     u = r->units;
     update_world(0, 0, 1, 1);
