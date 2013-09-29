@@ -4631,6 +4631,10 @@ int readgame(void)
 
     /* Read regions */
 
+    if (version>=VER_REGIONUID) {
+        store.api->r_int(store.handle, &config.width);
+        store.api->r_int(store.handle, &config.height);
+    }
     store.api->r_int(store.handle, &n);
     if (n<0) return -3;
 
@@ -4672,6 +4676,20 @@ int readgame(void)
         region_setname(r, name[0] ? name : 0);
         store.api->r_int(store.handle, &r->peasants);
         store.api->r_int(store.handle, &r->money);
+
+        if (version>=VER_REGIONUID) {
+            int d;
+            for (d=0;d!=MAXDIRECTIONS;++d) {
+                int uid;
+                region *rn;
+                store.api->r_int(store.handle, &uid);
+                rn = uid ? get_region(uid) : 0;
+                if (rn) {
+                    r->connect[d] = rn;
+                    rn->connect[d ^ 1] = rn;
+                }
+            }
+        }
 
         store.api->r_int(store.handle, &n2);
         if (n2<0) return -4;
@@ -4853,8 +4871,10 @@ int readgame(void)
     removeempty();
     removenullfactions();
 
-    update_world(minx, miny, maxx, maxy);
-    connectregions();
+    if (version<VER_REGIONUID) {
+        update_world(minx, miny, maxx, maxy);
+        connectregions();
+    }
     store_done(&store);
     return 0;
 }
@@ -4924,12 +4944,15 @@ int writegame(void)
 
     /* Write regions */
 
+    store.api->w_int(store.handle, config.width);
+    store.api->w_int(store.handle, config.height);
     store.api->w_int(store.handle, ql_length(regions));
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
         unit *u;
         ql_iter qli;
+        int d;
 
         store.api->w_int(store.handle, r->uid);
         store.api->w_int(store.handle, r->x);
@@ -4938,6 +4961,12 @@ int writegame(void)
         store.api->w_str(store.handle, region_getname(r));
         store.api->w_int(store.handle, r->peasants);
         store.api->w_int(store.handle, r->money);
+
+        for (d=0;d!=MAXDIRECTIONS;++d) {
+            unsigned int uid;
+            uid = r->connect[d] ? r->connect[d]->uid : 0;
+            store.api->w_int(store.handle, uid);
+        }
 
         store.api->w_int(store.handle, ql_length(r->buildings));
 
