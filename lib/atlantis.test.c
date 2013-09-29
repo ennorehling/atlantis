@@ -1154,6 +1154,7 @@ static void test_cfg_moves_on(CuTest * tc)
     region *r1, *r2;
 
     cleargame();
+    setup_terrains();
     config.upkeep = 0;
     config.features = CFG_MOVES;
     config.moves = 2;
@@ -1180,6 +1181,7 @@ static void test_cfg_moves_off(CuTest * tc)
     region *r1, *r2;
 
     cleargame();
+    setup_terrains();
     config.features = 0;
     config.moves = 0;
     r1 = create_region(0, 0, get_terrain(T_PLAIN));
