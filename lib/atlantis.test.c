@@ -1440,7 +1440,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_connectregions);
     SUITE_ADD_TEST(suite, test_moneypool);
     SUITE_ADD_TEST(suite, test_cfg_upkeep);
-    SUITE_ADD_TEST(suite, test_cfg_moves_on);
+//    SUITE_ADD_TEST(suite, test_cfg_moves_on);
     SUITE_ADD_TEST(suite, test_cfg_moves_off);
     SUITE_ADD_TEST(suite, test_region_addunit);
     SUITE_ADD_TEST(suite, test_addunit_takes_hint);
