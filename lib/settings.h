@@ -21,6 +21,8 @@ typedef struct settings {
     int moves;
     int upkeep;
     unsigned int features;
+    int startmoney;
+    int startmen;
 } settings;
 
 extern struct settings config;

@@ -4,6 +4,8 @@
   "upkeep": 10,
   "stacks": false,
   "teachers": false,
+  "startmen": 10,
+  "startmoney": 2000,
   "terrain": [
     {
       "name": "ocean",

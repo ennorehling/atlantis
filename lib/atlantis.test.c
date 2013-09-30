@@ -695,6 +695,8 @@ static void test_addplayer(CuTest * tc)
     const char * email = "enno@example.com";
 
     cleargame(true);
+    config.startmen = 2;
+    config.startmoney = 2000;
     setup_terrains();
     turn = 1;
     r = create_region(0, 1, 1, get_terrain(T_PLAIN));
@@ -711,6 +713,8 @@ static void test_addplayer(CuTest * tc)
     CuAssertStrEquals(tc, "", u->thisorder);
     CuAssertStrEquals(tc, keywords[K_WORK], u->lastorder);
     CuAssertPtrEquals(tc, 0, u->orders);
+    CuAssertIntEquals(tc, config.startmoney, u->money);
+    CuAssertIntEquals(tc, config.startmen, u->number);
 }
 
 static void test_origin(CuTest * tc)
@@ -1534,6 +1538,18 @@ static void test_config_ships(CuTest * tc)
     cJSON_Delete(json);
 }
 
+static void test_config_start(CuTest * tc)
+{
+    cJSON *json = cJSON_Parse("{ \"startmen\": 2, \"startmoney\": 200 }");
+    terrain * t;
+
+    cleargame(true);
+    read_config_json(json);
+    t = get_terrain_by_name("swamp");
+    CuAssertIntEquals(tc, 2, config.startmen);
+    CuAssertIntEquals(tc, 200, config.startmoney);
+}
+
 static void test_config_terrain(CuTest * tc)
 {
     cJSON *json = cJSON_Parse("{ \"terrain\": [ {\"name\": \"swamp\", \"work\": 13, \"food\": 1000, \"output\" : [1, 2, 3, 4] } ] }");
@@ -1596,12 +1612,12 @@ int main(void)
     SUITE_ADD_TEST(suite, test_form);
     SUITE_ADD_TEST(suite, test_keywords);
     SUITE_ADD_TEST(suite, test_wrapmap);
-    SUITE_ADD_TEST(suite, test_addplayer);
     SUITE_ADD_TEST(suite, test_orders);
     SUITE_ADD_TEST(suite, test_good_password);
     SUITE_ADD_TEST(suite, test_quoted_password);
     SUITE_ADD_TEST(suite, test_bad_password);
     SUITE_ADD_TEST(suite, test_password_cmd);
+    SUITE_ADD_TEST(suite, test_addplayer);
     SUITE_ADD_TEST(suite, test_addplayers);
     SUITE_ADD_TEST(suite, test_fileops);
     SUITE_ADD_TEST(suite, test_faction_password);
@@ -1621,6 +1637,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_unstack_leader);
     SUITE_ADD_TEST(suite, test_stacking_moves_units);
     SUITE_ADD_TEST(suite, test_config_json);
+    SUITE_ADD_TEST(suite, test_config_start);
     SUITE_ADD_TEST(suite, test_config_terrain);
     SUITE_ADD_TEST(suite, test_config_ships);
     SUITE_ADD_TEST(suite, test_config_stacks);

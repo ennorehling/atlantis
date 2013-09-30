@@ -1015,8 +1015,8 @@ faction * addplayer(region * r, const char * email, int no)
     region_addunit(r, u, 0);
     strcpy(u->lastorder, "work");
     u->combatspell = -1;
-    u->number = 1;
-    u->money = STARTMONEY;
+    u->number = config.startmen ? config.startmen : 1;
+    u->money = config.startmoney ? config.startmoney : STARTMONEY;
     u->isnew = true;
 
     f->origin_x = r->x;

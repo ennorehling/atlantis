@@ -15,12 +15,21 @@ struct settings config;
 void read_config_json(cJSON *json) {
     cJSON *item;
     
+    item = cJSON_GetObjectItem(json, "startmoney");
+    if (item && item->type == cJSON_Number) {
+        config.startmoney = item->valueint;
+    }
+    item = cJSON_GetObjectItem(json, "startmen");
+    if (item && item->type == cJSON_Number) {
+        config.startmen = item->valueint;
+    }
+
     item = cJSON_GetObjectItem(json, "width");
-    if (item) {
+    if (item && item->type == cJSON_Number) {
         config.width = item->valueint;
     }
     item = cJSON_GetObjectItem(json, "height");
-    if (item) {
+    if (item && item->type == cJSON_Number) {
         config.height = item->valueint;
     }
     item = cJSON_GetObjectItem(json, "stacks");
