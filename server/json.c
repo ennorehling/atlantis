@@ -165,6 +165,7 @@ static cJSON * show_exit(const faction *f, const region * r, int d) {
     json = cJSON_CreateObject();
     strncpy(buf, keywords[directions[d]], sizeof(buf));
     cJSON_AddStringToObject(json, "direction", rtl_strlwr(buf));
+    cJSON_AddNumberToObject(json, "id", r->uid);
     cJSON_AddStringToObject(json, "terrain", rn->terrain->name);
     return json;
 }
