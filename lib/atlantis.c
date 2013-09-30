@@ -4644,6 +4644,7 @@ int readgame(void)
         unit **up = 0;
         region dummy = { 0 };
         const terrain *t;
+        const ship_type * stype = get_shiptype(SH_LONGBOAT);
 
         if (version>=VER_REGIONUID) {
             store.api->r_int(store.handle, &uid);
@@ -4673,7 +4674,6 @@ int readgame(void)
             miny = MIN(miny, r->y);
             maxy = MAX(maxy, r->y);
         }
-        fputs(regionid(r, 0), stderr); fputc('\n', stderr); fflush(stderr);
         region_setname(r, name[0] ? name : 0);
         store.api->r_int(store.handle, &r->peasants);
         store.api->r_int(store.handle, &r->money);
@@ -4719,7 +4719,11 @@ int readgame(void)
             char temp[DISPLAYSIZE];
 
             store.api->r_int(store.handle, &no);
-            sh = create_ship(no, get_shiptype(SH_LONGBOAT));
+            if (version>=VER_SHIPTYPE) {
+                store.api->r_str(store.handle, temp, sizeof(temp));
+                stype = get_shiptype_by_name(temp);
+            }
+            sh = create_ship(no, stype);
 
             if (store.api->r_str(store.handle, name, sizeof(name))==0) {
                 ship_setname(sh, name);
@@ -4727,10 +4731,7 @@ int readgame(void)
             if (store.api->r_str(store.handle, temp, sizeof(temp))==0) {
                 ship_setdisplay(sh, temp);
             }
-            if (version>=VER_SHIPTYPE) {
-                store.api->r_str(store.handle, temp, sizeof(temp));
-                sh->type = get_shiptype_by_name(temp);
-            } else {
+            if (version<VER_SHIPTYPE) {
                 store.api->r_int(store.handle, &type);
                 sh->type = get_shiptype((ship_t)type);
             }
@@ -4985,9 +4986,9 @@ int writegame(void)
         for (qli = qli_init(&r->ships); qli_more(qli);) {
             ship *sh = (ship *)qli_next(&qli);
             store.api->w_int(store.handle, sh->no);
+            store.api->w_str(store.handle, sh->type->name);
             store.api->w_str(store.handle, ship_getname(sh));
             store.api->w_str(store.handle, ship_getdisplay(sh));
-            store.api->w_str(store.handle, sh->type->name);
             store.api->w_int(store.handle, sh->left);
         }
 

@@ -87,6 +87,7 @@ struct ship_type *get_shiptype(ship_t type) {
 
 struct ship_type *get_shiptype_by_name(const char *name) {
     ql_iter qli = qli_init(&shiptypes);
+    assert(name);
     while (qli_more(qli)) {
         ship_type *stype = (ship_type *)qli_next(&qli);
         if (strcmp(name, stype->name)==0) {
