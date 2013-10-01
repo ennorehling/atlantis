@@ -176,9 +176,11 @@ static cJSON * show_region(const faction *f, region * r) {
     const char * str;
     ql_iter qli;
     unit *u;
-    
-    x = (r->x - f->origin_x + config.width) % config.width;
-    y = (r->y - f->origin_y + config.height) % config.height;
+
+    x = r->x - f->origin_x;
+    y = r->y - f->origin_y;
+    coor_transform(config.transform, &x, &y);
+
     json = cJSON_CreateObject();
     if (!region_isocean(r)) {
         if ((str = region_getname(r))!=0) {

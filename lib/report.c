@@ -66,6 +66,7 @@ const char *regionid(const region * r, const faction * f)
     int x, y;
     static char buf[NAMESIZE + 20];
     assert(r);
+
     x = r->x - (f ? f->origin_x : 0);
     y = r->y - (f ? f->origin_y : 0);
 
