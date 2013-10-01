@@ -15,6 +15,21 @@ struct settings config;
 void read_config_json(cJSON *json) {
     cJSON *item;
     
+    item = cJSON_GetObjectItem(json, "coordinates");
+    if (item && item->type == cJSON_String) {
+        if (strcmp(item->valuestring, "torus")==0) {
+            config.transform = COOR_TORUS;
+        }
+        else if (strcmp(item->valuestring, "alh")==0) {
+            config.transform = COOR_ALH;
+        }
+        else if (strcmp(item->valuestring, "eressea")==0) {
+            config.transform = COOR_ERESSEA;
+        } else {
+            config.transform = COOR_NONE;
+        }
+    }
+
     item = cJSON_GetObjectItem(json, "startmoney");
     if (item && item->type == cJSON_Number) {
         config.startmoney = item->valueint;

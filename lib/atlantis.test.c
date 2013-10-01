@@ -738,15 +738,9 @@ static void test_origin(CuTest * tc)
     CuAssertStrEquals(tc, "(0,1)", regionid(r2, f));
     CuAssertStrEquals(tc, "bar (1,1)", regionid(r3, f));
     CuAssertStrEquals(tc, "(2,2)", regionid(r4, f));
-
-    config.transform = COOR_NONE;
-    CuAssertStrEquals(tc, "foo (0,0)", regionid(r1, f));
-    CuAssertStrEquals(tc, "(0,1)", regionid(r2, f));
-    CuAssertStrEquals(tc, "bar (1,1)", regionid(r3, f));
-    CuAssertStrEquals(tc, "(-1,-1)", regionid(r4, f));
 }
 
-static void test_coor_transform(CuTest * tc)
+static void test_coor_transform_alh(CuTest * tc)
 {
     int x, y;
     config.width = config.height = 8;
@@ -775,6 +769,32 @@ static void test_coor_transform(CuTest * tc)
     coor_transform(COOR_ALH, &x, &y);
     CuAssertIntEquals(tc, 2, x);
     CuAssertIntEquals(tc, 4, y);
+}
+
+static void test_coor_transform_torus(CuTest * tc)
+{
+    int x, y;
+    config.width = config.height = 8;
+
+    x = 0, y = 0;
+    coor_transform(COOR_TORUS, &x, &y);
+    CuAssertIntEquals(tc, 0, x);
+    CuAssertIntEquals(tc, 0, y);
+
+    x = 8, y = 8;
+    coor_transform(COOR_TORUS, &x, &y);
+    CuAssertIntEquals(tc, 0, x);
+    CuAssertIntEquals(tc, 0, y);
+
+    x = 1, y = 2;
+    coor_transform(COOR_TORUS, &x, &y);
+    CuAssertIntEquals(tc, 1, x);
+    CuAssertIntEquals(tc, 2, y);
+
+    x = -1, y = -1;
+    coor_transform(COOR_TORUS, &x, &y);
+    CuAssertIntEquals(tc, 7, x);
+    CuAssertIntEquals(tc, 7, y);
 }
 
 static void test_createregion(CuTest * tc)
@@ -1589,6 +1609,26 @@ static void test_config_start(CuTest * tc)
     t = get_terrain_by_name("swamp");
     CuAssertIntEquals(tc, 2, config.startmen);
     CuAssertIntEquals(tc, 200, config.startmoney);
+    cJSON_Delete(json);
+}
+
+static void test_config_coordinates(CuTest * tc)
+{
+    cJSON *json;
+
+    cleargame(true);
+    read_config_json(json = cJSON_Parse("{ \"coordinates\": \"alh\" }"));
+    CuAssertIntEquals(tc, COOR_ALH, config.transform);
+    cJSON_Delete(json);
+    read_config_json(json = cJSON_Parse("{ \"coordinates\": \"eressea\" }"));
+    CuAssertIntEquals(tc, COOR_ERESSEA, config.transform);
+    cJSON_Delete(json);
+    read_config_json(json = cJSON_Parse("{ \"coordinates\": \"torus\" }"));
+    CuAssertIntEquals(tc, COOR_TORUS, config.transform);
+    cJSON_Delete(json);
+    read_config_json(json = cJSON_Parse("{ \"coordinates\": \"none\" }"));
+    CuAssertIntEquals(tc, COOR_NONE, config.transform);
+    cJSON_Delete(json);
 }
 
 static void test_config_terrain(CuTest * tc)
@@ -1631,7 +1671,8 @@ int main(void)
     CuString *output = CuStringNew();
     CuSuite *suite = CuSuiteNew();
 
-    SUITE_ADD_TEST(suite, test_coor_transform);
+    SUITE_ADD_TEST(suite, test_coor_transform_alh);
+    SUITE_ADD_TEST(suite, test_coor_transform_torus);
     SUITE_ADD_TEST(suite, test_createterrain);
     SUITE_ADD_TEST(suite, test_connectregions);
     SUITE_ADD_TEST(suite, test_moneypool);
@@ -1680,6 +1721,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_stacking_moves_units);
     SUITE_ADD_TEST(suite, test_config_json);
     SUITE_ADD_TEST(suite, test_config_start);
+    SUITE_ADD_TEST(suite, test_config_coordinates);
     SUITE_ADD_TEST(suite, test_config_terrain);
     SUITE_ADD_TEST(suite, test_config_ships);
     SUITE_ADD_TEST(suite, test_config_stacks);
