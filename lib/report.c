@@ -38,14 +38,38 @@ const char *factionid(const faction * f)
     return buf;
 }
 
+static void coor_torus(int *x, int *y)
+{
+    *x = (*x + config.width) % config.width;
+    *y = (*y + config.height) % config.height;
+}
+
+static void coor_alh(int *x, int *y)
+{
+    int ox = (*x + config.width) % config.width;
+    int oy = (*y + config.height) % config.height;
+    *x = ox;
+    *y = (2 *oy -ox)  % config.height;
+}
+
+void coor_transform(coor_t transform, int *x, int *y) {
+    if (transform==COOR_TORUS) {
+        coor_torus(x, y);
+    }
+    else if (transform==COOR_ALH) {
+        coor_alh(x, y);
+    }
+}
+
 const char *regionid(const region * r, const faction * f)
 {
-    int x = f ? f->origin_x : 0;
-    int y = f ? f->origin_y : 0;
+    int x, y;
     static char buf[NAMESIZE + 20];
     assert(r);
-    x = (r->x - x + config.width) % config.width;
-    y = (r->y - y + config.height) % config.height;
+    x = r->x - (f ? f->origin_x : 0);
+    y = r->y - (f ? f->origin_y : 0);
+
+    coor_transform(config.transform, &x, &y);
     if (region_isocean(r)) {
         sprintf(buf, "(%d,%d)", x, y);
     }

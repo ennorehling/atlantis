@@ -719,7 +719,7 @@ static void test_addplayer(CuTest * tc)
 
 static void test_origin(CuTest * tc)
 {
-    region *r1, *r2, *r3;
+    region *r1, *r2, *r3, *r4;
     faction * f;
     
     cleargame(true);
@@ -727,13 +727,54 @@ static void test_origin(CuTest * tc)
     r1 = create_region(0, 1, 1, get_terrain(T_PLAIN));
     r2 = create_region(0, 1, 2, get_terrain(T_OCEAN));
     r3 = create_region(0, 2, 2, get_terrain(T_PLAIN));
+    r4 = create_region(0, 0, 0, get_terrain(T_OCEAN));
     region_setname(r1, "foo");
     region_setname(r3, "bar");
     update_world(0, 0, 2, 2);
     f = addplayer(r1, "enno@example.com", 0);
+
+    config.transform = COOR_TORUS;
     CuAssertStrEquals(tc, "foo (0,0)", regionid(r1, f));
     CuAssertStrEquals(tc, "(0,1)", regionid(r2, f));
     CuAssertStrEquals(tc, "bar (1,1)", regionid(r3, f));
+    CuAssertStrEquals(tc, "(2,2)", regionid(r4, f));
+
+    config.transform = COOR_NONE;
+    CuAssertStrEquals(tc, "foo (0,0)", regionid(r1, f));
+    CuAssertStrEquals(tc, "(0,1)", regionid(r2, f));
+    CuAssertStrEquals(tc, "bar (1,1)", regionid(r3, f));
+    CuAssertStrEquals(tc, "(-1,-1)", regionid(r4, f));
+}
+
+static void test_coor_transform(CuTest * tc)
+{
+    int x, y;
+    config.width = config.height = 8;
+
+    x = 0, y = 0;
+    coor_transform(COOR_ALH, &x, &y);
+    CuAssertIntEquals(tc, 0, x);
+    CuAssertIntEquals(tc, 0, y);
+
+    x = 0, y = 1;
+    coor_transform(COOR_ALH, &x, &y);
+    CuAssertIntEquals(tc, 0, x);
+    CuAssertIntEquals(tc, 2, y);
+
+    x = 0, y = 2;
+    coor_transform(COOR_ALH, &x, &y);
+    CuAssertIntEquals(tc, 0, x);
+    CuAssertIntEquals(tc, 4, y);
+
+    x = 2, y = 2;
+    coor_transform(COOR_ALH, &x, &y);
+    CuAssertIntEquals(tc, 2, x);
+    CuAssertIntEquals(tc, 2, y);
+
+    x = 2, y = 3;
+    coor_transform(COOR_ALH, &x, &y);
+    CuAssertIntEquals(tc, 2, x);
+    CuAssertIntEquals(tc, 4, y);
 }
 
 static void test_createregion(CuTest * tc)
@@ -1590,6 +1631,7 @@ int main(void)
     CuString *output = CuStringNew();
     CuSuite *suite = CuSuiteNew();
 
+    SUITE_ADD_TEST(suite, test_coor_transform);
     SUITE_ADD_TEST(suite, test_createterrain);
     SUITE_ADD_TEST(suite, test_connectregions);
     SUITE_ADD_TEST(suite, test_moneypool);

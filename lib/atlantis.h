@@ -10,6 +10,7 @@
 #define ATLANTIS_H
 
 #include "keywords.h"
+#include "settings.h"
 #include "items.h"
 #include "bool.h"
 #include <stdio.h>
@@ -59,5 +60,6 @@ struct faction * addplayer(struct region * r, const char * email, int no);
 const char *regionid(const struct region * r, const struct faction *f);
 
 struct unit *shipowner(struct region * r, const struct ship * sh);
+void coor_transform(coor_t transform, int *x, int *y);
 
 #endif

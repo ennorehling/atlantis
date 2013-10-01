@@ -9,7 +9,6 @@
 #ifndef ATL_SHIP_H
 #define ATL_SHIP_H
 
-#include "settings.h"
 #include "bool.h"
 
 struct ship;
