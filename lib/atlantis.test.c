@@ -1671,6 +1671,7 @@ int main(void)
     CuString *output = CuStringNew();
     CuSuite *suite = CuSuiteNew();
 
+    _mkdir("data");
     SUITE_ADD_TEST(suite, test_coor_transform_alh);
     SUITE_ADD_TEST(suite, test_coor_transform_torus);
     SUITE_ADD_TEST(suite, test_createterrain);
