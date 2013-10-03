@@ -88,58 +88,6 @@ static void reports(void)
     fclose(F);
 }
 
-region *inputregion(void)
-{
-    int x, y;
-    region *r = 0;
-    char buf[256];
-
-    while (!r) {
-        printf("X? ");
-        fgets(buf, sizeof(buf), stdin);
-        if (buf[0] == 0)
-            return 0;
-        x = atoi(buf);
-
-        printf("Y? ");
-        fgets(buf, sizeof(buf), stdin);
-        if (buf[0] == 0)
-            return 0;
-        y = atoi(buf);
-
-        r = findregion(x, y);
-
-        if (!r) {
-            puts("No such region.");
-        }
-    }
-    return r;
-}
-
-void addplayers_inter(void) {
-    region *r;
-    FILE * F;
-    char buf[512];
-    stream strm;
-
-    r = inputregion();
-
-    if (!r) {
-        return;
-    }
-
-    printf("Name of players file? ");
-    fgets(buf, sizeof(buf), stdin);
-
-    if (!buf[0]) {
-        return;
-    }
-    F = fopen(buf, "r");
-    fstream_init(&strm, F);
-    addplayers(r, &strm);
-    fclose(F);
-}
-
 static void readorders(const char * filename)
 {
     FILE * F;
@@ -236,9 +184,6 @@ int main(int argc, char **argv)
         switch (tolower(buf[0])) {
         case 'm':
             writemap(stdout);
-            break;
-        case 'a':
-            addplayers_inter();
             break;
 
         case 'g':

@@ -8,15 +8,71 @@
 
 #include <atlantis.h>
 #include <game.h>
-#include <rtl.h>
+#include <region.h>
 
+#include <rtl.h>
 #include <cJSON.h>
+
+#include <stream.h>
+#include <filestream.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <time.h>
 #include <ctype.h>
+
+region *inputregion(void)
+{
+    int x, y;
+    region *r = 0;
+    char buf[256];
+
+    while (!r) {
+        printf("X? ");
+        fgets(buf, sizeof(buf), stdin);
+        if (buf[0] == 0)
+            return 0;
+        x = atoi(buf);
+
+        printf("Y? ");
+        fgets(buf, sizeof(buf), stdin);
+        if (buf[0] == 0)
+            return 0;
+        y = atoi(buf);
+
+        r = findregion(x, y);
+
+        if (!r) {
+            puts("No such region.");
+        }
+    }
+    return r;
+}
+
+void addplayers_inter(void) {
+    region *r;
+    FILE * F;
+    char buf[512];
+    stream strm;
+
+    r = inputregion();
+
+    if (!r) {
+        return;
+    }
+
+    printf("Name of players file? ");
+    fgets(buf, sizeof(buf), stdin);
+
+    if (!buf[0]) {
+        return;
+    }
+    F = fopen(buf, "r");
+    fstream_init(&strm, F);
+    addplayers(r, &strm);
+    fclose(F);
+}
 
 int main(int argc, char **argv)
 {
@@ -80,6 +136,10 @@ int main(int argc, char **argv)
             writemap(stdout);
             break;
 
+        case 'a':
+            addplayers_inter();
+            break;
+
         case 'g':
             turn = 0;
             cleargame(false);
@@ -96,11 +156,12 @@ int main(int argc, char **argv)
             return 0;
 
         default:
-            puts("M - Draw Map.\n"
+            puts(
+                 "A - Add New Players.\n"
+                 "M - Draw Map.\n"
                  "G - Generate New World.\n"
                  "Q - Quit.\n"
                  "W - Write Game.\n");
         }
     }
-    return 0;
 }

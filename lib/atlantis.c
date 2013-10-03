@@ -1114,8 +1114,8 @@ faction * autoplayer(int bx, int by, int no, const char * email, const char * na
 {
     int d, x, y, maxtries = 10;
     do {
-        x = genrand_int31() % BLOCKSIZE;
-        y = genrand_int31() % BLOCKSIZE;
+        x = 1 + (genrand_int31() % (BLOCKSIZE-2));
+        y = 1 + (genrand_int31() % (BLOCKSIZE-2));
     } while (--maxtries && newblock[x][y]!=T_OCEAN);
     if (maxtries) {
         faction * f;
