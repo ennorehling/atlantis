@@ -35,9 +35,9 @@ void draw_map(WINDOW *win, point origin, cJSON *json, int def) {
             int xp = x + (y&1);
             int t = def;
             int cx = (xp+yp+1)/2, cy = yp;
-            HREGION r = region.get(cx, cy);
+            HREGION r = iregion.get(cx, cy);
             if (!IS_NULL(r)) {
-                const char * tname = region.terrain(r);
+                const char * tname = iregion.terrain(r);
                 t = tname[0] | COLOR_PAIR(COLOR_WHITE);
             }
             mvwaddch(win, yp, xp, t);

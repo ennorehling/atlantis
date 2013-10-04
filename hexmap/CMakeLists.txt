@@ -10,6 +10,7 @@ INCLUDE_DIRECTORIES (${CJSON_INCLUDE_DIR})
 INCLUDE_DIRECTORIES (${QUICKLIST_INCLUDE_DIR})
 INCLUDE_DIRECTORIES (${CURSES_INCLUDE_DIR})
 INCLUDE_DIRECTORIES (${CUTEST_INCLUDE_DIR})
+INCLUDE_DIRECTORIES (${ATLANTIS_INCLUDE_DIR})
 
 ADD_EXECUTABLE (hexmap hexmap.c fake_svc.c)
 TARGET_LINK_LIBRARIES(hexmap ${CJSON_LIBRARIES} ${CURSES_LIBRARIES} ${QUICKLIST_LIBRARIES})
@@ -18,6 +19,13 @@ ADD_EXECUTABLE (test_service_fake service.test.c fake_svc.c)
 TARGET_LINK_LIBRARIES (test_service_fake ${CUTEST_LIBRARIES} ${QUICKLIST_LIBRARIES})
 ADD_TEST (service_fake test_service_fake)
 
+ADD_EXECUTABLE (test_service_atlantis service.test.c atlantis_svc.c)
+TARGET_LINK_LIBRARIES (test_service_atlantis
+ ${CUTEST_LIBRARIES}
+ ${ATLANTIS_LIBRARIES}
+)
+ADD_TEST (service_atlantis test_service_atlantis)
+
 IF (MSVC)
-    MSVC_CRT_SECURE_NO_WARNINGS (hexmap test_service_fake)
+    MSVC_CRT_SECURE_NO_WARNINGS (hexmap test_service_fake test_service_atlantis)
 ENDIF (MSVC)

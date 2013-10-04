@@ -10,13 +10,13 @@
 static void test_create_region(CuTest * tc) {
     HREGION r;
 
-    r = region.create(1, 2, "ocean");
+    r = iregion.create(1, 2, "ocean");
     CuAssertPtrNotNull(tc, r.ptr);
-    CuAssertPtrEquals(tc, r.ptr, region.get(1, 2).ptr);
-    CuAssertStrEquals(tc, "ocean", region.terrain(r));
-    CuAssertPtrEquals(tc, 0, (void *)region.name(r));
-    CuAssertIntEquals(tc, 1, region.x(r));
-    CuAssertIntEquals(tc, 2, region.y(r));
+    CuAssertPtrEquals(tc, r.ptr, iregion.get(1, 2).ptr);
+    CuAssertStrEquals(tc, "ocean", iregion.terrain(r));
+    CuAssertPtrEquals(tc, 0, (void *)iregion.name(r));
+    CuAssertIntEquals(tc, 1, iregion.x(r));
+    CuAssertIntEquals(tc, 2, iregion.y(r));
 }
 
 int main(void)

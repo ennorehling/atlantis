@@ -61,7 +61,7 @@ static HREGION region_get(int x, int y)
     return result;
 }
 
-region_svc region = {
+region_svc iregion = {
     region_x,
     region_y,
     region_terrain,
