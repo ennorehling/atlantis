@@ -14,5 +14,7 @@ typedef struct region_svc {
     HREGION (*get)(int x, int y);
 } region_svc;
 
+extern region_svc region;
+
 #define IS_NULL(h) (h.ptr==0)
 #endif

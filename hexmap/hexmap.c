@@ -9,8 +9,6 @@
 
 #include "service.h"
 
-extern region_svc region;
-
 typedef struct rect {
     int x, y, w, h;
 } rect;
