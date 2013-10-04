@@ -15,6 +15,9 @@ IF (CURSES_FOUND)
  INCLUDE_DIRECTORIES (${CURSES_INCLUDE_DIR})
  ADD_EXECUTABLE (hexmap hexmap.c fake_svc.c)
  TARGET_LINK_LIBRARIES(hexmap ${CJSON_LIBRARIES} ${CURSES_LIBRARIES} ${QUICKLIST_LIBRARIES})
+ IF (MSVC)
+  MSVC_CRT_SECURE_NO_WARNINGS (hexmap)
+ ENDIF(MSVC)
 ENDIF()
 
 ADD_EXECUTABLE (test_service_fake service.test.c fake_svc.c)
@@ -29,5 +32,5 @@ TARGET_LINK_LIBRARIES (test_service_atlantis
 ADD_TEST (service_atlantis test_service_atlantis)
 
 IF (MSVC)
-    MSVC_CRT_SECURE_NO_WARNINGS (hexmap test_service_fake test_service_atlantis)
+ MSVC_CRT_SECURE_NO_WARNINGS (test_service_fake test_service_atlantis)
 ENDIF (MSVC)
