@@ -7,6 +7,10 @@
 #include <signal.h>
 #include <curses.h>
 
+#include "service.h"
+
+extern region_svc region;
+
 typedef struct rect {
     int x, y, w, h;
 } rect;
@@ -14,46 +18,6 @@ typedef struct rect {
 typedef struct point {
     int x, y;
 } point;
-/*
-typedef struct window {
-    struct window *child;
-    struct window *next;
-    WINDOW *win;
-    int w, h;
-    unsigned int flags;
-} window;
-
-#define MAXWINDOWS 16
-window * windows[MAXWINDOWS];
-
-window * create_window(window *parent, rect size, unsigned int flags) {
-    int i;
-    for (i=0;i!=MAXWINDOWS;++i) {
-        if (!windows[i]) {
-            window *w = (window *)malloc(sizeof(window));
-            windows[i] = w;
-            if (parent) {
-                w->next = parent->child;
-                parent->child = w;
-                w->win = derwin(parent->win, size.h, size.w, size.y, size.x);
-            } else {
-                w->win = newwin(size.h, size.w, size.y, size.x);
-            }
-            return w;
-        }
-    }
-    return 0;
-}
-*/
-static int json_getint(cJSON *json, const char *key, int def) {
-    json = cJSON_GetObjectItem(json, key);
-    return json ? json->valueint : def;
-}
-
-static const char * json_getstr(cJSON *json, const char *key, const char *def) {
-    json = cJSON_GetObjectItem(json, key);
-    return json ? json->valuestring : def;
-}
 
 void finish(int sig) {
     erase();
@@ -71,7 +35,14 @@ void draw_map(WINDOW *win, point origin, cJSON *json, int def) {
         int yp = y;
         for (x=0;x<view.w;x+=2) {
             int xp = x + (y&1);
-            mvwaddch(win, yp, xp, def);
+            int t = def;
+            int cx = (xp+yp+1)/2, cy = yp;
+            HREGION r = region.get(cx, cy);
+            if (!IS_NULL(r)) {
+                const char * tname = region.terrain(r);
+                t = tname[0] | COLOR_PAIR(COLOR_WHITE);
+            }
+            mvwaddch(win, yp, xp, t);
         }
     }
 }
@@ -107,15 +78,15 @@ void run(cJSON *json) {
         // wrefresh(sub);
         c = getch();     /* refresh, accept single keystroke of input */
         switch (c) {
-            case 'Q':
-              finish(0);
-              break;
-            case '+':
-                ++def;
-                break;
-            case '-':
-                --def;
-                break;
+        case 'Q':
+            finish(0);
+            break;
+        case '+':
+            ++def;
+            break;
+        case '-':
+            --def;
+            break;
         }
         draw_map(sub, origin, json, (def+1) | COLOR_PAIR(COLOR_YELLOW));
         wrefresh(sub);
