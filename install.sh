@@ -1,3 +1,5 @@
+#!/bin/sh
+git submodule update --init
 MACH=$(uname -m)
 mkdir -p build-${MACH}-Debug
 cd build-${MACH}-Debug
