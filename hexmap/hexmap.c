@@ -22,10 +22,10 @@ void finish(int sig) {
     exit(sig);
 }
 
-void draw_map(WINDOW *win, point origin, int def) {
+void draw_map(WINDOW *win, point origin) {
     int x, y, w, h;
     rect view;
-    
+
     iregion.get_size(&w, &h);
     getbegyx(win, view.y, view.x);
     getmaxyx(win, view.h, view.w);
@@ -33,12 +33,13 @@ void draw_map(WINDOW *win, point origin, int def) {
         int yp = y;
         for (x=0;x<view.w-2;x+=2) {
             int xp = x + (y&1);
-            int t = def;
-            int cx = ((xp+yp+1)/2) % w, cy = yp % h;
+            int t = ' ';
+            int cx = (origin.x + (xp+yp+1)/2) % w;
+            int cy = (origin.y + yp) % h;
             HREGION r = iregion.get(cx, cy);
             if (!IS_NULL(r)) {
                 const char * tname = iregion.terrain(r);
-                t = tname[0] | COLOR_PAIR(COLOR_WHITE);
+                t = tname[0] | COLOR_PAIR(COLOR_YELLOW);
             }
             mvwaddch(win, yp+1, xp+1, t);
         }
@@ -47,10 +48,11 @@ void draw_map(WINDOW *win, point origin, int def) {
 
 void run(void) {
     int rows, cols;
-    int def = 'a';
+    int mapw, maph;
     WINDOW *win;
     point origin = {0, 0};
 
+    iregion.get_size(&mapw, &maph);
     initscr();
     signal(SIGINT, finish);      /* arrange interrupts to terminate */
     cbreak();
@@ -69,25 +71,38 @@ void run(void) {
     wclear(stdscr);
 
     win = newwin(rows, cols, 0, 0);
+    keypad(win, TRUE);
     box(win, 0, 0);
-    draw_map(win, origin, def | COLOR_PAIR(COLOR_WHITE));
-    wrefresh(win);
     for (;;) {
         int c;
+        char buf[64];
+
+        draw_map(win, origin);
+        wrefresh(win);
+        sprintf(buf, "origin [%d/%d] ", origin.x, origin.y);
+        mvwaddstr(win, 1, 1, buf);
         c = wgetch(win);     /* refresh, accept single keystroke of input */
         switch (c) {
+        case 'k':
+        case KEY_UP:
+            origin.y = (maph+origin.y-1) % maph;
+            break;
+        case 'j':
+        case KEY_DOWN:
+            origin.y = (maph+origin.y+1) % maph;
+            break;
+        case 'h':
+        case KEY_LEFT:
+            origin.x = (mapw+origin.x-1) % mapw;
+            break;
+        case 'l':
+        case KEY_RIGHT:
+            origin.x = (mapw+origin.x+1) % mapw;
+            break;
         case 'Q':
             finish(0);
             break;
-        case '+':
-            ++def;
-            break;
-        case '-':
-            --def;
-            break;
         }
-        draw_map(win, origin, (def+1) | COLOR_PAIR(COLOR_YELLOW));
-        wrefresh(win);
     }
 }
 
