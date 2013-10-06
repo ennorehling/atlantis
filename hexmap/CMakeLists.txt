@@ -20,6 +20,9 @@ IF (CURSES_FOUND)
  ENDIF(MSVC)
 ENDIF()
 
+ADD_EXECUTABLE (curses_demo curses_demo.c )
+TARGET_LINK_LIBRARIES (curses_demo ${CURSES_LIBRARIES})
+
 ADD_EXECUTABLE (test_service_fake service.test.c fake_svc.c)
 TARGET_LINK_LIBRARIES (test_service_fake ${CUTEST_LIBRARIES} ${QUICKLIST_LIBRARIES})
 ADD_TEST (service_fake test_service_fake)

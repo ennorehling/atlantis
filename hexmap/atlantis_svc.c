@@ -5,6 +5,16 @@
 #include <quicklist.h>
 #include <stdlib.h>
 
+static void region_setsize(int w, int h) {
+    config.width = w;
+    config.height = h;
+}
+
+static void region_getsize(int *w, int *h) {
+    *w = config.width;
+    *h = config.height;
+}
+
 static int region_x(HREGION h)
 {
     region *r = (region*)h.ptr;
@@ -51,6 +61,8 @@ static HREGION region_get(int x, int y)
 }
 
 region_svc iregion = {
+    region_setsize,
+    region_getsize,
     region_x,
     region_y,
     region_terrain,

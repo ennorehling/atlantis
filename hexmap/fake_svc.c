@@ -10,6 +10,17 @@ typedef struct region_s {
 } region_s;
 
 static quicklist * regions = 0;
+static int width, height;
+
+static void region_setsize(int w, int h) {
+    width = w;
+    height = h;
+}
+
+static void region_getsize(int *w, int *h) {
+    *w = width;
+    *h = height;
+}
 
 static int region_x(HREGION h)
 {
@@ -62,6 +73,8 @@ static HREGION region_get(int x, int y)
 }
 
 region_svc iregion = {
+    region_setsize,
+    region_getsize,
     region_x,
     region_y,
     region_terrain,

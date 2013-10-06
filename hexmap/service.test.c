@@ -7,6 +7,16 @@
 #include <string.h>
 #include <cJSON.h>
 
+static void test_size(CuTest * tc) {
+    HREGION r;
+    int w, h;
+
+    iregion.set_size(8, 16);
+    iregion.get_size(&w, &h);
+    CuAssertIntEquals(tc, 8, w);
+    CuAssertIntEquals(tc, 16, h);
+}
+
 static void test_create_region(CuTest * tc) {
     HREGION r;
 
@@ -24,6 +34,7 @@ int main(void)
     CuString *output = CuStringNew();
     CuSuite *suite = CuSuiteNew();
 
+    SUITE_ADD_TEST(suite, test_size);
     SUITE_ADD_TEST(suite, test_create_region);
 
     CuSuiteRun(suite);
