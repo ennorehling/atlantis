@@ -22,13 +22,24 @@ void finish(int sig) {
     exit(sig);
 }
 
-void draw_map(WINDOW *win, point origin) {
+int terrain_icon(const char *tname) {
+    if (!tname) return ' ';
+    if (strcmp(tname, "plain")==0) return '+' | COLOR_PAIR(COLOR_GREEN);
+    if (strcmp(tname, "ocean")==0) return '.' | COLOR_PAIR(COLOR_BLUE);
+    return tname[0] | COLOR_PAIR(COLOR_YELLOW);
+}
+
+void draw_map(WINDOW *win, point cursor) {
     int x, y, w, h;
     rect view;
+    point origin;
 
     iregion.get_size(&w, &h);
     getbegyx(win, view.y, view.x);
     getmaxyx(win, view.h, view.w);
+
+    origin.x = cursor.x;
+    origin.y = cursor.y - view.h/2 - 1;
     for (y=0;y<view.h-2;++y) {
         int yp = y;
         for (x=0;x<view.w-2;x+=2) {
@@ -37,9 +48,13 @@ void draw_map(WINDOW *win, point origin) {
             int cx = (origin.x + (xp+yp+1)/2) % w;
             int cy = (origin.y + yp) % h;
             HREGION r = iregion.get(cx, cy);
+
+            if (cursor.x==cx && cursor.y==cy) {
+                mvwaddstr(win, yp+1, xp, "< >");
+            }
             if (!IS_NULL(r)) {
                 const char * tname = iregion.terrain(r);
-                t = tname[0] | COLOR_PAIR(COLOR_YELLOW);
+                t = terrain_icon(tname);
             }
             mvwaddch(win, yp+1, xp+1, t);
         }
@@ -50,7 +65,7 @@ void run(void) {
     int rows, cols;
     int mapw, maph;
     WINDOW *win;
-    point origin = {0, 0};
+    point cursor = {0, 0};
 
     iregion.get_size(&mapw, &maph);
     initscr();
@@ -62,6 +77,8 @@ void run(void) {
     start_color();
     init_color(COLOR_YELLOW, 1000, 1000, 0);
     init_pair(COLOR_WHITE, COLOR_WHITE, COLOR_BLACK);
+    init_pair(COLOR_BLUE, COLOR_BLUE, COLOR_BLACK);
+    init_pair(COLOR_GREEN, COLOR_GREEN, COLOR_BLACK);
     init_pair(COLOR_YELLOW, COLOR_YELLOW, COLOR_BLACK);
     attrset(COLOR_PAIR(COLOR_BLACK));
     bkgd(' ' | COLOR_PAIR(COLOR_BLACK));
@@ -70,34 +87,34 @@ void run(void) {
     scrollok(stdscr, FALSE);
     wclear(stdscr);
 
-    win = newwin(rows, cols, 0, 0);
+    win = newwin(rows-1, cols, 0, 0);
     keypad(win, TRUE);
     box(win, 0, 0);
     for (;;) {
         int c;
         char buf[64];
 
-        draw_map(win, origin);
+        draw_map(win, cursor);
         wrefresh(win);
-        sprintf(buf, "origin [%d/%d] ", origin.x, origin.y);
+        sprintf(buf, "cursor [%d/%d] ", cursor.x, cursor.y);
         mvwaddstr(win, 1, 1, buf);
         c = wgetch(win);     /* refresh, accept single keystroke of input */
         switch (c) {
         case 'k':
         case KEY_UP:
-            origin.y = (maph+origin.y-1) % maph;
+            cursor.y = (maph+cursor.y-1) % maph;
             break;
         case 'j':
         case KEY_DOWN:
-            origin.y = (maph+origin.y+1) % maph;
+            cursor.y = (maph+cursor.y+1) % maph;
             break;
         case 'h':
         case KEY_LEFT:
-            origin.x = (mapw+origin.x-1) % mapw;
+            cursor.x = (mapw+cursor.x-1) % mapw;
             break;
         case 'l':
         case KEY_RIGHT:
-            origin.x = (mapw+origin.x+1) % mapw;
+            cursor.x = (mapw+cursor.x+1) % mapw;
             break;
         case 'Q':
             finish(0);
