@@ -33,22 +33,28 @@ void draw_map(WINDOW *win, point cursor) {
     int x, y, w, h;
     rect view;
     point origin;
+    char buf[64];
 
+    sprintf(buf, "cursor [%d/%d] ", cursor.x, cursor.y);
     iregion.get_size(&w, &h);
     getbegyx(win, view.y, view.x);
     getmaxyx(win, view.h, view.w);
 
-    origin.x = cursor.x;
-    origin.y = cursor.y - view.h/2 - 1;
+    y = (view.h+1)/2-1;
+    x = (view.w-view.h)/2 + y;
+    origin.x = cursor.x - x;
+    origin.y = cursor.y - y;
     for (y=0;y<view.h-2;++y) {
         int yp = y;
         for (x=0;x<view.w-2;x+=2) {
             int xp = x + (y&1);
             int t = ' ';
-            int cx = (origin.x + (xp+yp+1)/2) % w;
-            int cy = (origin.y + yp) % h;
-            HREGION r = iregion.get(cx, cy);
-
+            int cx = (origin.x + (xp+yp+1)/2) % h;
+            int cy = (origin.y + yp) % w;
+            HREGION r;
+            if (cy<0) cy = h + cy;
+            if (cx<0) cx = w + cx;
+            r = iregion.get(cx, cy);
             if (cursor.x==cx && cursor.y==cy) {
                 mvwaddstr(win, yp+1, xp, "< >");
             }
@@ -59,6 +65,7 @@ void draw_map(WINDOW *win, point cursor) {
             mvwaddch(win, yp+1, xp+1, t);
         }
     }
+    mvwaddstr(win, 1, 1, buf);
 }
 
 void run(void) {
@@ -92,12 +99,9 @@ void run(void) {
     box(win, 0, 0);
     for (;;) {
         int c;
-        char buf[64];
 
         draw_map(win, cursor);
         wrefresh(win);
-        sprintf(buf, "cursor [%d/%d] ", cursor.x, cursor.y);
-        mvwaddstr(win, 1, 1, buf);
         c = wgetch(win);     /* refresh, accept single keystroke of input */
         switch (c) {
         case 'k':
