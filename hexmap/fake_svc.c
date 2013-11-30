@@ -34,19 +34,19 @@ static int region_y(HREGION h)
     return r->y;
 }
 
-static const char * region_terrain(HREGION h)
+static const char * region_getterrain(HREGION h)
 {
     region_s *r = (region_s*)h.ptr;
     return r->terrain;
 }
 
-static const char * region_name(HREGION h)
+static const char * region_getname(HREGION h)
 {
-    region_s *r = (region_s*)h.ptr;
+    region_s * r = (region_s *)h.ptr;
     return r->name;
 }
 
-static HREGION region_create(int x, int y, const char* terrain)
+static HREGION region_create(int x, int y, const char *terrain)
 {
     HREGION result;
     region_s *r = (region_s *)calloc(1, sizeof(region_s));
@@ -58,12 +58,24 @@ static HREGION region_create(int x, int y, const char* terrain)
     return result;
 }
 
+static void region_destroy(HREGION h)
+{
+    region_s *r = (region_s *)h.ptr;
+    quicklist **qlp = &regions;
+    int qi;
+
+    if (ql_find(qlp, &qi, r, 0)) {
+        ql_delete(qlp, qi);
+    }
+    free(r);
+}
+
 static HREGION region_get(int x, int y)
 {
     HREGION result = { 0 };
     ql_iter qli = qli_init(&regions);
     while (qli_more(qli)) {
-        region_s * r = (region_s *)qli_next(&qli);
+        region_s *r = (region_s *)qli_next(&qli);
         if (r->x==x && r->y==y) {
             result.ptr = r;
             break;
@@ -77,8 +89,9 @@ region_svc iregion = {
     region_getsize,
     region_x,
     region_y,
-    region_terrain,
-    region_name,
+    region_getterrain,
+    region_getname,
     region_create,
+    region_destroy,
     region_get
 };

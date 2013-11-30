@@ -59,7 +59,7 @@ void draw_map(WINDOW *win, point cursor) {
                 mvwaddstr(win, yp+1, xp, "< >");
             }
             if (!IS_NULL(r)) {
-                const char * tname = iregion.terrain(r);
+                const char * tname = iregion.get_terrain(r);
                 t = terrain_icon(tname);
             }
             mvwaddch(win, yp+1, xp+1, t);
