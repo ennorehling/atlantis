@@ -88,17 +88,6 @@ static void reports(void)
     fclose(F);
 }
 
-static void readorders(const char * filename)
-{
-    FILE * F;
-    stream strm;
-
-    F = fopen(filename, "r");
-    fstream_init(&strm, F);
-    read_orders(&strm);
-    fclose(F);
-}
-
 static int processturn(const char *orders)
 {
     turn++;

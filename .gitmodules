@@ -3,7 +3,7 @@
 	url = git://github.com/badgerman/cutest.git
 [submodule "cmake"]
 	path = cmake
-	url = git://github.com/eressea/cmake.git
+	url = git://github.com/badgerman/cmake.git
 [submodule "storage"]
 	path = storage
 	url = git://github.com:badgerman/storage.git

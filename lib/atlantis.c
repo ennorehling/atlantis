@@ -775,17 +775,6 @@ void addstrlist(strlist ** SP, char *s)
     *SP = makestrlist(s);
 }
 
-FILE * cfopen(const char *filename, const char *mode)
-{
-    FILE * F = fopen(filename, mode);
-
-    if (F == 0) {
-        printf("Can't open file %s in mode %s.\n", filename, mode);
-        exit(1);
-    }
-    return F;
-}
-
 static int transform_kwd(int *x, int *y, keyword_t kwd)
 {
     assert(x || !"invalid reference to X coordinate");
@@ -1700,6 +1689,17 @@ int getbuf(stream * strm, char *buf, size_t size)
     return err;
 }
 
+void readorders(const char * filename)
+{
+  FILE * F;
+  stream strm;
+  
+  F = fopen(filename, "r");
+  fstream_init(&strm, F);
+  read_orders(&strm);
+  fclose(F);
+}
+
 void read_orders(stream * strm)
 {
     int i, j;
@@ -1937,7 +1937,11 @@ void writesummary(void)
     ql_iter fli;
     ql_iter rli;
 
-    F = cfopen("summary", "w");
+    F = fopen("summary", "w");
+    if (!F) {
+        perror("summary");
+        return;
+    }
     puts("Writing summary file...");
 
     inhabitedregions = 0;
@@ -2134,10 +2138,13 @@ void report(faction * f)
     int anyunits;
     ql_iter rli;
 
-    sprintf(buf, "reports/%d-%d.r", turn, f->no);
-    F = cfopen(buf, "w");
-
     printf("Writing report for %s...\n", factionid(f));
+    sprintf(buf, "reports/%d-%d.r", turn, f->no);
+    F = fopen(buf, "w");
+    if (!F) {
+        perror(buf);
+        return;
+    }
 
     centre(F, "Atlantis Turn Report");
     centre(F, factionid(f));
@@ -4539,7 +4546,11 @@ void rqstrlist(storage * store, quicklist ** qlp)
     }
 }
 
-int readgame(void)
+int readgame(void) {
+  return read_game(turn);
+}
+
+int read_game(int turn)
 {
     FILE * F;
     int i, n, n2;
@@ -4559,7 +4570,11 @@ int readgame(void)
     maxy = INT_MIN;
 
     sprintf(buf, "data/%d", turn);
-    F = cfopen(buf, "rb");
+    F = fopen(buf, "rb");
+    if (!F) {
+        perror(buf);
+        return -1;
+    }
     store_init(&store, F);
 
     printf("Reading turn %d...\n", turn);
@@ -4894,10 +4909,16 @@ void wqstrlist(storage * store, quicklist * ql)
 
 int writegame(void)
 {
+  return write_game(turn);
+}
+
+int write_game(int turn)
+{
     storage store;
     int i;
     int features = 0;
     ql_iter rli, fli;
+    FILE *F;
 
     if (config.features&CFG_STACKS) {
         features |= HAS_STACKS;
@@ -4906,7 +4927,12 @@ int writegame(void)
     sprintf(buf, "data/%d", turn);
     printf("Writing turn %d...\n", turn);
 
-    store_init(&store, cfopen(buf, "wb"));
+    F = fopen(buf, "wb");
+    if (!F) {
+        perror(buf);
+        return -1;
+    }
+    store_init(&store, F);
     store.api->w_int(store.handle, -1);
     store.api->w_int(store.handle, VER_CURRENT);
     store.api->w_int(store.handle, turn);

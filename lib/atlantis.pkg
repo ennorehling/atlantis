@@ -1,0 +1,10 @@
+$#include "atlantis.h"
+$#include "game.h"
+
+module atlantis {
+    int turn;
+    void read_game(int turn);
+    void write_game(int turn);
+    void readorders @ read_orders(const char *filename);
+    void processorders @ process(void);
+}

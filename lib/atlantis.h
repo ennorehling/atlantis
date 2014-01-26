@@ -33,6 +33,7 @@ int lovar(int n);
 bool isallied(const struct unit * u, const struct unit * u2);
 
 void read_orders(struct stream * strm);
+void readorders(const char *filename);
 void processorders(void);
 void process_form(struct unit *u, struct region *r);
 void report(struct faction * f);
@@ -41,6 +42,9 @@ const char *gamedate(void);
 void initgame(void);
 int writegame(void);
 int readgame(void);
+int read_game(int turn);
+int write_game(int turn);
+
 void writemap(FILE *);
 void writesummary(void);
 void update_world(int minx, int miny, int maxx, int maxy);
