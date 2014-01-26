@@ -1,8 +1,29 @@
 build-*/
 build/
+codeblocks/
 *~
 
 build-vs2010/
 build-vc10-x86/
 vs11/
 game/
+
+# cmake -G "CodeBlocks - Unix Makefiles"
+CMakeCache.txt
+CMakeFiles
+*.cmake
+Makefile
+*.cbp
+*.layout
+hexmap/curses_demo
+hexmap/hexmap
+test_service_atlantis
+test_service_fake
+include/config.h
+*.a
+test_atlantis
+test_rtl
+mapgen/mapgen
+server/server
+server/test_server
+template

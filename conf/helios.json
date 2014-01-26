@@ -1,0 +1,62 @@
+{
+  "coordinates": "alh",
+  "width": 16,
+  "height": 16,
+  "upkeep": 10,
+  "stacks": false,
+  "teachers": false,
+  "startmen": 10,
+  "startmoney": 2000,
+  "terrain": [
+    {
+      "name": "ocean",
+      "work": 0,
+      "food": 0,
+      "output": [0, 0, 0, 0]
+    },
+    {
+      "name": "plain",
+      "work": 15,
+      "food": 20000,
+      "output": [0, 0, 0, 40]
+    },
+    {
+      "name": "mountain",
+      "work": 12,
+      "food": 4000,
+      "output": [40, 0, 40, 0]
+    },
+    {
+      "name": "forest",
+      "work": 12,
+      "food": 4000,
+      "output": [0, 40, 0, 0]
+    },
+    {
+      "name": "swamp",
+      "work": 12,
+      "food": 2000,
+      "output": [0, 20, 0, 0]
+    }
+  ],
+  "ships": [
+    {
+      "name": "longboat",
+      "cost": 200,
+      "capacity": 100,
+      "speed": 2
+    },
+    {
+      "name": "clipper",
+      "cost": 800,
+      "capacity": 200,
+      "speed": 3
+    },
+    {
+      "name": "galleon",
+      "cost": 1800,
+      "capacity": 300,
+      "speed": 2
+    }
+  ]
+}

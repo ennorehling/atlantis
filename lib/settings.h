@@ -16,11 +16,21 @@
 struct stream;
 struct cJSON;
 
+typedef enum {
+    COOR_NONE,
+    COOR_TORUS,
+    COOR_ALH,
+    COOR_ERESSEA
+} coor_t;
+
 typedef struct settings {
     int width, height;
     int moves;
     int upkeep;
     unsigned int features;
+    int startmoney;
+    int startmen;
+    coor_t transform;
 } settings;
 
 extern struct settings config;

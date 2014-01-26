@@ -261,7 +261,7 @@ int getunit(region * r, const faction *f, unit **uptr)
         }
     }
 
-    if (r->terrain != T_OCEAN && !_strcmpl(s, "peasants")) {
+    if (!region_isocean(r) && !_strcmpl(s, "peasants")) {
         *uptr = 0;
         return U_PEASANTS;
     }

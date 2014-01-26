@@ -56,8 +56,11 @@ int ignore_password = 0;
 #define VER_SHIPLEFT_FIX 3 // before this version, ship->left was invalid
 #define VER_STACKS 4 // storing the stack
 #define VER_FEATURES 5 // store feature flags
+#define VER_TERRAINS 6 // terrains as names, not ids
+#define VER_SHIPTYPE 7 // store ship->type as string, not enum
+#define VER_REGIONUID 8 // regions have a uid and we store the graph
 
-#define VER_CURRENT VER_FEATURES
+#define VER_CURRENT VER_REGIONUID
 
 #define HAS_STACKS 0x01
 #define HAS_FACTION_MONEY 0x02
@@ -444,50 +447,6 @@ const char *regionnames[] = {
 };
 
 const keyword_t directions[MAXDIRECTIONS] = { K_NORTH, K_SOUTH, K_EAST, K_WEST, K_MIR, K_YDD };
-
-const char *terrainnames[NUMTERRAINS] = {
-    "ocean",
-    "plain",
-    "mountain",
-    "forest",
-    "swamp",
-};
-
-int foodproductivity[NUMTERRAINS] = {
-    0,
-    15,
-    12,
-    12,
-    12,
-};
-
-int maxfoodoutput[NUMTERRAINS] = {
-    0,
-    100000,
-    20000,
-    20000,
-    10000,
-};
-
-int maxoutput[NUMTERRAINS][4] = {
-    {0, 0, 0, 0},
-    {0, 0, 0, 200},
-    {200, 0, 200, 0},
-    {0, 200, 0, 0},
-    {0, 100, 0, 0},
-};
-
-int shipcapacity[NUMSHIPS] = {
-    200,
-    800,
-    1800,
-};
-
-int shipcost[NUMSHIPS] = {
-    100,
-    200,
-    300,
-};
 
 char itemskill[] = {
     SK_MINING,
@@ -941,19 +900,6 @@ faction *getfaction(void)
     return findfaction(atoi(getstr()));
 }
 
-region *findregion(int x, int y)
-{
-    ql_iter rli;
-
-    for (rli = qli_init(&regions); qli_more(rli);) {
-        region *r = (region *)qli_next(&rli);
-        if (r->x == x && r->y == y)
-            return r;
-    }
-
-    return 0;
-}
-
 building *findbuilding(int n)
 {
     ql_iter rli;
@@ -1057,7 +1003,7 @@ faction * addplayer(region * r, const char * email, int no)
     faction_setaddr(f, email);
 
     for (i=0;i!=4;++i) {
-        sprintf(buf2+i*4, "%4x", genrand_int32());
+        sprintf(buf2+i*4, "%4x", (unsigned int)genrand_int32());
     }
     buf2[16] = 0;
     faction_setpassword(f, buf2);
@@ -1069,8 +1015,8 @@ faction * addplayer(region * r, const char * email, int no)
     region_addunit(r, u, 0);
     strcpy(u->lastorder, "work");
     u->combatspell = -1;
-    u->number = 1;
-    u->money = STARTMONEY;
+    u->number = config.startmen ? config.startmen : 1;
+    u->money = config.startmoney ? config.startmoney : STARTMONEY;
     u->isnew = true;
 
     f->origin_x = r->x;
@@ -1142,7 +1088,7 @@ bool regionnameinuse(const char *s)
 }
 
 void initregion(region *r) {
-    if (r->terrain != T_OCEAN) {
+    if (region_isocean(r)) {
         int i, n = 0;
         ql_iter rli;
 
@@ -1159,7 +1105,7 @@ void initregion(region *r) {
                                 sizeof(char *));
 
         region_setname(r, regionnames[i]);
-        r->peasants = maxfoodoutput[r->terrain] / 50;
+        r->peasants = r->terrain->maxfoodoutput / 50;
         r->money = r->peasants * 3 / 2;
     }
 }
@@ -1168,15 +1114,15 @@ faction * autoplayer(int bx, int by, int no, const char * email, const char * na
 {
     int d, x, y, maxtries = 10;
     do {
-        x = genrand_int31() % BLOCKSIZE;
-        y = genrand_int31() % BLOCKSIZE;
+        x = 1 + (genrand_int31() % (BLOCKSIZE-2));
+        y = 1 + (genrand_int31() % (BLOCKSIZE-2));
     } while (--maxtries && newblock[x][y]!=T_OCEAN);
     if (maxtries) {
         faction * f;
         region * r;
 
         newblock[x][y] = T_FOREST;
-        r = create_region(bx + x, by + y, T_FOREST);
+        r = create_region(0, bx + x, by + y, get_terrain(T_FOREST));
         initregion(r);
         connectregion(r);
         f = addplayer(r, email, no);
@@ -1186,7 +1132,7 @@ faction * autoplayer(int bx, int by, int no, const char * email, const char * na
                 int cx = r->x, cy = r->y;
                 terrain_t t = (terrain_t)(genrand_int31() % NUMTERRAINS);
                 transform(&cx, &cy, d);
-                rc = create_region(cx, cy, t);
+                rc = create_region(0, cx, cy, get_terrain(t));
                 r->connect[d] = rc;
                 initregion(rc);
             }
@@ -1209,7 +1155,7 @@ void autoblock(int bx, int by)
             region * r = findregion(rx, ry);
             if (!r) {
                 terrain_t t = (terrain_t)newblock[x][y];
-                r = create_region(rx, ry, t);
+                r = create_region(0, rx, ry, get_terrain(t));
                 initregion(r);
             }
         }
@@ -1546,7 +1492,7 @@ void removeempty(void)
                         break;
                     }
                 }
-                if (r->terrain != T_OCEAN) {
+                if (!region_isocean(r)) {
                     r->money += u->money;
                 }
                 leave(r, u);
@@ -1557,7 +1503,7 @@ void removeempty(void)
             }
         }
 
-        if (r->terrain == T_OCEAN) {
+        if (region_isocean(r)) {
             ql_iter sli;
             for (sli = qli_init(&r->ships); qli_more(sli);) {
                 ship *sh = (ship *)qli_get(sli);
@@ -1589,7 +1535,7 @@ void destroyfaction(faction * f)
 
         for (u=r->units;u;u=u->next) {
             if (u->faction == f) {
-                if (r->terrain != T_OCEAN)
+                if (!region_isocean(r))
                     r->peasants += u->number;
 
                 u->number = 0;
@@ -1616,7 +1562,7 @@ bool iscoast(region * r)
     int i;
 
     for (i = 0; i != MAXDIRECTIONS; i++)
-        if (r->connect[i]->terrain == T_OCEAN)
+        if (region_isocean(r->connect[i]))
             return true;
 
     return false;
@@ -1800,7 +1746,7 @@ NEXTPLAYER:
                     }
                 }
                 for (;;) {
-                    int kwd;
+                    keyword_t kwd;
                     if (getbuf(strm, buf, sizeof(buf))!=0) {
                         break;
                     }
@@ -1960,8 +1906,15 @@ void writemap(FILE * F)
 
         for (rli = qli_init(&regions); qli_more(rli);) {
             region *r = (region *)qli_next(&rli);
-            if (r->y == y)
-                buf[r->x - minx] = ".+MFS"[r->terrain];
+            if (r->y == y) {
+                int t;
+                for (t=0;t!=NUMTERRAINS;++t) {
+                    if (get_terrain((terrain_t)t)==r->terrain) {
+                        buf[r->x - minx] = ".+MFS"[t];
+                        break;
+                    }
+                }
+            }
         }
         for (x = 0; buf[x]; x++) {
             fputc(' ', F);
@@ -2288,9 +2241,9 @@ void report(faction * f)
         if (!u) continue;
 
         anyunits = 0;
-        sprintf(buf, "%s, %s", regionid(r, f), terrainnames[r->terrain]);
+        sprintf(buf, "%s, %s", regionid(r, f), r->terrain->name);
         for (d=0;d!=MAXDIRECTIONS;++d) {
-            if (r->connect[d] && r->connect[d]->terrain!=T_OCEAN) {
+            if (r->connect[d] && region_isocean(r->connect[d])) {
                 if (!anyunits) {
                     anyunits = 1;
                     scat(", exits: ");
@@ -2356,7 +2309,7 @@ void report(faction * f)
             ship *sh = (ship *)qli_next(&qli);
             const char * str;
 
-            sprintf(buf, "%s, %s", shipid(sh), shiptypenames[sh->type]);
+            sprintf(buf, "%s, %s", shipid(sh), sh->type->name);
             if (sh->left)
                 scat(", under construction");
 
@@ -2575,7 +2528,7 @@ int cansail(region * r, ship * sh)
         if (u->ship == sh)
             n += itemweight(u) + horseweight(u) + (u->number * 10);
     }
-    return n <= shipcapacity[sh->type];
+    return n <= sh->type->capacity;
 }
 
 int spellitem(int i)
@@ -2884,7 +2837,7 @@ static void do_build(job *j) {
     building *b;
     ship *sh;
     int i, n;
-    ship_t stype;
+    const ship_type *stype;
 
     i = igetkeyword(s);
     assert(i==K_BUILD);
@@ -2974,15 +2927,15 @@ static void do_build(job *j) {
         break;
 
     case K_LONGBOAT:
-        stype = SH_LONGBOAT;
+        stype = get_shiptype(SH_LONGBOAT);
         goto CREATESHIP;
 
     case K_CLIPPER:
-        stype = SH_CLIPPER;
+        stype = get_shiptype(SH_CLIPPER);
         goto CREATESHIP;
 
     case K_GALLEON:
-        stype = SH_GALLEON;
+        stype = get_shiptype(SH_GALLEON);
         goto CREATESHIP;
 
         CREATESHIP:
@@ -2998,7 +2951,7 @@ static void do_build(job *j) {
         while (findship(n));
 
         sh = create_ship(n, stype);
-        sh->left = shipcost[stype];
+        sh->left = stype->cost;
         sprintf(buf2, "Ship %d", n);
         ship_setname(sh, buf2);
         ql_push(&r->ships, sh);
@@ -3035,9 +2988,9 @@ void do_leave_and_enter(job *j) {
         }
 
         leave(r, u);
-        u->owner = 0;
+        u->owner = false;
         if (shipowner(r, sh) == 0)
-            u->owner = 1;
+            u->owner = true;
         unit_setship(u, sh);
         break;
 
@@ -3062,7 +3015,7 @@ void do_leave_and_enter(job *j) {
         break;
 
     case K_LEAVE:
-        if (r->terrain == T_OCEAN) {
+        if (region_isocean(r)) {
             mistakes(u, s, "Ship is at sea");
             break;
         }
@@ -3123,10 +3076,8 @@ void process_build(region *r) {
     ql_free(ql);
 }
 
-void process_movement(void) {
+void process_move(void) {
     ql_iter rli;
-
-    puts("Processing MOVE orders...");
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
@@ -3145,13 +3096,13 @@ void process_movement(void) {
                     break;
                 }
 
-                if (r->terrain == T_OCEAN) {
+                if (region_isocean(r)) {
                     mistakeu(u, "Currently at sea");
                     up = &u->next;
                     break;
                 }
 
-                if (r2->terrain == T_OCEAN) {
+                if (region_isocean(r2)) {
                     sprintf(buf, "%s discovers that (%d,%d) is ocean.",
                             unitid(u), r2->x, r2->y);
                     addevent(u->faction, buf);
@@ -3187,60 +3138,43 @@ void process_movement(void) {
             }
         }
     }
-    /* SAIL orders */
+}
 
-    puts("Processing SAIL orders...");
+void do_sail(job * j)
+{
+    const char *s = j->order;
+    unit *u = j->unit;
+    region *r = u->region;
 
-    for (rli = qli_init(&regions); qli_more(rli);) {
-        region *r = (region *)qli_next(&rli);
-        unit **up;
-        for (up=&r->units;*up;) {
-            unit *u = *up;
+    if (u->thisorder[0] && igetkeyword(s) == K_SAIL) {
 
-            if (igetkeyword(u->thisorder) == K_SAIL) {
-                region *r2 = movewhere(r);
-                unit **ui;
-                ql_iter qli;
-
+        if (!u->ship) {
+            mistakeu(u, "Not on a ship");
+        } else if (!u->owner) {
+            mistakeu(u, "Ship not owned by you");
+        } else if (u->ship->left) {
+            mistakeu(u, "Ship still under construction");
+        } else if (!cansail(r, u->ship)) {
+            mistakeu(u, "Too heavily loaded to sail");
+        } else {
+            int moves = ship_speed(u->ship);
+            region *loc = r;
+            ql_iter qli;
+            unit **ui;
+            while (moves--) {
+                region *r2 = movewhere(loc);
                 if (!r2) {
                     mistakeu(u, "Direction not recognized");
-                    up = &u->next;
-                    continue;
-                }
-
-                if (!u->ship) {
-                    mistakeu(u, "Not on a ship");
-                    up = &u->next;
-                    continue;
-                }
-
-                if (!u->owner) {
-                    mistakeu(u, "Ship not owned by you");
-                    up = &u->next;
-                    continue;
-                }
-
-                if (r2->terrain != T_OCEAN && !iscoast(r2)) {
+                    break;
+                } else if (!region_isocean(r2) && !iscoast(r2)) {
                     sprintf(buf, "%s discovers that (%d,%d) is inland.",
                             unitid(u), r2->x, r2->y);
                     addevent(u->faction, buf);
-                    up = &u->next;
-                    continue;
+                    break;
                 }
-
-                if (u->ship->left) {
-                    mistakeu(u, "Ship still under construction");
-                    up = &u->next;
-                    continue;
-                }
-
-                if (!cansail(r, u->ship)) {
-                    mistakeu(u, "Too heavily loaded to sail");
-                    up = &u->next;
-                    continue;
-                }
-
-                
+                loc = r2;
+            }
+            if (loc!=r) {
                 for (qli=qli_init(&r->ships);qli_more(qli);) {
                     ship *sh = (ship *)qli_get(qli);
                     if (sh==u->ship) {
@@ -3249,28 +3183,37 @@ void process_movement(void) {
                     }
                     qli_next(&qli);
                 }
-                ql_push(&r2->ships, u->ship);
+                ql_push(&loc->ships, u->ship);
 
-                region_rmunit(r, u, up);
+                region_rmunit(r, u, 0);
                 u->thisorder[0] = 0;
-                region_addunit(r2, u, 0);
+                region_addunit(loc, u, 0);
                 for (ui=&r->units;*ui;) {
                     unit *u2 = *ui;
                     if (u2->ship == u->ship) {
                         region_rmunit(r, u2, ui);
                         u2->thisorder[0] = 0;
-                        region_addunit(r2, u2, &u->next);
+                        region_addunit(loc, u2, &u->next);
                     } else {
                         ui = &u2->next;
                     }
                 }
-            } else {
-                up = &u->next;
             }
         }
     }
-    /* Do production orders */
+}
+void process_sail(void) {
+    ql_iter rli;
 
+    for (rli = qli_init(&regions); qli_more(rli);) {
+        region *r = (region *)qli_next(&rli);
+        int keywords[] = { K_SAIL, -1 };
+        quicklist * jobs = select_orders(r, keywords);
+
+        ql_foreach(jobs, (ql_cb)do_sail);
+        ql_foreach(jobs, free);
+        ql_free(jobs);
+    }
 }
 
 void processorders(void)
@@ -3745,7 +3688,7 @@ void processorders(void)
                         break;
                     }
 
-                    if (r->terrain == T_OCEAN) {
+                    if (region_isocean(r)) {
                         mistakes(u, s, "Ship is at sea");
                         break;
                     }
@@ -4070,16 +4013,19 @@ void processorders(void)
         }
     }
 
-    /* MOVE orders */
+    puts("Processing MOVE orders...");
+    process_move();
 
-    process_movement();
+    puts("Processing SAIL orders...");
+    process_sail();
+
 
     puts("Processing production orders...");
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
         unit *u;
-        if (r->terrain == T_OCEAN)
+        if (region_isocean(r))
             continue;
 
         entertainorders = 0;
@@ -4123,7 +4069,7 @@ void processorders(void)
                 if (i < 4) {
                     o = (order *)malloc(sizeof(order));
                     o->unit = u;
-                    o->qty = maxoutput[r->terrain][i] ? n : 0;
+                    o->qty = r->terrain->maxoutput[i] ? n : 0;
                     o->next = produceorders[i];
                     produceorders[i] = o;
                 } else {
@@ -4227,7 +4173,7 @@ void processorders(void)
             case K_WORK:
                 o = (order *)malloc(sizeof(order));
                 o->unit = u;
-                o->qty = u->number * foodproductivity[r->terrain];
+                o->qty = u->number * r->terrain->foodproductivity;
                 o->next = workorders;
                 workorders = o;
                 break;
@@ -4259,14 +4205,14 @@ void processorders(void)
 
         expandorders(r, workorders);
         if (oa) {
-            for (i = 0, n = maxfoodoutput[r->terrain]; i != norders && n;
+            for (i = 0, n = r->terrain->maxfoodoutput; i != norders && n;
                  i++, n--) {
                 oa[i].unit->money++;
                 oa[i].unit->n++;
             }
 
             free(oa);
-            r->money += MIN(n, r->peasants * foodproductivity[r->terrain]);
+            r->money += MIN(n, r->peasants * r->terrain->foodproductivity);
         }
 
         for (u=r->units;u;u=u->next) {
@@ -4282,7 +4228,7 @@ void processorders(void)
             unit *u;
             expandorders(r, produceorders[i]);
 
-            for (j = 0, n = maxoutput[r->terrain][i]; j != norders && n;
+            for (j = 0, n = r->terrain->maxoutput[i]; j != norders && n;
                  j++, n--) {
                 oa[j].unit->items[i]++;
                 oa[j].unit->n++;
@@ -4311,7 +4257,7 @@ void processorders(void)
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
 
-        if (r->terrain != T_OCEAN) {
+        if (!region_isocean(r)) {
             unit *u;
             for (u=r->units;u;u=u->next) {
                 switch (igetkeyword(u->thisorder)) {
@@ -4365,7 +4311,7 @@ void processorders(void)
                 u->combatspell = -1;
         }
 
-        if (r->terrain != T_OCEAN) {
+        if (!region_isocean(r)) {
             unit *u;
             for (u=r->units;u;u=u->next) {
                 unit *u2;
@@ -4518,7 +4464,7 @@ void processorders(void)
         region *r = (region *)qli_next(&rli);
         unit *u;
 
-        if (r->terrain != T_OCEAN) {
+        if (!region_isocean(r)) {
             for (n = r->peasants; n; n--)
                 if (genrand_int31() % 100 < POPGROWTH)
                     r->peasants++;
@@ -4531,7 +4477,7 @@ void processorders(void)
                 if (genrand_int31() % 100 < PEASANTMOVE) {
                     i = genrand_int31() % MAXDIRECTIONS;
 
-                    if (r->connect[i] && r->connect[i]->terrain != T_OCEAN) {
+                    if (r->connect[i] && !region_isocean(r->connect[i])) {
                         r->peasants--;
                         r->connect[i]->immigrants++;
                     }
@@ -4685,19 +4631,34 @@ int readgame(void)
 
     /* Read regions */
 
+    if (version>=VER_REGIONUID) {
+        store.api->r_int(store.handle, &config.width);
+        store.api->r_int(store.handle, &config.height);
+    }
     store.api->r_int(store.handle, &n);
     if (n<0) return -3;
 
     while (--n >= 0) {
-        int x, y, n;
+        int x, y, n, uid = 0;
         char name[DISPLAYSIZE];
         unit **up = 0;
         region dummy = { 0 };
+        const terrain *t;
+        const ship_type * stype = get_shiptype(SH_LONGBOAT);
 
+        if (version>=VER_REGIONUID) {
+            store.api->r_int(store.handle, &uid);
+        }
         store.api->r_int(store.handle, &x);
         store.api->r_int(store.handle, &y);
-        store.api->r_int(store.handle, &n);
-        assert(n<NUMTERRAINS);
+        if (version>=VER_TERRAINS) {
+            store.api->r_str(store.handle, name, sizeof(name));
+            t = get_terrain_by_name(name);
+        } else {
+            store.api->r_int(store.handle, &n);
+            assert(n<NUMTERRAINS);
+            t = get_terrain((terrain_t)n);
+        }
         store.api->r_str(store.handle, name, sizeof(name));
         r = findregion(x, y);
         if (r) {
@@ -4705,9 +4666,9 @@ int readgame(void)
             if (r->units || r->buildings || r->ships) {
                 r = &dummy;
             }
-            r->terrain = (terrain_t)n;
+            r->terrain = t;
         } else {
-            r = create_region(x, y, (terrain_t)n);
+            r = create_region((unsigned int)uid, x, y, t);
             minx = MIN(minx, r->x);
             maxx = MAX(maxx, r->x);
             miny = MIN(miny, r->y);
@@ -4716,6 +4677,20 @@ int readgame(void)
         region_setname(r, name[0] ? name : 0);
         store.api->r_int(store.handle, &r->peasants);
         store.api->r_int(store.handle, &r->money);
+
+        if (version>=VER_REGIONUID) {
+            int d;
+            for (d=0;d!=MAXDIRECTIONS;++d) {
+                int uid;
+                region *rn;
+                store.api->r_int(store.handle, &uid);
+                rn = uid ? get_region(uid) : 0;
+                if (rn) {
+                    r->connect[d] = rn;
+                    rn->connect[d ^ 1] = rn;
+                }
+            }
+        }
 
         store.api->r_int(store.handle, &n2);
         if (n2<0) return -4;
@@ -4744,16 +4719,22 @@ int readgame(void)
             char temp[DISPLAYSIZE];
 
             store.api->r_int(store.handle, &no);
-            sh = create_ship(no, SH_LONGBOAT);
+            if (version>=VER_SHIPTYPE) {
+                store.api->r_str(store.handle, temp, sizeof(temp));
+                stype = get_shiptype_by_name(temp);
+            }
+            sh = create_ship(no, stype);
 
-            if (store.api->r_str(store.handle, name, sizeof(temp))==0) {
+            if (store.api->r_str(store.handle, name, sizeof(name))==0) {
                 ship_setname(sh, name);
             }
             if (store.api->r_str(store.handle, temp, sizeof(temp))==0) {
                 ship_setdisplay(sh, temp);
             }
-            store.api->r_int(store.handle, &type);
-            sh->type = (ship_t)type;
+            if (version<VER_SHIPTYPE) {
+                store.api->r_int(store.handle, &type);
+                sh->type = get_shiptype((ship_t)type);
+            }
             store.api->r_int(store.handle, &sh->left);
             if (version<VER_SHIPLEFT_FIX) {
                 sh->left = 0;
@@ -4892,8 +4873,10 @@ int readgame(void)
     removeempty();
     removenullfactions();
 
-    update_world(minx, miny, maxx, maxy);
-    connectregions();
+    if (version<VER_REGIONUID) {
+        update_world(minx, miny, maxx, maxy);
+        connectregions();
+    }
     store_done(&store);
     return 0;
 }
@@ -4963,19 +4946,29 @@ int writegame(void)
 
     /* Write regions */
 
+    store.api->w_int(store.handle, config.width);
+    store.api->w_int(store.handle, config.height);
     store.api->w_int(store.handle, ql_length(regions));
 
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
         unit *u;
         ql_iter qli;
+        int d;
 
+        store.api->w_int(store.handle, r->uid);
         store.api->w_int(store.handle, r->x);
         store.api->w_int(store.handle, r->y);
-        store.api->w_int(store.handle, r->terrain);
+        store.api->w_str(store.handle, r->terrain->name);
         store.api->w_str(store.handle, region_getname(r));
         store.api->w_int(store.handle, r->peasants);
         store.api->w_int(store.handle, r->money);
+
+        for (d=0;d!=MAXDIRECTIONS;++d) {
+            unsigned int uid;
+            uid = r->connect[d] ? r->connect[d]->uid : 0;
+            store.api->w_int(store.handle, uid);
+        }
 
         store.api->w_int(store.handle, ql_length(r->buildings));
 
@@ -4993,9 +4986,9 @@ int writegame(void)
         for (qli = qli_init(&r->ships); qli_more(qli);) {
             ship *sh = (ship *)qli_next(&qli);
             store.api->w_int(store.handle, sh->no);
+            store.api->w_str(store.handle, sh->type->name);
             store.api->w_str(store.handle, ship_getname(sh));
             store.api->w_str(store.handle, ship_getdisplay(sh));
-            store.api->w_int(store.handle, sh->type);
             store.api->w_int(store.handle, sh->left);
         }
 

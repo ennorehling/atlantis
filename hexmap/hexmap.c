@@ -1,4 +1,3 @@
-#include <cJSON.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -7,6 +6,8 @@
 #include <signal.h>
 #include <curses.h>
 
+#include "service.h"
+
 typedef struct rect {
     int x, y, w, h;
 } rect;
@@ -14,46 +15,6 @@ typedef struct rect {
 typedef struct point {
     int x, y;
 } point;
-/*
-typedef struct window {
-    struct window *child;
-    struct window *next;
-    WINDOW *win;
-    int w, h;
-    unsigned int flags;
-} window;
-
-#define MAXWINDOWS 16
-window * windows[MAXWINDOWS];
-
-window * create_window(window *parent, rect size, unsigned int flags) {
-    int i;
-    for (i=0;i!=MAXWINDOWS;++i) {
-        if (!windows[i]) {
-            window *w = (window *)malloc(sizeof(window));
-            windows[i] = w;
-            if (parent) {
-                w->next = parent->child;
-                parent->child = w;
-                w->win = derwin(parent->win, size.h, size.w, size.y, size.x);
-            } else {
-                w->win = newwin(size.h, size.w, size.y, size.x);
-            }
-            return w;
-        }
-    }
-    return 0;
-}
-*/
-static int json_getint(cJSON *json, const char *key, int def) {
-    json = cJSON_GetObjectItem(json, key);
-    return json ? json->valueint : def;
-}
-
-static const char * json_getstr(cJSON *json, const char *key, const char *def) {
-    json = cJSON_GetObjectItem(json, key);
-    return json ? json->valuestring : def;
-}
 
 void finish(int sig) {
     erase();
@@ -61,120 +22,124 @@ void finish(int sig) {
     exit(sig);
 }
 
-void draw_map(WINDOW *win, point origin, cJSON *json, int def) {
-    int x, y;
-    rect view;
-
-    getbegyx(win, view.y, view.x);
-    getmaxyx(win, view.h, view.w);
-    for (y=0;y<view.h;++y) {
-        int yp = y;
-        for (x=0;x<view.w;x+=2) {
-            int xp = x + (y&1);
-            mvwaddch(win, yp, xp, def);
-        }
-    }
+int terrain_icon(const char *tname) {
+    if (!tname) return ' ';
+    if (strcmp(tname, "plain")==0) return '+' | COLOR_PAIR(COLOR_GREEN);
+    if (strcmp(tname, "ocean")==0) return '.' | COLOR_PAIR(COLOR_BLUE);
+    return tname[0] | COLOR_PAIR(COLOR_YELLOW);
 }
 
-void run(cJSON *json) {
-    int def = 'a';
-    WINDOW *win, *sub;
-    point origin = {0, 0};
+void draw_map(WINDOW *win, point cursor) {
+    int x, y, w, h;
+    rect view;
+    point origin;
+    char buf[64];
 
+    sprintf(buf, "cursor [%d/%d] ", cursor.x, cursor.y);
+    iregion.get_size(&w, &h);
+    getbegyx(win, view.y, view.x);
+    getmaxyx(win, view.h, view.w);
+
+    y = (view.h+1)/2-1;
+    x = (view.w-view.h)/2 + y;
+    origin.x = cursor.x - x;
+    origin.y = cursor.y - y;
+    for (y=0;y<view.h-2;++y) {
+        int yp = y;
+        for (x=0;x<view.w-2;x+=2) {
+            int xp = x + (y&1);
+            int t = ' ';
+            int cx = (origin.x + (xp+yp+1)/2) % h;
+            int cy = (origin.y + yp) % w;
+            HREGION r;
+            if (cy<0) cy = h + cy;
+            if (cx<0) cx = w + cx;
+            r = iregion.get(cx, cy);
+            if (cursor.x==cx && cursor.y==cy) {
+                mvwaddstr(win, yp+1, xp, "< >");
+            }
+            if (!IS_NULL(r)) {
+                const char * tname = iregion.get_terrain(r);
+                t = terrain_icon(tname);
+            }
+            mvwaddch(win, yp+1, xp+1, t);
+        }
+    }
+    mvwaddstr(win, 1, 1, buf);
+}
+
+void run(void) {
+    int rows, cols;
+    int mapw, maph;
+    WINDOW *win;
+    point cursor = {0, 0};
+
+    iregion.get_size(&mapw, &maph);
     initscr();
     signal(SIGINT, finish);      /* arrange interrupts to terminate */
+    cbreak();
+    noecho();
+    keypad(stdscr, TRUE);
+    getmaxyx(stdscr, rows, cols);
     start_color();
     init_color(COLOR_YELLOW, 1000, 1000, 0);
     init_pair(COLOR_WHITE, COLOR_WHITE, COLOR_BLACK);
+    init_pair(COLOR_BLUE, COLOR_BLUE, COLOR_BLACK);
+    init_pair(COLOR_GREEN, COLOR_GREEN, COLOR_BLACK);
     init_pair(COLOR_YELLOW, COLOR_YELLOW, COLOR_BLACK);
     attrset(COLOR_PAIR(COLOR_BLACK));
     bkgd(' ' | COLOR_PAIR(COLOR_BLACK));
     bkgdset(' ' | COLOR_PAIR(COLOR_BLACK));
-    keypad(stdscr, TRUE);  /* enable keyboard mapping */
     nonl();         /* tell curses not to do NL->CR/NL on output */
-    cbreak();       /* take input chars one at a time, no wait for \n */
-    noecho();       /* don't echo input */
     scrollok(stdscr, FALSE);
     wclear(stdscr);
 
-    win = newwin(20, 72, 2, 4);
+    win = newwin(rows-1, cols, 0, 0);
+    keypad(win, TRUE);
     box(win, 0, 0);
-    sub = subwin(win, 12, 40, 4, 16);
-    draw_map(win, origin, json, def | COLOR_PAIR(COLOR_WHITE));
-    wrefresh(win);
     for (;;) {
         int c;
-        // wrefresh(sub);
-        c = getch();     /* refresh, accept single keystroke of input */
+
+        draw_map(win, cursor);
+        wrefresh(win);
+        c = wgetch(win);     /* refresh, accept single keystroke of input */
         switch (c) {
-            case 'Q':
-              finish(0);
-              break;
-            case '+':
-                ++def;
-                break;
-            case '-':
-                --def;
-                break;
+        case 'k':
+        case KEY_UP:
+            cursor.y = (maph+cursor.y-1) % maph;
+            break;
+        case 'j':
+        case KEY_DOWN:
+            cursor.y = (maph+cursor.y+1) % maph;
+            break;
+        case 'h':
+        case KEY_LEFT:
+            cursor.x = (mapw+cursor.x-1) % mapw;
+            break;
+        case 'l':
+        case KEY_RIGHT:
+            cursor.x = (mapw+cursor.x+1) % mapw;
+            break;
+        case 'Q':
+            finish(0);
+            break;
         }
-        draw_map(sub, origin, json, (def+1) | COLOR_PAIR(COLOR_YELLOW));
-        wrefresh(sub);
     }
 }
-/*
-void print_map(cJSON *json, FILE *F) {
-    int w = 1, h = 1;
-    int fno = 0;
-    cJSON *region, *regions = cJSON_GetObjectItem(json, "regions");
-    cJSON *faction, *factions = cJSON_GetObjectItem(json, "factions");
-    char * mapdata;
 
-    faction = cJSON_GetObjectItem(json, "faction");
-    if (faction) {
-        fno = cJSON_GetObjectItem(faction, "id")->valueint;
-    }
-    for (region=regions->child; region; region=region->next) {
-        int x = json_getint(region, "x", 0);
-        int y = json_getint(region, "y", 0);
-        if (x>=w) w=x+1;
-        if (y>=h) h=y+1;
-    }
-    mapdata = (char *)malloc(w*h*sizeof(char));
-    memset(mapdata, ' ', w*h*sizeof(char));
-    for (region=regions->child; region; region=region->next) {
-        int x = (json_getint(region, "x", 0) + xof) % w;
-        int y = (json_getint(region, "y", 0) + yof) % h;
-        const char * terrain = json_getstr(region, "terrain", 0);
-        mapdata[x+y*h] = terrain[0];
+void fake_map(int w, int h) {
+    int x, y;
+    iregion.set_size(w, h);
+    for (y=0;y!=h;++y) {
+        for (x=0;x!=w;++x) {
+            const char *tname = (x==0 || y==0) ? "plain" : "ocean";
+            iregion.create(x, y, tname);
+        }
     }
 }
-*/
+
 int main (int argc, char **argv) {
-    FILE *in = stdin, *out = stdout;
-    long len;
-    char *data;
-    cJSON *json;
-    if (argc>1) {
-        in = fopen(argv[1], "r");
-        if (!in || errno) {
-            perror("could not open input file");
-            return errno;
-        }
-    }
-    fseek(in,0,SEEK_END);
-    len=ftell(in);
-    fseek(in,0,SEEK_SET);
-    data = (char *)malloc(len+1);
-    if (data) {
-        fread(data,1,len,in);
-    }
-    if (in!=stdin) fclose(in);
-
-    json = cJSON_Parse(data);
-    run(json);
-    free(data);
-    cJSON_Delete(json);
-    if (out!=stdout) fclose(out);
-
+    fake_map(16, 16);
+    run();
     return 0;
 }

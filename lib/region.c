@@ -3,23 +3,41 @@
 #include "unit.h"
 #include "ship.h"
 #include "building.h"
+#include "rtl.h"
 
 #include <quicklist.h>
+#include <mtrand.h>
 
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 
 quicklist *regions;
+#define RMAXHASH  (1<<12)
+#define RHASHMASK (RMAXHASH-1)
+struct region *regionhash[RMAXHASH];
+struct quicklist *terrains;
 
-region * create_region(int x, int y, terrain_t t)
+region * create_region(unsigned int uid, int x, int y, const terrain * t)
 {
-    region * r;
+    region * r = 0;
+    region **bucket = 0;
 
+    while (!uid || r) {
+        uid = (unsigned int)genrand_int31();
+        r = get_region(uid);
+    };
+
+    assert(t);
     r = (region *)malloc(sizeof(region));
     if (r) {
         memset(r, 0, sizeof(region));
 
+        bucket = &regionhash[uid & RHASHMASK];
+        r->nexthash_ = *bucket;
+        *bucket = r;
+
+        r->uid = uid;
         r->x = x;
         r->y = y;
         r->terrain = t;
@@ -30,6 +48,13 @@ region * create_region(int x, int y, terrain_t t)
 }
 
 void free_region(region *r) {
+    region **bucket;
+
+    bucket = &regionhash[r->uid & RHASHMASK];
+    while (*bucket!=r) {
+        bucket = &(*bucket)->nexthash_;
+    }
+    *bucket = r->nexthash_;
     free(r->name_);
     while (r->units) {
         unit *u = r->units;
@@ -43,6 +68,28 @@ void free_region(region *r) {
     ql_free(r->buildings);
     r->buildings = 0;
     free(r);
+}
+
+region * get_region(unsigned int uid)
+{
+    region *r = regionhash[uid & RHASHMASK];
+    while (r && r->uid!=uid) {
+        r = r->nexthash_;
+    }
+    return r;
+}
+
+region *findregion(int x, int y)
+{
+    ql_iter rli;
+
+    for (rli = qli_init(&regions); qli_more(rli);) {
+        region *r = (region *)qli_next(&rli);
+        if (r->x == x && r->y == y)
+            return r;
+    }
+
+    return 0;
 }
 
 const char * region_getname(const struct region *r)
@@ -175,4 +222,57 @@ bool region_rmunit(struct region *r, struct unit *u, struct unit **hint)
     }
     return false;
 
+}
+
+bool region_isocean(const struct region *r)
+{
+    return r->terrain == get_terrain(T_OCEAN);
+}
+
+struct terrain *create_terrain(const char * name)
+{
+    terrain * t = (terrain *)calloc(1, sizeof(terrain));
+    ql_push(&terrains, t);
+    t->name = _strdup(name);
+    return t;
+}
+
+void free_terrain(terrain *t)
+{
+    free(t->name);
+    free(t);
+}
+
+const char *terrainnames[NUMTERRAINS] = {
+    "ocean", "plain", "mountain", "forest", "swamp"
+};
+
+struct terrain *get_terrain(terrain_t t)
+{
+    assert(t<NUMTERRAINS && t>=0);
+    return get_terrain_by_name(terrainnames[t]);
+}
+
+struct terrain *get_terrain_by_name(const char *name)
+{
+    ql_iter qli;
+    for (qli=qli_init(&terrains);qli_more(qli);) {
+        terrain *t = (terrain *)qli_next(&qli);
+        if (strcmp(name, t->name)==0) {
+            return t;
+        }
+    }
+    return 0;
+}
+
+void free_regions(void) {
+    ql_foreach(regions, (ql_cb)free_region);
+    ql_free(regions);
+    regions = 0;
+}
+
+void free_terrains(void) {
+    ql_foreach(terrains, (ql_cb)free_terrain);
+    ql_free(terrains);
+    terrains = 0;
 }

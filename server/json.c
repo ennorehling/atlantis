@@ -38,7 +38,7 @@ static cJSON * show_ship(const faction *f, const ship * s) {
     DBG_UNREFERENCED_PARAMETER(f);
     json = cJSON_CreateObject();
     cJSON_AddNumberToObject(json, "id", s->no);
-    cJSON_AddStringToObject(json, "type", shiptypenames[s->type]);
+    cJSON_AddStringToObject(json, "type", s->type->name);
     if ((str = ship_getname(s))!=0) {
         cJSON_AddStringToObject(json, "name", str);
     }
@@ -165,7 +165,8 @@ static cJSON * show_exit(const faction *f, const region * r, int d) {
     json = cJSON_CreateObject();
     strncpy(buf, keywords[directions[d]], sizeof(buf));
     cJSON_AddStringToObject(json, "direction", rtl_strlwr(buf));
-    cJSON_AddStringToObject(json, "terrain", terrainnames[rn->terrain]);
+    cJSON_AddNumberToObject(json, "id", r->uid);
+    cJSON_AddStringToObject(json, "terrain", rn->terrain->name);
     return json;
 }
 
@@ -175,16 +176,19 @@ static cJSON * show_region(const faction *f, region * r) {
     const char * str;
     ql_iter qli;
     unit *u;
-    
-    x = (r->x - f->origin_x + config.width) % config.width;
-    y = (r->y - f->origin_y + config.height) % config.height;
+
+    x = r->x - f->origin_x;
+    y = r->y - f->origin_y;
+    coor_transform(config.transform, &x, &y);
+
     json = cJSON_CreateObject();
-    if (r->terrain != T_OCEAN) {
+    if (!region_isocean(r)) {
         if ((str = region_getname(r))!=0) {
             cJSON_AddStringToObject(json, "name", str);
         }
     }
-    cJSON_AddStringToObject(json, "terrain", terrainnames[r->terrain]);
+    cJSON_AddStringToObject(json, "terrain", r->terrain->name);
+    cJSON_AddNumberToObject(json, "id", r->uid);
     cJSON_AddNumberToObject(json, "x", x);
     cJSON_AddNumberToObject(json, "y", y);
     if (r->peasants) {

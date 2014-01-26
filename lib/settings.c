@@ -1,6 +1,7 @@
 #include "settings.h"
 
 #include "region.h"
+#include "ship.h"
 #include "parser.h"
 
 #include <stream.h>
@@ -14,12 +15,36 @@ struct settings config;
 void read_config_json(cJSON *json) {
     cJSON *item;
     
+    item = cJSON_GetObjectItem(json, "coordinates");
+    if (item && item->type == cJSON_String) {
+        if (strcmp(item->valuestring, "torus")==0) {
+            config.transform = COOR_TORUS;
+        }
+        else if (strcmp(item->valuestring, "alh")==0) {
+            config.transform = COOR_ALH;
+        }
+        else if (strcmp(item->valuestring, "eressea")==0) {
+            config.transform = COOR_ERESSEA;
+        } else {
+            config.transform = COOR_NONE;
+        }
+    }
+
+    item = cJSON_GetObjectItem(json, "startmoney");
+    if (item && item->type == cJSON_Number) {
+        config.startmoney = item->valueint;
+    }
+    item = cJSON_GetObjectItem(json, "startmen");
+    if (item && item->type == cJSON_Number) {
+        config.startmen = item->valueint;
+    }
+
     item = cJSON_GetObjectItem(json, "width");
-    if (item) {
+    if (item && item->type == cJSON_Number) {
         config.width = item->valueint;
     }
     item = cJSON_GetObjectItem(json, "height");
-    if (item) {
+    if (item && item->type == cJSON_Number) {
         config.height = item->valueint;
     }
     item = cJSON_GetObjectItem(json, "stacks");
@@ -41,32 +66,54 @@ void read_config_json(cJSON *json) {
     if (item && item->type == cJSON_Number) {
         config.upkeep = item->valueint;
     }
+    item = cJSON_GetObjectItem(json, "ships");
+    if (item && item->type == cJSON_Array) {
+        cJSON *j, *c;
+        for (j=item->child;j;j=j->next) {
+            if (j->type==cJSON_Object) {
+                c = cJSON_GetObjectItem(j, "name");
+                if (c && c->type==cJSON_String) {
+                    ship_type *stype = get_shiptype_by_name(c->valuestring);
+                    if (!stype) {
+                        stype = create_shiptype(c->valuestring);
+                    }
+                    if ((c = cJSON_GetObjectItem(j, "capacity"))!=0 && c->type==cJSON_Number) {
+                        stype->capacity = c->valueint;
+                    }
+                    if ((c = cJSON_GetObjectItem(j, "cost"))!=0 && c->type==cJSON_Number) {
+                        stype->cost = c->valueint;
+                    }
+                    if ((c = cJSON_GetObjectItem(j, "speed"))!=0 && c->type==cJSON_Number) {
+                        stype->speed = c->valueint;
+                    }
+                }
+            }
+        }
+    }
     item = cJSON_GetObjectItem(json, "terrain");
     if (item && item->type == cJSON_Array) {
-        cJSON *t, *c;
-        for (t=item->child;t;t=t->next) {
-            if (t->type==cJSON_Object) {
-                c = cJSON_GetObjectItem(t, "name");
+        cJSON *j, *c;
+        for (j=item->child;j;j=j->next) {
+            if (j->type==cJSON_Object) {
+                c = cJSON_GetObjectItem(j, "name");
                 if (c && c->type==cJSON_String) {
-                    int i;
-                    for (i=0;i!=NUMTERRAINS;++i) {
-                        if (strcmp(terrainnames[i], c->valuestring)==0) {
-                            break;
-                        }
+                    terrain *t = get_terrain_by_name(c->valuestring);
+                    if (!t) {
+                        t = create_terrain(c->valuestring);
                     }
-                    if (i!=NUMTERRAINS) {
-                        if ((c = cJSON_GetObjectItem(t, "work"))!=0 && c->type==cJSON_Number) {
-                            foodproductivity[i] = c->valueint;
+                    if (t) {
+                        if ((c = cJSON_GetObjectItem(j, "work"))!=0 && c->type==cJSON_Number) {
+                            t->foodproductivity = c->valueint;
                         }
-                        if ((c = cJSON_GetObjectItem(t, "food"))!=0 && c->type==cJSON_Number) {
-                            maxfoodoutput[i] = c->valueint;
+                        if ((c = cJSON_GetObjectItem(j, "food"))!=0 && c->type==cJSON_Number) {
+                            t->maxfoodoutput = c->valueint;
                         }
-                        if ((c = cJSON_GetObjectItem(t, "output"))!=0 && c->type==cJSON_Array) {
-                            int j;
-                            for (j=0;j!=4;++j) {
-                                cJSON *e = cJSON_GetArrayItem(c, j);
+                        if ((c = cJSON_GetObjectItem(j, "output"))!=0 && c->type==cJSON_Array) {
+                            int k;
+                            for (k=0;k!=4;++k) {
+                                cJSON *e = cJSON_GetArrayItem(c, k);
                                 if (e && e->type==cJSON_Number) {
-                                    maxoutput[i][j] = e->valueint;
+                                    t->maxoutput[k] = e->valueint;
                                 }
                             }
                         }

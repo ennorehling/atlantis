@@ -9,7 +9,6 @@
 #ifndef ATL_SHIP_H
 #define ATL_SHIP_H
 
-#include "settings.h"
 #include "bool.h"
 
 struct ship;
@@ -22,22 +21,36 @@ typedef enum {
 } ship_t;
 #define NUMSHIPS 3
 
+extern const char *shipnames[];
+extern struct quicklist *shiptypes;
+
+typedef struct ship_type {
+    char *name;
+    int capacity;
+    int cost;
+    int speed;
+} ship_type;
+
 typedef struct ship {
+    const struct ship_type *type;
     int no;
     char *name_;
     char *display_;
-    ship_t type;
     int left;
 } ship;
 
-extern const char *shiptypenames[];
-
-struct ship *create_ship(int no, ship_t type);
+struct ship *create_ship(int no, const struct ship_type *type);
 void free_ship(struct ship *s);
 
 const char * ship_getname(const struct ship *self);
 void ship_setname(struct ship *self, const char *name);
 const char * ship_getdisplay(const struct ship *self);
 void ship_setdisplay(struct ship *self, const char *display);
+int ship_speed(const struct ship *sh);
+
+struct ship_type *create_shiptype(const char *name);
+void free_shiptype(struct ship_type *st);
+struct ship_type *get_shiptype(ship_t type);
+struct ship_type *get_shiptype_by_name(const char *name);
 
 #endif
