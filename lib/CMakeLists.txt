@@ -37,15 +37,15 @@ FILE (GLOB LIB_HDR rtl.h rtl.c bool.h atlantis.h report.h parser.h game.h
     settings.h skills.h items.h)
 FILE (GLOB LIB_SRC atlantis.c report.c parser.c game.c combat.c battle.c
 	building.c ship.c unit.c region.c faction.c settings.c)
-set (BIND_SRC atlantis.pkg.c)
 
 set (ATLANTIS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "atlantis headers")
 set (ATLANTIS_LIBRARIES atlantis ${STORAGE_LIBRARIES} ${QUICKLIST_LIBRARIES} ${CRYPTO_LIBRARIES} ${CJSON_LIBRARIES} CACHE INTERNAL "atlantis libraries")
 
+IF (TOLUA++_FOUND)
+set (BIND_SRC atlantis.pkg.c)
 add_library (atlantis-lua SHARED ${BIND_SRC} ${LIB_SRC} ${LIB_HDR})
 
-IF (TOLUA++_FOUND)
-TARGET_LINK_LIBRARIES (atlantis-lua ${TOLUA++_LIBRARIES} ${LUA_LIBRARIES} ${ATLANTIS_LIBRARIES})
+target_link_libraries (atlantis-lua ${TOLUA++_LIBRARIES} ${LUA_LIBRARIES} ${ATLANTIS_LIBRARIES})
 set_target_properties(atlantis-lua PROPERTIES OUTPUT_NAME atlantis)
 set_target_properties(atlantis-lua PROPERTIES PREFIX "")
 ENDIF(TOLUA++_FOUND)
