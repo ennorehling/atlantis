@@ -57,7 +57,7 @@ static void svc_region_destroy(HREGION h)
 {
     region *r = (region*)h.ptr;
     quicklist **qlp = &regions;
-    int qi;
+    int qi = 0;
 
     if (ql_find(qlp, &qi, r, 0)) {
         ql_delete(qlp, qi);
