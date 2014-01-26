@@ -6,13 +6,13 @@
 	url = git://github.com/badgerman/cmake.git
 [submodule "storage"]
 	path = storage
-	url = git://github.com:badgerman/storage.git
+	url = git://github.com/badgerman/storage.git
 [submodule "crypto"]
 	path = crypto
 	url = git://github.com/badgerman/crypto.git
 [submodule "cJSON"]
 	path = cJSON
-	url = git://github.com:badgerman/cJSON.git
+	url = git://github.com/badgerman/cJSON.git
 [submodule "quicklist"]
 	path = quicklist
-	url = git://github.com:badgerman/quicklist.git
+	url = git://github.com/badgerman/quicklist.git
