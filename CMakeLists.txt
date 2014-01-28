@@ -88,9 +88,9 @@ MACRO(TOLUA_BINDING PKGFILE FILES)
   )
 ENDMACRO(TOLUA_BINDING)
                         
-TOLUA_BINDING(atlantis.pkg luabind.h atlantis.h faction.h region.h unit.h ship.h building.h game.h)
+TOLUA_BINDING(bindings.pkg luabind.h atlantis.h faction.h region.h unit.h ship.h building.h game.h)
 
-set (BIND_SRC atlantis.pkg.c luabind.c luabind.h)
+set (BIND_SRC bindings.pkg.c luabind.c luabind.h)
 add_library (atlantis-lua SHARED ${BIND_SRC})
 target_link_libraries (atlantis-lua ${TOLUA++_LIBRARIES} ${LUA_LIBRARIES} ${ATLANTIS_LIBRARIES})
 set_target_properties(atlantis-lua PROPERTIES OUTPUT_NAME atlantis)
