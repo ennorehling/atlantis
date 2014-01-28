@@ -29,7 +29,6 @@ int getitem(void);
 int getskill(void);
 int getspell(void);
 char *igetstr(const char *s);
-char *getstr(void);
 int findspell(const char *s);
 
 #endif

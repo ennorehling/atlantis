@@ -122,7 +122,7 @@ keyword_t igetkeyword(const char *s)
 
 keyword_t getkeyword(void)
 {
-    return (keyword_t)findkeyword(getstr());
+    return (keyword_t)findkeyword(igetstr(0));
 }
 
 int findstr(const char **v, const char *s, int n)
@@ -148,7 +148,7 @@ int findskill(const char *s)
 
 int getskill(void)
 {
-    return findskill(getstr());
+    return findskill(igetstr(0));
 }
 
 int finditem(const char *s)
@@ -169,7 +169,7 @@ int finditem(const char *s)
 
 int getitem(void)
 {
-    return finditem(getstr());
+    return finditem(igetstr(0));
 }
 
 int findspell(const char *s)
@@ -179,7 +179,7 @@ int findspell(const char *s)
 
 int getspell(void)
 {
-    return findspell(getstr());
+    return findspell(igetstr(0));
 }
 
 char *igetstr(const char *s1)
@@ -206,17 +206,12 @@ char *igetstr(const char *s1)
     return buf;
 }
 
-char *getstr(void)
-{
-    return igetstr(0);
-}
-
 unit *getnewunit(region * r, const faction * f)
 {
     int n;
     unit *u;
 
-    n = atoi(getstr());
+    n = atoi(igetstr(0));
 
     if (n <= 0) {
         return 0;
@@ -234,7 +229,7 @@ unit *getunitg(region *r, const faction *f)
 {
     const char *s;
 
-    s = getstr();
+    s = igetstr(0);
 
     if (!_strcmpl(s, "new")) {
         return getnewunit(r, f);
@@ -248,7 +243,7 @@ int getunit(region * r, const faction *f, unit **uptr)
     const char *s;
     unit *u;
 
-    s = getstr();
+    s = igetstr(0);
 
     if (!_strcmpl(s, "new")) {
         unit *u = getnewunit(r, f);

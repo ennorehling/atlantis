@@ -153,4 +153,5 @@ int read_config(const char *cfgfile) {
         fprintf(stderr, "could not open configuration file '%s'\n", cfgfile);
         return errno ? errno : -1;
     }
+    return 0;
 }

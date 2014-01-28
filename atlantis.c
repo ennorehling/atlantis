@@ -886,7 +886,7 @@ faction *findfaction(int n)
 
 faction *getfaction(void)
 {
-    return findfaction(atoi(getstr()));
+    return findfaction(atoi(igetstr(0)));
 }
 
 building *findbuilding(int n)
@@ -911,7 +911,7 @@ building *getbuilding(region * r)
     int n;
     ql_iter qli;
 
-    n = atoi(getstr());
+    n = atoi(igetstr(0));
 
     for (qli=qli_init(&r->buildings);qli_more(qli);) {
         building *b = (building *)qli_next(&qli);
@@ -945,7 +945,7 @@ ship *getship(region * r)
     int n;
     ql_iter sli;
 
-    n = atoi(getstr());
+    n = atoi(igetstr(0));
 
     for (sli = qli_init(&r->ships); qli_more(sli);) {
         ship *sh = (ship *)qli_next(&sli);
@@ -1712,14 +1712,16 @@ void read_orders(stream * strm)
         const char * passwd;
         if (kwd == K_FACTION) {
             bool check;
+            const char *s = 0;
 NEXTPLAYER:
-            i = atoi(getstr());
+            s = igetstr(0);
+            i = s ? atoi(s) : 0;
             f = findfaction(i);
             if (!f) {
                 printf("Invalid faction %d.\n", i);
                 continue;
             }
-            passwd = getstr();
+            passwd = igetstr(0);
             if (passwd[0]=='\"') {
               strcpy(buf2, passwd+1);
               passwd = strtok(buf2, "\"");
@@ -1756,7 +1758,7 @@ NEXTPLAYER:
                     }
                     if (kwd == K_UNIT) {
 NEXTUNIT:
-                        i = atoi(getstr());
+                        i = atoi(igetstr(0));
                         u = (i>0) ? findunitg(i) : 0;
 
                         if (u && u->faction == f) {
@@ -2644,9 +2646,9 @@ void process_form(unit *u, region *r) {
             while (findunitg(nextunitid)) ++nextunitid;
             u2 = create_unit(u->faction, nextunitid++);
 
-            u2->alias = atoi(getstr());
+            u2->alias = atoi(igetstr(0));
             if (u2->alias == 0)
-                u2->alias = atoi(getstr());
+                u2->alias = atoi(igetstr(0));
 
             u2->building = u->building;
             u2->ship = u->ship;
@@ -2672,7 +2674,7 @@ void process_form(unit *u, region *r) {
 }
 
 static const char * getname(unit * u, const char *ord) {
-    const char *s2 = getstr();
+    const char *s2 = igetstr(0);
     int i;
 
     if (!s2[0]) {
@@ -3277,14 +3279,14 @@ void processorders(void)
                     break;
     
                 case K_PASSWORD:
-                    s = getstr();
+                    s = igetstr(0);
                     faction_setpassword(u->faction, s);
                     sprintf(buf2, "The faction's password was changed to '%s'.", s);
                     addmessage(u->faction, buf2);
                     break;
 
                 case K_ADDRESS:
-                    s = getstr();
+                    s = igetstr(0);
 
                     if (!s[0]) {
                         mistakes(u, s, "No address given");
@@ -3312,7 +3314,7 @@ void processorders(void)
                     if (f == u->faction)
                         break;
 
-                    if (atoi(getstr())>0) {
+                    if (atoi(igetstr(0))>0) {
                         ql_set_insert(&u->faction->allies.factions, f);
                     } else {
                         ql_set_remove(&u->faction->allies.factions, f);
@@ -3320,11 +3322,11 @@ void processorders(void)
                     break;
 
                 case K_BEHIND:
-                    u->behind = atoi(getstr()) != 0;
+                    u->behind = atoi(igetstr(0)) != 0;
                     break;
 
                 case K_COMBAT:
-                    s = getstr();
+                    s = igetstr(0);
 
                     if (!s[0]) {
                         u->combatspell = -1;
@@ -3361,7 +3363,7 @@ void processorders(void)
                             break;
                         }
 
-                        building_setdisplay(u->building, getstr());
+                        building_setdisplay(u->building, igetstr(0));
                         break;
 
                     case K_SHIP:
@@ -3375,11 +3377,11 @@ void processorders(void)
                             break;
                         }
 
-                        ship_setdisplay(u->ship, getstr());
+                        ship_setdisplay(u->ship, igetstr(0));
                         break;
 
                     case K_UNIT:
-                        unit_setdisplay(u, getstr());
+                        unit_setdisplay(u, igetstr(0));
                         break;
 
                     default:
@@ -3390,7 +3392,7 @@ void processorders(void)
                     if (!sn)
                         break;
 
-                    sx = getstr();
+                    sx = igetstr(0);
 
                     i = strlen(sx);
                     if (i && sx[i - 1] == '.')
@@ -3400,7 +3402,7 @@ void processorders(void)
                     break;
 
                 case K_GUARD:
-                    if (atoi(getstr()) == 0)
+                    if (atoi(igetstr(0)) == 0)
                         u->guard = false;
                     break;
 
@@ -3557,7 +3559,7 @@ void processorders(void)
                         break;
                     }
 
-                    s = getstr();
+                    s = igetstr(0);
                     sp = findspell(s);
 
                     if (sp >= 0) {
@@ -3651,7 +3653,7 @@ void processorders(void)
                         break;
                     }
 
-                    n = atoi(getstr());
+                    n = atoi(igetstr(0));
 
                     if (n > u->money) {
                         n = u->money;
@@ -3739,7 +3741,7 @@ void processorders(void)
                         break;
                     }
 
-                    n = atoi(getstr());
+                    n = atoi(igetstr(0));
 
                     if (n > u->number)
                         n = u->number;
@@ -3895,7 +3897,7 @@ void processorders(void)
                 const char *s = (const char *)qli_next(&oli);
                 switch (igetkeyword(s)) {
                 case K_GUARD:
-                    if (atoi(getstr())) {
+                    if (atoi(igetstr(0))) {
                         u->guard = true;
                     }
                     break;
@@ -3904,7 +3906,7 @@ void processorders(void)
                     if (availmoney < RECRUITCOST)
                         break;
 
-                    n = atoi(getstr());
+                    n = atoi(igetstr(0));
                     if (n<=0) break;
 
                     if (u->skills[SK_MAGIC] && magicians(u->faction) + n > 3) {
@@ -3959,7 +3961,7 @@ void processorders(void)
                 const char *s = (const char *)qli_next(&oli);
                 switch (igetkeyword(s)) {
                 case K_QUIT:
-                    if (atoi(getstr()) != u->faction->no) {
+                    if (atoi(igetstr(0)) != u->faction->no) {
                         mistakes(u, s, "Correct faction number not given");
                         break;
                     }
@@ -4108,7 +4110,7 @@ void processorders(void)
                     break;
                 }
 
-                i = atoi(getstr());
+                i = atoi(igetstr(0));
 
                 if (i > effskill(u, SK_MAGIC) / 2) {
                     mistakeu(u, "Insufficient Magic skill - highest available level researched");
