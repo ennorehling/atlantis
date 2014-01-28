@@ -95,6 +95,7 @@ add_library (atlantis-lua SHARED ${BIND_SRC})
 target_link_libraries (atlantis-lua ${TOLUA++_LIBRARIES} ${LUA_LIBRARIES} ${ATLANTIS_LIBRARIES})
 set_target_properties(atlantis-lua PROPERTIES OUTPUT_NAME atlantis)
 set_target_properties(atlantis-lua PROPERTIES PREFIX "")
+
 ENDIF(TOLUA++_FOUND)
 
 ADD_EXECUTABLE (server server.c json.c json.h)
