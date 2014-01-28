@@ -32,8 +32,8 @@ int effskill(const struct unit * u, int i);
 int lovar(int n);
 bool isallied(const struct unit * u, const struct unit * u2);
 
-void read_orders(struct stream * strm);
-void readorders(const char *filename);
+int read_orders(struct stream * strm);
+int readorders(const char *filename);
 void processorders(void);
 void process_form(struct unit *u, struct region *r);
 void report(struct faction * f);
@@ -42,8 +42,8 @@ const char *gamedate(void);
 void initgame(void);
 int writegame(void);
 int readgame(void);
-int read_game(int turn);
-int write_game(int turn);
+int read_game(const char *filenam);
+int write_game(const char *filename);
 
 void writemap(FILE *);
 void writesummary(void);

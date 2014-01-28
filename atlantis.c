@@ -1689,18 +1689,24 @@ int getbuf(stream * strm, char *buf, size_t size)
     return err;
 }
 
-void readorders(const char * filename)
+int readorders(const char * filename)
 {
-  FILE * F;
-  stream strm;
+    FILE * F;
+    stream strm;
+    int err;
   
-  F = fopen(filename, "r");
-  fstream_init(&strm, F);
-  read_orders(&strm);
-  fclose(F);
+    F = fopen(filename, "r");
+    if (!F) {
+        perror(filename);
+        return errno ? errno : -1;
+    }
+    fstream_init(&strm, F);
+    err = read_orders(&strm);
+    fclose(F);
+    return err;
 }
 
-void read_orders(stream * strm)
+int read_orders(stream * strm)
 {
     int i, j;
     faction *f;
@@ -1860,7 +1866,7 @@ NEXTUNIT:
         }
 
     }
-
+    return 0;
 }
 
 void update_world(int minx, int miny, int maxx, int maxy) {
@@ -4549,10 +4555,13 @@ void rqstrlist(storage * store, quicklist ** qlp)
 }
 
 int readgame(void) {
-  return read_game(turn);
+    char buf[64];
+    sprintf(buf, "data/%d", turn);
+    printf("Reading turn %d...\n", turn);
+    return read_game(buf);
 }
 
-int read_game(int turn)
+int read_game(const char *filename)
 {
     FILE * F;
     int i, n, n2;
@@ -4571,10 +4580,9 @@ int read_game(int turn)
     miny = INT_MAX;
     maxy = INT_MIN;
 
-    sprintf(buf, "data/%d", turn);
-    F = fopen(buf, "rb");
+    F = fopen(filename, "rb");
     if (!F) {
-        perror(buf);
+        perror(filename);
         return -1;
     }
     store_init(&store, F);
@@ -4911,10 +4919,14 @@ void wqstrlist(storage * store, quicklist * ql)
 
 int writegame(void)
 {
-  return write_game(turn);
+    char buf[64];
+    sprintf(buf, "data/%d", turn);
+    printf("Writing turn %d...\n", turn);
+
+    return write_game(buf);
 }
 
-int write_game(int turn)
+int write_game(const char *filename)
 {
     storage store;
     int i;
@@ -4926,12 +4938,9 @@ int write_game(int turn)
         features |= HAS_STACKS;
     }
 
-    sprintf(buf, "data/%d", turn);
-    printf("Writing turn %d...\n", turn);
-
-    F = fopen(buf, "wb");
+    F = fopen(filename, "wb");
     if (!F) {
-        perror(buf);
+        perror(filename);
         return -1;
     }
     store_init(&store, F);
