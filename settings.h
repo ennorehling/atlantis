@@ -36,6 +36,7 @@ typedef struct settings {
 extern struct settings config;
 
 void read_config_json(struct cJSON*);
+int read_config(const char *filename);
 
 #define NAMESIZE 81
 #define DISPLAYSIZE 161

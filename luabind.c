@@ -3,6 +3,8 @@
 #include "unit.h"
 #include "faction.h"
 
+#include <quicklist.h>
+
 #include <lua.h>
 #include <tolua++.h>
 
@@ -17,24 +19,75 @@ const char * get_region_terrain(const region *r) {
     return r->terrain ? r->terrain->name : 0;
 }
 
+region *regions_create(int x, int y, const char *terrain) {
+    const struct terrain *t = get_terrain_by_name(terrain);
+    region *r = create_region(0, x, y, t);
+    return r;
+}
+
+static int tolua_quicklist_iter(lua_State * L)
+{
+  quicklist **qlp = (quicklist **) lua_touserdata(L, lua_upvalueindex(1));
+  quicklist *ql = *qlp;
+  if (ql != NULL) {
+    int index = lua_tointeger(L, lua_upvalueindex(2));
+    const char *type = lua_tostring(L, lua_upvalueindex(3));
+    void *data = ql_get(ql, index);
+    tolua_pushusertype(L, data, type);
+    ql_advance(qlp, &index, 1);
+    tolua_pushnumber(L, index);
+    lua_replace(L, lua_upvalueindex(2));
+    return 1;
+  }
+  return 0;
+}
+
+int tolua_quicklist_push(struct lua_State *L, const char *list_type,
+  const char *elem_type, struct quicklist *list)
+{
+  if (list) {
+    quicklist **qlist_ptr =
+      (quicklist **) lua_newuserdata(L, sizeof(quicklist *));
+    *qlist_ptr = list;
+    luaL_getmetatable(L, list_type);
+    lua_setmetatable(L, -2);
+    lua_pushnumber(L, 0);
+    lua_pushstring(L, elem_type);
+    lua_pushcclosure(L, tolua_quicklist_iter, 3);       /* OBS: this closure has multiple upvalues (list, index, type_name) */
+  } else {
+    lua_pushnil(L);
+  }
+  return 1;
+}
+
 static int tolua_get_regions(lua_State * L)
 {
-  region **region_ptr = (region **) lua_newuserdata(L, sizeof(region *));
-  luaL_getmetatable(L, "region");
-  lua_setmetatable(L, -2);
-  *region_ptr = regions;
-  lua_pushcclosure(L, tolua_regionlist_next, 1);
-  return 1;
+    return tolua_quicklist_push(L, "region_list", "region", regions);
+}
+
+static int tolua_get_factions(lua_State * L)
+{
+    return tolua_quicklist_push(L, "faction_list", "faction", factions);
 }
 
 extern int tolua_bindings_open(lua_State* tolua_S);
 
 TOLUA_API int luaopen_atlantis (lua_State* tolua_S) {
     tolua_open(tolua_S);
-    tolua_module(tolua_S,NULL,0);
-    tolua_beginmodule(tolua_S,NULL);
-    tolua_beginmodule(tolua_S,"atlantis");
-    tolua_variable(tolua_S, "regions", tolua_get_regions, NULL);
+    tolua_usertype(tolua_S, "faction_list");
+    tolua_usertype(tolua_S, "region_list");
+    tolua_module(tolua_S, NULL, 0);
+    tolua_beginmodule(tolua_S, NULL);
+    tolua_module(tolua_S, "atlantis", 1);
+    tolua_beginmodule(tolua_S, "atlantis");
+    tolua_module(tolua_S, "regions", 1);
+    tolua_beginmodule(tolua_S, "regions");
+    tolua_variable(tolua_S, "all", tolua_get_regions, NULL);
+    tolua_endmodule(tolua_S);
+    tolua_module(tolua_S, "factions", 1);
+    tolua_beginmodule(tolua_S, "factions");
+    tolua_variable(tolua_S, "all", tolua_get_factions, NULL);
+    tolua_endmodule(tolua_S);
     tolua_endmodule(tolua_S);
     tolua_endmodule(tolua_S);
     return tolua_bindings_open(tolua_S);

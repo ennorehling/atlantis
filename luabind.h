@@ -18,4 +18,6 @@ struct unit;
 #define set_unit_name(self, n) unit_setname(self, n)
 #define get_unit_name(self) unit_getname(self)
 
+struct region *regions_create(int x, int y, const char *terrain);
+
 #endif

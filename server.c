@@ -136,30 +136,8 @@ int main(int argc, char **argv)
     }
 
     if (cfgfile) {
-        FILE * F = fopen(cfgfile, "r");
-        if (F) {
-            cJSON *json;
-            char *data;
-            size_t len;
-            fseek(F, 0,SEEK_END);
-            len = ftell(F);
-            fseek(F,0,SEEK_SET);
-            data = (char *)malloc(len+1);
-            if (data) {
-                fread(data,1,len,F);
-            }
-            json = cJSON_Parse(data);
-            if (json) {
-                read_config_json(json);
-                cJSON_Delete(json);
-            } else {
-                fprintf(stderr, "could not parse configuration file '%s'\n", cfgfile);
-            }
-            free(data);
-        } else {
-            fprintf(stderr, "could not open configuration file '%s'\n", cfgfile);
-            return errno ? errno : -1;
-        }
+        int err = read_config(cfgfile);
+        if (err) return err;
     }
     initgame();
     if (orders) {

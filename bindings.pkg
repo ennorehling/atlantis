@@ -15,12 +15,24 @@ module atlantis {
         tolua_outside tolua_property char * unit_name @ name;
     };
     struct region {
+        int uid @ id;
         int x, y;
         tolua_outside tolua_property char * region_name @ name;
         tolua_outside tolua_property char * region_terrain @ terrain;
     };
+    module regions {
+        // list(region *) all;
+        region *regions_create @ create(int x, int y, const char *terrain);
+        region *findregion @ get(int x, int y);
+    }
+    module factions {
+        // list(faction *) all;
+        faction *create_faction @ create(int no);
+        faction *findfaction @ get(int id);
+    }
     int turn;
     void cleargame @ free_game(bool config);
+    int read_config(const char *filename);
     void read_game(int turn);
     void write_game(int turn);
     void report @ write_report(faction *f);
