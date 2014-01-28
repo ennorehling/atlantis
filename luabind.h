@@ -13,6 +13,8 @@ const char * get_region_terrain(const struct region *r);
 struct faction;
 #define set_faction_name(self, n) faction_setname(self, n)
 #define get_faction_name(self) faction_getname(self)
+#define set_faction_addr(self, n) faction_setaddr(self, n)
+#define get_faction_addr(self) faction_getaddr(self)
 
 struct unit;
 #define set_unit_name(self, n) unit_setname(self, n)

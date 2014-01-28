@@ -9,6 +9,7 @@ module atlantis {
     struct faction {
         int no @ id;
         tolua_outside tolua_property char * faction_name @ name;
+        tolua_outside tolua_property char * faction_addr @ email;
     };
     struct unit {
     		int no @ id;
