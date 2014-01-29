@@ -4602,14 +4602,13 @@ int read_game(const char *filename)
     }
     store_init(&store, F);
 
-    printf("Reading turn %d...\n", turn);
-
     store.api->r_int(store.handle, &n);
     if (n==-1) {
         store.api->r_int(store.handle, &version);
         store.api->r_int(store.handle, &n);
     }
     assert(version<=VER_CURRENT);
+    printf("Reading turn %d...\n", n);
     if (turn!=n) return -1;
     if (version>=VER_FEATURES) {
         store.api->r_int(store.handle, &features);
