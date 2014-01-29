@@ -45,7 +45,6 @@ static int tolua_quicklist_iter(lua_State * L)
 int tolua_quicklist_push(struct lua_State *L, const char *list_type,
   const char *elem_type, struct quicklist *list)
 {
-  if (list) {
     quicklist **qlist_ptr =
       (quicklist **) lua_newuserdata(L, sizeof(quicklist *));
     *qlist_ptr = list;
@@ -54,10 +53,33 @@ int tolua_quicklist_push(struct lua_State *L, const char *list_type,
     lua_pushnumber(L, 0);
     lua_pushstring(L, elem_type);
     lua_pushcclosure(L, tolua_quicklist_iter, 3);       /* OBS: this closure has multiple upvalues (list, index, type_name) */
-  } else {
-    lua_pushnil(L);
-  }
-  return 1;
+    return 1;
+}
+
+static int tolua_unitlist_next(lua_State * L)
+{
+    unit **unit_ptr = (unit **) lua_touserdata(L, lua_upvalueindex(1));
+    unit *u = *unit_ptr;
+    if (!u) {
+        return 0;                   /* no more values to return */
+    }
+    tolua_pushusertype(L, (void *)u, "unit");
+    *unit_ptr = u->next;
+    return 1;
+}
+
+static int tolua_get_region_units(lua_State * L)
+{
+    region* self = (region*)  tolua_tousertype(L, 1, 0);
+#ifndef TOLUA_RELEASE
+    if (!self) tolua_error(L, "invalid 'self' in accessing variable 'units'",NULL);
+#endif
+    unit **unit_ptr = (unit **) lua_newuserdata(L, sizeof(unit *));
+    luaL_getmetatable(L, "unit");
+    lua_setmetatable(L, -2);
+    *unit_ptr = self->units;
+    lua_pushcclosure(L, tolua_unitlist_next, 1);
+    return 1;
 }
 
 static int tolua_get_regions(lua_State * L)
@@ -73,7 +95,7 @@ static int tolua_get_factions(lua_State * L)
 extern int tolua_bindings_open(lua_State* tolua_S);
 
 TOLUA_API int luaopen_atlantis (lua_State* tolua_S) {
-    tolua_open(tolua_S);
+    tolua_bindings_open(tolua_S);
     tolua_usertype(tolua_S, "faction_list");
     tolua_usertype(tolua_S, "region_list");
     tolua_module(tolua_S, NULL, 0);
@@ -88,7 +110,10 @@ TOLUA_API int luaopen_atlantis (lua_State* tolua_S) {
     tolua_beginmodule(tolua_S, "factions");
     tolua_variable(tolua_S, "all", tolua_get_factions, NULL);
     tolua_endmodule(tolua_S);
+    tolua_beginmodule(tolua_S, "region");
+    tolua_variable(tolua_S, "units", tolua_get_region_units, NULL);
     tolua_endmodule(tolua_S);
     tolua_endmodule(tolua_S);
-    return tolua_bindings_open(tolua_S);
+    tolua_endmodule(tolua_S);
+    return 1;
 };

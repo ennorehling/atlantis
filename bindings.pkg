@@ -6,14 +6,16 @@ $#include "region.h"
 $#include "game.h"
 
 module atlantis {
+    struct unit {
+    		int no @ id;
+        tolua_readonly faction *faction;
+        tolua_readonly region *region;
+        tolua_outside tolua_property char * unit_name @ name;
+    };
     struct faction {
         int no @ id;
         tolua_outside tolua_property char * faction_name @ name;
         tolua_outside tolua_property char * faction_addr @ email;
-    };
-    struct unit {
-    		int no @ id;
-        tolua_outside tolua_property char * unit_name @ name;
     };
     struct region {
         int uid @ id;
