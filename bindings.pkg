@@ -36,7 +36,7 @@ module atlantis {
     int read_config(const char *filename);
 	  int read_game(const char *filename);
     int write_game(const char *filename);
-    void report @ write_report(faction *f);
+    void write_reports(faction *f);
     int readorders @ read_orders(const char *filename);
     void processorders @ process(void);
 }

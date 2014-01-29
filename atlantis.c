@@ -22,6 +22,7 @@
 #include "report.h"
 #include "combat.h"
 #include "game.h"
+#include "json.h"
 
 #include "rtl.h"
 #include "bool.h"
@@ -2138,7 +2139,7 @@ void rpunit(FILE * F, const faction * f, region * r, const unit * u, int indent,
     freestrlist(S);
 }
 
-void report(faction * f)
+static void report(faction * f)
 {
     FILE * F;
     int i;
@@ -2378,6 +2379,20 @@ void report(faction * f)
     }
 
     fclose(F);
+}
+
+void write_reports(faction * f) {
+    cJSON * json;
+    char buf[256];
+    stream strm;
+    
+    report(f);
+    sprintf(buf, "reports/%d-%d.json", turn, f->no);
+    fstream_init(&strm, fopen(buf, "w"));
+    json = json_report(f);
+    json_write(json, &strm);
+    cJSON_Delete(json);
+    fstream_done(&strm);
 }
 
 int norders;

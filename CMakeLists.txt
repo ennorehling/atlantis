@@ -64,9 +64,9 @@ ADD_TEST (rtl test_rtl)
 
 FILE (GLOB LIB_HDR rtl.h rtl.c bool.h atlantis.h report.h parser.h game.h
 	combat.h battle.h building.h ship.h unit.h region.h faction.h keywords.h
-    settings.h skills.h items.h)
+    settings.h skills.h items.h json.h)
 FILE (GLOB LIB_SRC atlantis.c report.c parser.c game.c combat.c battle.c
-	building.c ship.c unit.c region.c faction.c settings.c)
+	building.c ship.c unit.c region.c faction.c settings.c json.c)
 
 set (ATLANTIS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "atlantis headers")
 set (ATLANTIS_LIBRARIES atlantis ${STORAGE_LIBRARIES} ${QUICKLIST_LIBRARIES} ${CRYPTO_LIBRARIES} ${CJSON_LIBRARIES} CACHE INTERNAL "atlantis libraries")
@@ -98,7 +98,7 @@ set_target_properties(atlantis-lua PROPERTIES PREFIX "")
 
 ENDIF(TOLUA++_FOUND)
 
-ADD_EXECUTABLE (server server.c json.c json.h)
+ADD_EXECUTABLE (server server.c)
 TARGET_LINK_LIBRARIES(server ${ATLANTIS_LIBRARIES})
 
 ADD_EXECUTABLE (test_server server.test.c json.c json.h)

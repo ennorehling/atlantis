@@ -16,12 +16,13 @@ function main(turn)
         return
     end
     atlantis.process()
+    atlantis.turn = turn+1
     if atlantis.write_game("data/"..(turn+1)..".atl")~=0 then
         print("error writing game data")
         return
     end
     for f in atlantis.factions.all do
-        atlantis.write_report(f)
+        atlantis.write_reports(f)
     end
 end
 

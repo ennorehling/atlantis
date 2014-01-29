@@ -36,7 +36,7 @@ int read_orders(struct stream * strm);
 int readorders(const char *filename);
 void processorders(void);
 void process_form(struct unit *u, struct region *r);
-void report(struct faction * f);
+void write_reports(struct faction * f);
 const char *gamedate(void);
 
 void initgame(void);

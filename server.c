@@ -46,18 +46,7 @@ static void reports(void)
 
     for (fli = qli_init(&factions); qli_more(fli);) {
         faction * f = (faction *)qli_next(&fli);
-        cJSON * json;
-        char buf[256];
-        stream strm;
-
-        sprintf(buf, "reports/%d-%d.json", turn, f->no);
-        fstream_init(&strm, fopen(buf, "w"));
-        json = json_report(f);
-        json_write(json, &strm);
-        cJSON_Delete(json);
-        fstream_done(&strm);
-
-        report(f);
+        write_reports(f);
     }
     F = fopen("send", "w");
     puts("Writing send file...");
