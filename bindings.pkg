@@ -8,6 +8,8 @@ $#include "game.h"
 module atlantis {
     struct unit {
     		int no @ id;
+        int number;
+        int money;
         tolua_readonly faction *faction;
         tolua_readonly region *region;
         tolua_outside tolua_property char * unit_name @ name;
@@ -20,6 +22,8 @@ module atlantis {
     struct region {
         int uid @ id;
         int x, y;
+        int peasants;
+        int money;
         tolua_outside tolua_property char * region_name @ name;
         tolua_outside tolua_property char * region_terrain @ terrain;
     };
