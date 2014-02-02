@@ -4,6 +4,6 @@ rm -f CMakeCache.txt
 cmake .. \
  -DCMAKE_MODULE_PATH=$PWD/../cmake/Modules \
  -DCMAKE_BUILD_TYPE=Debug \
- -DCMAKE_LIBRARY_PATH=/usr/lib/$MACHINE/ \
- -DCMAKE_PREFIX_PATH=$HOME/usr
- 
+ -DCMAKE_LIBRARY_PATH=/usr/lib/$MACHINE/:$HOME/usr/lib:$HOME/usr/lib/$MACHINE \
+ -DCMAKE_INCLUDE_PATH=/usr/include:$HOME/usr/include:$HOME/usr/include/$MACHINE \
+ -DCMAKE_PREFIX_PATH=$HOME/usr:$HOME/usr/local
