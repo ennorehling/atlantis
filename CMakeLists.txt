@@ -8,8 +8,8 @@ IF (MSVC)
     # Force to always compile with W4
     MSVC_SET_WARNING_LEVEL(4)
 ELSEIF(CMAKE_COMPILER_IS_GNUCC)
-    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -Wno-unknown-pragmas -Wpointer-arith -Wno-char-subscripts -Wno-long-long")
-    SET(CMAKE_C_FLAGS "-g")
+#    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -Wno-unknown-pragmas -Wpointer-arith -Wno-char-subscripts -Wno-long-long")
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fPIC")
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 ELSE(MSVC)
     MESSAGE(STATUS "Unknown compiler ${CMAKE_C_COMPILER_ID}")
@@ -93,7 +93,7 @@ TOLUA_BINDING(bindings.pkg luabind.h atlantis.h faction.h region.h unit.h ship.h
 
 set (BIND_SRC bindings.pkg.c luabind.c luabind.h)
 add_library (atlantis-lua SHARED ${BIND_SRC})
-target_link_libraries (atlantis-lua ${TOLUA++_LIBRARIES} ${LUA_LIBRARIES} ${ATLANTIS_LIBRARIES})
+target_link_libraries (atlantis-lua ${TOLUA++_LIBRARY} ${LUA_LIBRARIES} ${ATLANTIS_LIBRARIES})
 set_target_properties(atlantis-lua PROPERTIES OUTPUT_NAME atlantis)
 set_target_properties(atlantis-lua PROPERTIES PREFIX "")
 
