@@ -1,5 +1,10 @@
 {
   "coordinates": "alh",
+  "directions": [
+    ["northeast", "ne"], ["southwest", "sw"],
+    ["west", "w"], ["east", "e"],
+    ["northwest", "nw"], ["southeast", "se"]
+  ],
   "width": 16,
   "height": 16,
   "upkeep": 10,

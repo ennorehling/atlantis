@@ -25,10 +25,13 @@ extern const char *spellnames[];
 keyword_t findkeyword(const char *s);
 keyword_t igetkeyword(const char *s);
 keyword_t getkeyword(void);
+
 int getitem(void);
 int getskill(void);
 int getspell(void);
 char *igetstr(const char *s);
 int findspell(const char *s);
+int finddirection(const char *s);
+extern const char* direction_name(int);
 
 #endif

@@ -96,18 +96,6 @@ keyword_t findkeyword(const char *s)
 
     if (!_strcmpl(s, "describe"))
         return K_DISPLAY;
-    if (!_strcmpl(s, "n"))
-        return K_NORTH;
-    if (!_strcmpl(s, "s"))
-        return K_SOUTH;
-    if (!_strcmpl(s, "e"))
-        return K_EAST;
-    if (!_strcmpl(s, "w"))
-        return K_WEST;
-    if (!_strcmpl(s, "m"))
-        return K_MIR;
-    if (!_strcmpl(s, "y"))
-        return K_YDD;
 
     sp = (const char **)bsearch(&s, keywords, MAXKEYWORDS, sizeof s, strpcmp);
     if (sp == 0)
@@ -123,6 +111,31 @@ keyword_t igetkeyword(const char *s)
 keyword_t getkeyword(void)
 {
     return (keyword_t)findkeyword(igetstr(0));
+}
+
+static const char * directions[MAXDIRECTIONS][3] = {
+    { "north", "n", 0 }, { "south", "s", 0 },
+    { "west", "w", 0 }, { "east", "e", 0 },
+    { "mir", "m", 0 }, { "ydd", "y", 0 }
+};
+
+const char *direction_name(int d) {
+    if (d >= 0 && d < MAXDIRECTIONS) {
+        const char **p = (config.directions[d] ? config.directions[d] : directions[d]);
+        return p[0];
+    }
+    return 0;
+}
+
+int finddirection(const char *s) {
+    int d;
+    for (d = 0; d != MAXDIRECTIONS; ++d) {
+      const char **p = (config.directions[d] ? config.directions[d] : directions[d]);
+      while (*p) {
+          if (!_strcmpl(s, *p++)) return d;
+      }
+    }
+    return -1;
 }
 
 int findstr(const char **v, const char *s, int n)

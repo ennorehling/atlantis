@@ -92,7 +92,6 @@ const char *keywords[] = {
     "combat",
     "demolish",
     "display",
-    "east",
     "end",
     "enter",
     "entertain",
@@ -104,10 +103,8 @@ const char *keywords[] = {
     "guard",
     "leave",
     "longboat",
-    "mir",
     "move",
     "name",
-    "north",
     "password",
     "pay",
     "produce",
@@ -119,7 +116,6 @@ const char *keywords[] = {
     "sail",
     "ship",
     "sink",
-    "south",
     "stack",
     "study",
     "tax",
@@ -127,9 +123,7 @@ const char *keywords[] = {
     "transfer",
     "unit",
     "unstack",
-    "west",
     "work",
-    "ydd",
 };
 
 const char *regionnames[] = {
@@ -446,8 +440,6 @@ const char *regionnames[] = {
     "Zamora",
     "Zapulla",
 };
-
-const keyword_t directions[MAXDIRECTIONS] = { K_NORTH, K_SOUTH, K_EAST, K_WEST, K_MIR, K_YDD };
 
 char itemskill[] = {
     SK_MINING,
@@ -776,48 +768,22 @@ void addstrlist(strlist ** SP, char *s)
     *SP = makestrlist(s);
 }
 
-static int transform_kwd(int *x, int *y, keyword_t kwd)
+/* directions: N S E W M Y */
+static struct { int x, y; } offset[MAXDIRECTIONS] = { { 0, -1 }, { 0, 1 }, { -1, 0 }, { 1, 0 }, { -1, -1 }, { 1, 1 } };
+
+void transform(int *x, int *y, int direction)
 {
+    assert(direction>=0 && direction<MAXDIRECTIONS);
     assert(x || !"invalid reference to X coordinate");
     assert(y || !"invalid reference to Y coordinate");
-    if (kwd==K_NORTH) {
-        --*y;
-    }
-    else if (kwd==K_SOUTH) {
-        ++*y;
-    }
-    else if (kwd==K_WEST) {
-        --*x;
-    }
-    else if (kwd==K_EAST) {
-        ++*x;
-    }
-    else if (kwd==K_MIR) {
-        --*x;
-        --*y;
-    }
-    else if (kwd==K_YDD) {
-        ++*x;
-        ++*y;
-    }
-    else {
-        return EINVAL;
-    }
+    *x += offset[direction].x;
+    *y += offset[direction].y;
     if (config.width && config.height) {
-        if (*x<0) *x+=config.width;
-        if (*y<0) *y+=config.height;
-        if (*x>=config.width) *x-=config.width;
-        if (*y>=config.height) *y-=config.height;
+      if (*x<0) *x += config.width;
+      if (*y<0) *y += config.height;
+      if (*x >= config.width) *x -= config.width;
+      if (*y >= config.height) *y -= config.height;
     }
-    return 0;
-}
-
-int transform(int *x, int *y, int direction)
-{
-    keyword_t kwd;
-    assert(direction<=MAXDIRECTIONS);
-    kwd = (direction<MAXDIRECTIONS) ? directions[direction] : MAXKEYWORDS;
-    return transform_kwd(x, y, kwd);
 }
 
 int effskill(const unit * u, int i)
@@ -2266,7 +2232,7 @@ static void report(faction * f)
                 } else {
                     scat(", ");
                 }
-                scat(keywords[directions[d]]);
+                scat(direction_name(d));
             }
         }
         scat(".");
@@ -2617,37 +2583,7 @@ int magicians(faction * f)
 
 region *movewhere(region * r)
 {
-    int dir = -1;
-    keyword_t kwd = (keyword_t)getkeyword();
-
-    switch (kwd) {
-    case K_NORTH:
-        dir = 0;
-        break;
-
-    case K_SOUTH:
-        dir = 1;
-        break;
-
-    case K_EAST:
-        dir = 2;
-        break;
-
-    case K_WEST:
-        dir = 3;
-        break;
-#if MAXDIRECTIONS > 5
-    case K_MIR:
-        dir = 4;
-        break;
-
-    case K_YDD:
-        dir = 5;
-        break;
-#endif
-    default:
-        dir = -1;
-    }
+    int dir = finddirection(igetstr(0));
 
     if (dir>=0) {
         return r->connect[dir];

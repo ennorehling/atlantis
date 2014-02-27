@@ -163,7 +163,7 @@ static cJSON * show_exit(const faction *f, const region * r, int d) {
 
     DBG_UNREFERENCED_PARAMETER(f);
     json = cJSON_CreateObject();
-    strncpy(buf, keywords[directions[d]], sizeof(buf));
+    strncpy(buf, direction_name(d), sizeof(buf));
     cJSON_AddStringToObject(json, "direction", rtl_strlwr(buf));
     cJSON_AddNumberToObject(json, "id", r->uid);
     cJSON_AddStringToObject(json, "terrain", rn->terrain->name);
