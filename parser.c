@@ -98,8 +98,9 @@ keyword_t findkeyword(const char *s)
         return K_DISPLAY;
 
     sp = (const char **)bsearch(&s, keywords, MAXKEYWORDS, sizeof s, strpcmp);
-    if (sp == 0)
-        return -1;
+    if (sp == 0) {
+        return MAXKEYWORDS;
+    }
     return sp - keywords;
 }
 
@@ -121,8 +122,10 @@ static const char * directions[MAXDIRECTIONS][3] = {
 
 const char *direction_name(int d) {
     if (d >= 0 && d < MAXDIRECTIONS) {
-        const char **p = (config.directions[d] ? config.directions[d] : directions[d]);
-        return p[0];
+        if (config.directions[d]) {
+	   return config.directions[d][0];
+	}
+        return directions[d][0];
     }
     return 0;
 }
@@ -130,10 +133,11 @@ const char *direction_name(int d) {
 int finddirection(const char *s) {
     int d;
     for (d = 0; d != MAXDIRECTIONS; ++d) {
-      const char **p = (config.directions[d] ? config.directions[d] : directions[d]);
-      while (*p) {
+       const char ** p = directions[d];
+       if (config.directions[d]) p = (const char **)config.directions[d];
+       while (*p) {
           if (!_strcmpl(s, *p++)) return d;
-      }
+       }
     }
     return -1;
 }

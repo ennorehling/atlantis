@@ -249,7 +249,7 @@ const char *terrainnames[NUMTERRAINS] = {
 
 struct terrain *get_terrain(terrain_t t)
 {
-    assert(t<NUMTERRAINS && t>=0);
+    assert(t<NUMTERRAINS);
     return get_terrain_by_name(terrainnames[t]);
 }
 

@@ -899,10 +899,10 @@ static void test_directions(CuTest * tc)
   CuAssertIntEquals(tc, 0, finddirection("N"));
   CuAssertIntEquals(tc, 1, finddirection("SOUTH"));
   CuAssertIntEquals(tc, 1, finddirection("S"));
-  CuAssertIntEquals(tc, 2, finddirection("EAST"));
-  CuAssertIntEquals(tc, 2, finddirection("E"));
-  CuAssertIntEquals(tc, 3, finddirection("WEST"));
-  CuAssertIntEquals(tc, 4, finddirection("W"));
+  CuAssertIntEquals(tc, 2, finddirection("WEST"));
+  CuAssertIntEquals(tc, 2, finddirection("W"));
+  CuAssertIntEquals(tc, 3, finddirection("EAST"));
+  CuAssertIntEquals(tc, 3, finddirection("E"));
   CuAssertIntEquals(tc, 4, finddirection("MIR"));
   CuAssertIntEquals(tc, 4, finddirection("M"));
   CuAssertIntEquals(tc, 5, finddirection("YDD"));
@@ -1055,13 +1055,12 @@ static void test_faction_name(CuTest * tc)
     const char * name = "Sacco & Vanzetti";
     faction * f;
     region * r;
-    unit * u;
 
     cleargame(true);
     setup_terrains();
     f = create_faction(1);
     r = create_region(0, 0, 0, get_terrain(T_PLAIN));
-    u = make_unit(f, r, 1);
+    make_unit(f, r, 1);
     CuAssertPtrEquals(tc, 0, (void *)faction_getname(f));
     faction_setname(f, name);
     CuAssertStrEquals(tc, name, faction_getname(f));
@@ -1219,6 +1218,7 @@ static void test_cfg_upkeep(CuTest * tc)
     CuAssertIntEquals(tc, 20, u1->money);
 }
 
+#if 0
 static void test_cfg_moves_on(CuTest * tc)
 {
     unit *u1;
@@ -1245,6 +1245,7 @@ static void test_cfg_moves_on(CuTest * tc)
     processorders();
     CuAssertPtrEquals(tc, r2, u1->region);
 }
+#endif
 
 static void test_cfg_moves_off(CuTest * tc)
 {
@@ -1387,14 +1388,13 @@ static void test_faction_addr(CuTest * tc)
 {
     const char * addr = "enno@example.com";
     faction * f;
-	unit *u;
-	region *r;
+    region *r;
 
     cleargame(true);
     setup_terrains();
     f = create_faction(1);
     r = create_region(0, 0, 0, get_terrain(T_PLAIN));
-    u = make_unit(f, r, 1);
+    make_unit(f, r, 1);
     CuAssertPtrEquals(tc, 0, (void *)faction_getaddr(f));
     faction_setaddr(f, addr);
     CuAssertStrEquals(tc, addr, faction_getaddr(f));
@@ -1603,11 +1603,9 @@ static void test_config_ships(CuTest * tc)
 static void test_config_start(CuTest * tc)
 {
     cJSON *json = cJSON_Parse("{ \"startmen\": 2, \"startmoney\": 200 }");
-    terrain * t;
 
     cleargame(true);
     read_config_json(json);
-    t = get_terrain_by_name("swamp");
     CuAssertIntEquals(tc, 2, config.startmen);
     CuAssertIntEquals(tc, 200, config.startmoney);
     cJSON_Delete(json);
@@ -1725,6 +1723,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_readwrite);
     SUITE_ADD_TEST(suite, test_createregion);
     SUITE_ADD_TEST(suite, test_transform);
+    SUITE_ADD_TEST(suite, test_directions);
     SUITE_ADD_TEST(suite, test_owners);
     SUITE_ADD_TEST(suite, test_movewhere);
     SUITE_ADD_TEST(suite, test_origin);

@@ -25,14 +25,12 @@
 static void test_json_report(CuTest * tc) {
     region * r;
     faction * f;
-    unit * u;
     cJSON * json;
 
     cleargame(true);
     turn = 0;
     r = create_region(0, 1, 1, create_terrain("plain"));
     f = addplayer(r, 0, 0);
-    u = r->units;
     update_world(0, 0, 1, 1);
 
     json = json_report(f);

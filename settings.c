@@ -4,6 +4,8 @@
 #include "ship.h"
 #include "parser.h"
 
+#include "rtl.h"
+
 #include <stream.h>
 #include <errno.h>
 #include <string.h>
