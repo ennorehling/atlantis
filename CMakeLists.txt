@@ -92,10 +92,10 @@ ENDMACRO(TOLUA_BINDING)
 TOLUA_BINDING(bindings.pkg luabind.h atlantis.h faction.h region.h unit.h ship.h building.h game.h)
 
 set (BIND_SRC bindings.pkg.c luabind.c luabind.h)
-add_library (atlantis-lua SHARED ${BIND_SRC})
-target_link_libraries (atlantis-lua ${TOLUA++_LIBRARY} ${LUA_LIBRARIES} ${ATLANTIS_LIBRARIES})
-set_target_properties(atlantis-lua PROPERTIES OUTPUT_NAME atlantis)
-set_target_properties(atlantis-lua PROPERTIES PREFIX "")
+add_library (lua-atlantis SHARED ${BIND_SRC})
+target_link_libraries (lua-atlantis ${TOLUA++_LIBRARY} ${LUA_LIBRARIES} ${ATLANTIS_LIBRARIES})
+set_target_properties(lua-atlantis PROPERTIES OUTPUT_NAME atlantis)
+set_target_properties(lua-atlantis PROPERTIES PREFIX "")
 
 ENDIF(LUA_FOUND)
 
@@ -114,3 +114,8 @@ IF (MSVC)
     MSVC_CRT_SECURE_NO_WARNINGS (test_atlantis test_rtl atlantis)
     MSVC_CRT_SECURE_NO_WARNINGS (template)
 ENDIF (MSVC)
+
+install(TARGETS server DESTINATION bin)
+install(TARGETS lua-atlantis DESTINATION lib)
+install(DIRECTORY lua/ DESTINATION scripts FILES_MATCHING PATTERN "*.lua")
+install(DIRECTORY conf/ DESTINATION etc FILES_MATCHING PATTERN "*.json")
