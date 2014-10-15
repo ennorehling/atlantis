@@ -28,7 +28,7 @@ find_package (Lua)
 find_package (ToLua REQUIRED)
 IF(NOT MSVC)
 find_package (ToLua++)
-ENDIF(MSVC)
+ENDIF()
 
 FILE(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/include)
 INCLUDE (CheckIncludeFiles)
