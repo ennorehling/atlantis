@@ -8,7 +8,7 @@
 #endif
 #include "string.h"
 
-#include "tolua++.h"
+#include "tolua.h"
 
 /* Exported function */
 TOLUA_API int  tolua_bindings_open (lua_State* tolua_S);
@@ -639,9 +639,9 @@ static int tolua_bindings_atlantis_free_game00(lua_State* tolua_S)
  else
 #endif
  {
-  bool config = ((bool)  tolua_toboolean(tolua_S,1,0));
+  bool conf = ((bool)  tolua_toboolean(tolua_S,1,0));
   {
-   cleargame(config);
+   cleargame(conf);
   }
  }
  return 0;
