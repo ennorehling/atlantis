@@ -16,7 +16,6 @@ typedef enum {
     K_COMBAT,
     K_DEMOLISH,
     K_DISPLAY,
-    K_EAST,
     K_END,
     K_ENTER,
     K_ENTERTAIN,
@@ -28,10 +27,8 @@ typedef enum {
     K_GUARD,
     K_LEAVE,
     K_LONGBOAT,
-    K_MIR,
     K_MOVE,
     K_NAME,
-    K_NORTH,
     K_PASSWORD,
     K_PAY,
     K_PRODUCE,
@@ -43,7 +40,6 @@ typedef enum {
     K_SAIL,
     K_SHIP,
     K_SINK,
-    K_SOUTH,
     K_STACK,
     K_STUDY,
     K_TAX,
@@ -51,9 +47,7 @@ typedef enum {
     K_TRANSFER,
     K_UNIT,
     K_UNSTACK,
-    K_WEST,
     K_WORK,
-    K_YDD,
     MAXKEYWORDS
 } keyword_t;
 

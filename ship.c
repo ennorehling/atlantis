@@ -81,7 +81,7 @@ void free_shiptype(struct ship_type *stype) {
 }
 
 struct ship_type *get_shiptype(ship_t type) {
-    assert(type>=0 && type<NUMSHIPS);
+    assert(type<NUMSHIPS);
     return get_shiptype_by_name(shipnames[type]);
 }
 

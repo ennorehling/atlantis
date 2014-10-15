@@ -69,7 +69,7 @@ char *rtl_strlwr(char *str);
 #endif
 
 #if !defined(DBG_UNREFERENCED_PARAMETER)
-#define DBG_UNREFERENCED_PARAMETER(x) x
+#define DBG_UNREFERENCED_PARAMETER(x) (void)(x)
 #endif
 
 #endif

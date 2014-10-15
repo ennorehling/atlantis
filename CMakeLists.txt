@@ -3,25 +3,24 @@ PROJECT (atlantis C)
 
 ENABLE_TESTING()
 
+ADD_SUBDIRECTORY (cutest)
+ADD_SUBDIRECTORY (storage)
+ADD_SUBDIRECTORY (quicklist)
+ADD_SUBDIRECTORY (cJSON)
+ADD_SUBDIRECTORY (crypto)
+
 IF (MSVC)
     FIND_PACKAGE (MSVC MODULE)
     # Force to always compile with W4
     MSVC_SET_WARNING_LEVEL(4)
 ELSEIF(CMAKE_COMPILER_IS_GNUCC)
-    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -Wno-unknown-pragmas -Wpointer-arith -Wno-char-subscripts -Wno-long-long")
-    SET(CMAKE_C_FLAGS "-g")
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -g -fPIC")
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 ELSE(MSVC)
     MESSAGE(STATUS "Unknown compiler ${CMAKE_C_COMPILER_ID}")
 ENDIF(MSVC)
 
 FIND_PACKAGE(Lua 5)
-
-ADD_SUBDIRECTORY (cutest)
-ADD_SUBDIRECTORY (storage)
-ADD_SUBDIRECTORY (quicklist)
-ADD_SUBDIRECTORY (cJSON)
-ADD_SUBDIRECTORY (crypto)
 
 FILE(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/include)
 INCLUDE (CheckIncludeFiles)
@@ -92,10 +91,10 @@ ENDMACRO(TOLUA_BINDING)
 TOLUA_BINDING(bindings.pkg luabind.h atlantis.h faction.h region.h unit.h ship.h building.h game.h)
 
 set (BIND_SRC bindings.pkg.c luabind.c luabind.h)
-add_library (atlantis-lua SHARED ${BIND_SRC})
-target_link_libraries (atlantis-lua ${TOLUA++_LIBRARIES} ${LUA_LIBRARIES} ${ATLANTIS_LIBRARIES})
-set_target_properties(atlantis-lua PROPERTIES OUTPUT_NAME atlantis)
-set_target_properties(atlantis-lua PROPERTIES PREFIX "")
+add_library (lua-atlantis SHARED ${BIND_SRC})
+target_link_libraries (lua-atlantis ${TOLUA++_LIBRARY} ${LUA_LIBRARIES} ${ATLANTIS_LIBRARIES})
+set_target_properties(lua-atlantis PROPERTIES OUTPUT_NAME atlantis)
+set_target_properties(lua-atlantis PROPERTIES PREFIX "")
 
 ENDIF(LUA_FOUND)
 
@@ -114,3 +113,8 @@ IF (MSVC)
     MSVC_CRT_SECURE_NO_WARNINGS (test_atlantis test_rtl atlantis)
     MSVC_CRT_SECURE_NO_WARNINGS (template)
 ENDIF (MSVC)
+
+install(TARGETS server DESTINATION bin)
+install(TARGETS lua-atlantis DESTINATION lib)
+install(DIRECTORY lua/ DESTINATION scripts FILES_MATCHING PATTERN "*.lua")
+install(DIRECTORY conf/ DESTINATION etc FILES_MATCHING PATTERN "*.json")
