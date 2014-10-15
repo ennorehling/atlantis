@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <cJSON.h>
 
-static struct settings config;
+struct settings config;
 
 void read_config_json(cJSON *json) {
     cJSON *item;
@@ -155,6 +155,7 @@ void read_config_json(cJSON *json) {
 
 int read_config(const char *cfgfile) {
     FILE * F = fopen(cfgfile, "r");
+    memset(&config, 0, sizeof(config));
     if (F) {
         cJSON *json;
         char *data;
