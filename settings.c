@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <cJSON.h>
 
-struct settings config = { 0 };
+static struct settings config;
 
 void read_config_json(cJSON *json) {
     cJSON *item;
