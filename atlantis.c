@@ -4620,10 +4620,11 @@ int read_game(const char *filename)
         int x, y, n, uid = 0;
         char name[DISPLAYSIZE];
         unit **up = 0;
-        region dummy = { 0 };
+        region dummy;
         const terrain *t;
         const ship_type * stype = get_shiptype(SH_LONGBOAT);
 
+		memset(&dummy, 0, sizeof(dummy));
         if (version>=VER_REGIONUID) {
             store.api->r_int(store.handle, &uid);
         }
