@@ -4624,7 +4624,7 @@ int read_game(const char *filename)
         const terrain *t;
         const ship_type * stype = get_shiptype(SH_LONGBOAT);
 
-		memset(&dummy, 0, sizeof(dummy));
+        memset(&dummy, 0, sizeof(dummy));
         if (version>=VER_REGIONUID) {
             store.api->r_int(store.handle, &uid);
         }
