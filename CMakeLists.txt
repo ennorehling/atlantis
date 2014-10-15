@@ -1,4 +1,8 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+if (WIN32)
+FILE(TO_CMAKE_PATH "${CMAKE_MODULE_PATH}" CMAKE_MODULE_PATH )
+FILE(TO_CMAKE_PATH "${CMAKE_PREFIX_PATH}" CMAKE_PREFIX_PATH )
+endif(WIN32)
 PROJECT (atlantis C)
 
 ENABLE_TESTING()
@@ -20,7 +24,11 @@ ELSE(MSVC)
     MESSAGE(STATUS "Unknown compiler ${CMAKE_C_COMPILER_ID}")
 ENDIF(MSVC)
 
-FIND_PACKAGE(Lua 5)
+find_package (Lua)
+find_package (ToLua REQUIRED)
+IF(NOT MSVC)
+find_package (ToLua++)
+ENDIF(MSVC)
 
 FILE(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/include)
 INCLUDE (CheckIncludeFiles)
@@ -76,23 +84,24 @@ TARGET_LINK_LIBRARIES (test_atlantis ${CUTEST_LIBRARIES} ${ATLANTIS_LIBRARIES})
 ADD_TEST (atlantis test_atlantis)
 
 IF (LUA_FOUND)
-INCLUDE_DIRECTORIES (${LUA_INCLUDE_DIR})
+INCLUDE_DIRECTORIES (${LUA_INCLUDE_DIR} ${TOLUA_INCLUDE_DIR})
 
+IF (TOLUA++_FOUND)
 MACRO(TOLUA_BINDING PKGFILE FILES)
   ADD_CUSTOM_COMMAND(
-    OUTPUT ${PKGFILE}.c
+    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${PKGFILE}.c
     DEPENDS ${FILES} ${PKGFILE}
     COMMAND ${TOLUA++_EXECUTABLE}
-    ARGS -o ${CMAKE_CURRENT_BINARY_DIR}/${PKGFILE}.c ${PKGFILE}
+    ARGS -o ${CMAKE_CURRENT_SOURCE_DIR}/${PKGFILE}.c ${PKGFILE}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   )
 ENDMACRO(TOLUA_BINDING)
-                        
 TOLUA_BINDING(bindings.pkg luabind.h atlantis.h faction.h region.h unit.h ship.h building.h game.h)
+ENDIF()
 
 set (BIND_SRC bindings.pkg.c luabind.c luabind.h)
 add_library (lua-atlantis SHARED ${BIND_SRC})
-target_link_libraries (lua-atlantis ${TOLUA++_LIBRARY} ${LUA_LIBRARIES} ${ATLANTIS_LIBRARIES})
+target_link_libraries (lua-atlantis ${TOLUA_LIBRARY} ${LUA_LIBRARIES} ${ATLANTIS_LIBRARIES})
 set_target_properties(lua-atlantis PROPERTIES OUTPUT_NAME atlantis)
 set_target_properties(lua-atlantis PROPERTIES PREFIX "")
 

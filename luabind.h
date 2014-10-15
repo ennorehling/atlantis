@@ -1,8 +1,10 @@
 #ifndef ATL_BINDING_H
 #define ATL_BINDING_H
 
-/* work around a bug in tolua++ */
+/* work around bugs in tolua++ */
 #define this self
+#undef tolua_outside
+#define tolua_outside const
 
 struct region;
 #define set_region_name(r, n)  region_setname(r, n)

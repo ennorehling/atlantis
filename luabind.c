@@ -2,11 +2,12 @@
 #include "region.h"
 #include "unit.h"
 #include "faction.h"
+#include "atlantis.h"
 
 #include <quicklist.h>
 
 #include <lua.h>
-#include <tolua++.h>
+#include <tolua.h>
 
 void set_region_terrain(region *r, const char *terrain) {
     const struct terrain *t = get_terrain_by_name(terrain);
