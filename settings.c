@@ -4,6 +4,8 @@
 #include "ship.h"
 #include "parser.h"
 
+#include "rtl.h"
+
 #include <stream.h>
 #include <errno.h>
 #include <string.h>
@@ -11,11 +13,34 @@
 #include <stdio.h>
 #include <cJSON.h>
 
-struct settings config;
+struct settings config = { 0 };
 
 void read_config_json(cJSON *json) {
     cJSON *item;
     
+    item = cJSON_GetObjectItem(json, "directions");
+    if (item && item->type == cJSON_Array) {
+      int k;
+      for (k = 0; k != MAXDIRECTIONS; ++k) {
+        cJSON *e = cJSON_GetArrayItem(item, k);
+        if (e) {
+          if (e->type == cJSON_String) {
+            config.directions[k] = (char **)calloc(2, sizeof(char *));
+            config.directions[k][0] = _strdup(e->valuestring);
+          }
+          else if (e->type == cJSON_Array) {
+            cJSON *c;
+            int j = 0;
+            config.directions[k] = (char **)calloc(1 + cJSON_GetArraySize(e), sizeof(char *));
+            for (c=e->child; c; c=c->next) {
+              if (c->type == cJSON_String) {
+                config.directions[k][j++] = _strdup(c->valuestring);
+              }
+            }
+          }
+        }
+      }
+    }
     item = cJSON_GetObjectItem(json, "coordinates");
     if (item && item->type == cJSON_String) {
         if (strcmp(item->valuestring, "torus")==0) {

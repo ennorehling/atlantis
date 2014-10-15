@@ -470,7 +470,7 @@ static void test_wrapmap(CuTest * tc)
     r = create_region(0, 0, 0, get_terrain(T_PLAIN));
     connectregions();
     CuAssertIntEquals(tc, 2, r->connect[0]->y); /* NORTH */
-    CuAssertIntEquals(tc, 4, r->connect[3]->x); /* WEST */
+    CuAssertIntEquals(tc, 4, r->connect[2]->x); /* WEST */
 }
 
 static void test_good_password(CuTest * tc)
@@ -611,7 +611,9 @@ static void test_form(CuTest * tc)
     ql_push(&u->orders, _strdup("WORK"));
     ql_push(&u->orders, _strdup("END"));
     process_form(u, r);
-    CuAssertPtrEquals(tc, 0, r->units->next->next);
+    CuAssertPtrEquals(tc, u, r->units);
+    CuAssertPtrNotNull(tc, u->next);
+    CuAssertPtrEquals(tc, 0, u->next->next);
     CuAssertIntEquals(tc, 1, ql_length(u->orders));
     CuAssertIntEquals(tc, 0, u->alias);
     CuAssertPtrEquals(tc, u, r->units);
@@ -893,18 +895,18 @@ static void test_fileops(CuTest * tc)
 
 static void test_directions(CuTest * tc)
 {
-    CuAssertIntEquals(tc, K_NORTH, findkeyword("NORTH"));
-    CuAssertIntEquals(tc, K_NORTH, findkeyword("N"));
-    CuAssertIntEquals(tc, K_SOUTH, findkeyword("SOUTH"));
-    CuAssertIntEquals(tc, K_SOUTH, findkeyword("S"));
-    CuAssertIntEquals(tc, K_EAST, findkeyword("EAST"));
-    CuAssertIntEquals(tc, K_EAST, findkeyword("E"));
-    CuAssertIntEquals(tc, K_WEST, findkeyword("WEST"));
-    CuAssertIntEquals(tc, K_WEST, findkeyword("W"));
-    CuAssertIntEquals(tc, K_MIR, findkeyword("MIR"));
-    CuAssertIntEquals(tc, K_MIR, findkeyword("M"));
-    CuAssertIntEquals(tc, K_YDD, findkeyword("YDD"));
-    CuAssertIntEquals(tc, K_YDD, findkeyword("Y"));
+  CuAssertIntEquals(tc, 0, finddirection("NORTH"));
+  CuAssertIntEquals(tc, 0, finddirection("N"));
+  CuAssertIntEquals(tc, 1, finddirection("SOUTH"));
+  CuAssertIntEquals(tc, 1, finddirection("S"));
+  CuAssertIntEquals(tc, 2, finddirection("WEST"));
+  CuAssertIntEquals(tc, 2, finddirection("W"));
+  CuAssertIntEquals(tc, 3, finddirection("EAST"));
+  CuAssertIntEquals(tc, 3, finddirection("E"));
+  CuAssertIntEquals(tc, 4, finddirection("MIR"));
+  CuAssertIntEquals(tc, 4, finddirection("M"));
+  CuAssertIntEquals(tc, 5, finddirection("YDD"));
+  CuAssertIntEquals(tc, 5, finddirection("Y"));
 }
 
 static void test_owners(CuTest * tc) {
@@ -947,28 +949,28 @@ static void test_movewhere(CuTest * tc)
     }
     connectregions();
 
-    sprintf(buf, "%s %s", keywords[K_MOVE], keywords[K_NORTH]);
+    sprintf(buf, "%s N", keywords[K_MOVE]);
     CuAssertIntEquals(tc, K_MOVE, igetkeyword(buf));
     r = movewhere(c);
     CuAssertPtrNotNull(tc, r);
     CuAssertPtrEquals(tc, r, c->connect[0]);
     CuAssertPtrEquals(tc, c, r->connect[1]);
 
-    sprintf(buf, "%s %s", keywords[K_MOVE], keywords[K_SOUTH]);
+    sprintf(buf, "%s S", keywords[K_MOVE]);
     CuAssertIntEquals(tc, K_MOVE, igetkeyword(buf));
     r = movewhere(c);
     CuAssertPtrNotNull(tc, r);
     CuAssertPtrEquals(tc, r, c->connect[1]);
     CuAssertPtrEquals(tc, c, r->connect[0]);
 
-    sprintf(buf, "%s %s", keywords[K_MOVE], keywords[K_EAST]);
+    sprintf(buf, "%s W", keywords[K_MOVE]);
     CuAssertIntEquals(tc, K_MOVE, igetkeyword(buf));
     r = movewhere(c);
     CuAssertPtrNotNull(tc, r);
     CuAssertPtrEquals(tc, r, c->connect[2]);
     CuAssertPtrEquals(tc, c, r->connect[3]);
 
-    sprintf(buf, "%s %s", keywords[K_MOVE], keywords[K_WEST]);
+    sprintf(buf, "%s E", keywords[K_MOVE]);
     CuAssertIntEquals(tc, K_MOVE, igetkeyword(buf));
     r = movewhere(c);
     CuAssertPtrNotNull(tc, r);
@@ -976,14 +978,14 @@ static void test_movewhere(CuTest * tc)
     CuAssertPtrEquals(tc, c, r->connect[2]);
 
 #if MAXDIRECTIONS>5
-    sprintf(buf, "%s %s", keywords[K_MOVE], keywords[K_MIR]);
+    sprintf(buf, "%s M", keywords[K_MOVE]);
     CuAssertIntEquals(tc, K_MOVE, igetkeyword(buf));
     r = movewhere(c);
     CuAssertPtrNotNull(tc, r);
     CuAssertPtrEquals(tc, r, c->connect[4]);
     CuAssertPtrEquals(tc, c, r->connect[5]);
 
-    sprintf(buf, "%s %s", keywords[K_MOVE], keywords[K_YDD]);
+    sprintf(buf, "%s Y", keywords[K_MOVE]);
     CuAssertIntEquals(tc, K_MOVE, igetkeyword(buf));
     r = movewhere(c);
     CuAssertPtrNotNull(tc, r);
@@ -997,34 +999,33 @@ static void test_transform(CuTest * tc)
     int x, y;
   
     x = 0, y = 1;
-    CuAssertIntEquals(tc, EINVAL, transform(&x, &y, MAXDIRECTIONS));
-    CuAssertIntEquals(tc, 0, transform(&x, &y, 0));
+    transform(&x, &y, 0);
     CuAssertIntEquals(tc, 0, x);
     CuAssertIntEquals(tc, 0, y);
 
     x = 0, y = -1;
-    CuAssertIntEquals(tc, 0, transform(&x, &y, 1));
-    CuAssertIntEquals(tc, 0, x);
-    CuAssertIntEquals(tc, 0, y);
-
-    x = -1, y = 0;
-    CuAssertIntEquals(tc, 0, transform(&x, &y, 2));
+    transform(&x, &y, 1);
     CuAssertIntEquals(tc, 0, x);
     CuAssertIntEquals(tc, 0, y);
 
     x = 1, y = 0;
-    CuAssertIntEquals(tc, 0, transform(&x, &y, 3));
+    transform(&x, &y, 2);
+    CuAssertIntEquals(tc, 0, x);
+    CuAssertIntEquals(tc, 0, y);
+
+    x = -1, y = 0;
+    transform(&x, &y, 3);
     CuAssertIntEquals(tc, 0, x);
     CuAssertIntEquals(tc, 0, y);
 
 #if MAXDIRECTIONS>5
     x = 1, y = 1;
-    CuAssertIntEquals(tc, 0, transform(&x, &y, 4));
+    transform(&x, &y, 4);
     CuAssertIntEquals(tc, 0, x);
     CuAssertIntEquals(tc, 0, y);
 
     x = -1, y = -1;
-    CuAssertIntEquals(tc, 0, transform(&x, &y, 5));
+    transform(&x, &y, 5);
     CuAssertIntEquals(tc, 0, x);
     CuAssertIntEquals(tc, 0, y);
 #endif
@@ -1054,13 +1055,12 @@ static void test_faction_name(CuTest * tc)
     const char * name = "Sacco & Vanzetti";
     faction * f;
     region * r;
-    unit * u;
 
     cleargame(true);
     setup_terrains();
     f = create_faction(1);
     r = create_region(0, 0, 0, get_terrain(T_PLAIN));
-    u = make_unit(f, r, 1);
+    make_unit(f, r, 1);
     CuAssertPtrEquals(tc, 0, (void *)faction_getname(f));
     faction_setname(f, name);
     CuAssertStrEquals(tc, name, faction_getname(f));
@@ -1218,6 +1218,7 @@ static void test_cfg_upkeep(CuTest * tc)
     CuAssertIntEquals(tc, 20, u1->money);
 }
 
+#if 0
 static void test_cfg_moves_on(CuTest * tc)
 {
     unit *u1;
@@ -1244,6 +1245,7 @@ static void test_cfg_moves_on(CuTest * tc)
     processorders();
     CuAssertPtrEquals(tc, r2, u1->region);
 }
+#endif
 
 static void test_cfg_moves_off(CuTest * tc)
 {
@@ -1386,14 +1388,13 @@ static void test_faction_addr(CuTest * tc)
 {
     const char * addr = "enno@example.com";
     faction * f;
-	unit *u;
-	region *r;
+    region *r;
 
     cleargame(true);
     setup_terrains();
     f = create_faction(1);
     r = create_region(0, 0, 0, get_terrain(T_PLAIN));
-    u = make_unit(f, r, 1);
+    make_unit(f, r, 1);
     CuAssertPtrEquals(tc, 0, (void *)faction_getaddr(f));
     faction_setaddr(f, addr);
     CuAssertStrEquals(tc, addr, faction_getaddr(f));
@@ -1602,14 +1603,28 @@ static void test_config_ships(CuTest * tc)
 static void test_config_start(CuTest * tc)
 {
     cJSON *json = cJSON_Parse("{ \"startmen\": 2, \"startmoney\": 200 }");
-    terrain * t;
 
     cleargame(true);
     read_config_json(json);
-    t = get_terrain_by_name("swamp");
     CuAssertIntEquals(tc, 2, config.startmen);
     CuAssertIntEquals(tc, 200, config.startmoney);
     cJSON_Delete(json);
+}
+
+static void test_config_directions(CuTest * tc)
+{
+  cJSON *json;
+
+  cleargame(true);
+  read_config_json(json = cJSON_Parse("{ \"directions\": [\"N\", \"S\", \"W\", \"E\", \"M\", \"Y\"] }"));
+  CuAssertStrEquals(tc, "N", config.directions[0][0]);
+  CuAssertStrEquals(tc, "Y", config.directions[5][0]);
+
+  cleargame(true);
+  read_config_json(json = cJSON_Parse("{ \"directions\": [[\"north\",\"n\"], \"S\", \"W\", \"E\", \"M\", \"Y\"] }"));
+  CuAssertStrEquals(tc, "north", config.directions[0][0]);
+  CuAssertStrEquals(tc, "n", config.directions[0][1]);
+  CuAssertStrEquals(tc, "Y", config.directions[5][0]);
 }
 
 static void test_config_coordinates(CuTest * tc)
@@ -1672,6 +1687,7 @@ int main(void)
     CuSuite *suite = CuSuiteNew();
 
     _mkdir("data");
+    SUITE_ADD_TEST(suite, test_keywords);
     SUITE_ADD_TEST(suite, test_coor_transform_alh);
     SUITE_ADD_TEST(suite, test_coor_transform_torus);
     SUITE_ADD_TEST(suite, test_createterrain);
@@ -1694,7 +1710,6 @@ int main(void)
     SUITE_ADD_TEST(suite, test_setship_reorders);
     SUITE_ADD_TEST(suite, test_setbuilding_reorders);
     SUITE_ADD_TEST(suite, test_form);
-    SUITE_ADD_TEST(suite, test_keywords);
     SUITE_ADD_TEST(suite, test_wrapmap);
     SUITE_ADD_TEST(suite, test_orders);
     SUITE_ADD_TEST(suite, test_good_password);
@@ -1708,6 +1723,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_readwrite);
     SUITE_ADD_TEST(suite, test_createregion);
     SUITE_ADD_TEST(suite, test_transform);
+    SUITE_ADD_TEST(suite, test_directions);
     SUITE_ADD_TEST(suite, test_owners);
     SUITE_ADD_TEST(suite, test_movewhere);
     SUITE_ADD_TEST(suite, test_origin);
@@ -1723,6 +1739,7 @@ int main(void)
     SUITE_ADD_TEST(suite, test_config_json);
     SUITE_ADD_TEST(suite, test_config_start);
     SUITE_ADD_TEST(suite, test_config_coordinates);
+    SUITE_ADD_TEST(suite, test_config_directions);
     SUITE_ADD_TEST(suite, test_config_terrain);
     SUITE_ADD_TEST(suite, test_config_ships);
     SUITE_ADD_TEST(suite, test_config_stacks);

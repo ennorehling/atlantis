@@ -358,7 +358,7 @@ void docombatspell(int i)
     z = ta[i]->unit->combatspell;
     sprintf(buf, "%s casts %s", unitid(ta[i]->unit), spellnames[z]);
 
-    if (shields[defender->side])
+    if (shields[defender->side]) {
         if (genrand_int32() & 1) {
             scat(", and gets through the shield");
             shields[defender->side] -= 1 + attacker->power;
@@ -367,7 +367,7 @@ void docombatspell(int i)
             battlerecord(buf);
             return;
         }
-
+    }
     switch (z) {
     case SP_BLACK_WIND:
         dozap(1250);
@@ -1094,6 +1094,9 @@ void process_combat(void)
                                                 ta[i]->unit->
                                                     skills[SK_LONGBOW] +=
                                                     COMBATEXP;
+                                                break;
+                                            default:
+                                                // unarmed, no exp
                                                 break;
                                             }
                                         }

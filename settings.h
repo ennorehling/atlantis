@@ -23,6 +23,10 @@ typedef enum {
     COOR_ERESSEA
 } coor_t;
 
+#define NAMESIZE 81
+#define DISPLAYSIZE 161
+#define MAXDIRECTIONS 6
+
 typedef struct settings {
     int width, height;
     int moves;
@@ -31,16 +35,13 @@ typedef struct settings {
     int startmoney;
     int startmen;
     coor_t transform;
+    char **directions[MAXDIRECTIONS];
 } settings;
 
 extern struct settings config;
 
 void read_config_json(struct cJSON*);
 int read_config(const char *filename);
-
-#define NAMESIZE 81
-#define DISPLAYSIZE 161
-#define MAXDIRECTIONS 6
 
 #define ORDERGAP 4
 #define MAXPERBLOCK 5

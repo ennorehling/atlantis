@@ -21,8 +21,11 @@ const char * get_region_terrain(const region *r) {
 
 region *regions_create(int x, int y, const char *terrain) {
     const struct terrain *t = get_terrain_by_name(terrain);
-    region *r = create_region(0, x, y, t);
-    return r;
+    if (t) {
+        coor_transform(COOR_TORUS, &x, &y);
+        return create_region(0, x, y, t);
+    }
+    return 0;
 }
 
 static int tolua_quicklist_iter(lua_State * L)

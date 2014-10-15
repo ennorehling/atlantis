@@ -92,7 +92,6 @@ const char *keywords[] = {
     "combat",
     "demolish",
     "display",
-    "east",
     "end",
     "enter",
     "entertain",
@@ -104,10 +103,8 @@ const char *keywords[] = {
     "guard",
     "leave",
     "longboat",
-    "mir",
     "move",
     "name",
-    "north",
     "password",
     "pay",
     "produce",
@@ -119,7 +116,6 @@ const char *keywords[] = {
     "sail",
     "ship",
     "sink",
-    "south",
     "stack",
     "study",
     "tax",
@@ -127,9 +123,7 @@ const char *keywords[] = {
     "transfer",
     "unit",
     "unstack",
-    "west",
     "work",
-    "ydd",
 };
 
 const char *regionnames[] = {
@@ -447,9 +441,7 @@ const char *regionnames[] = {
     "Zapulla",
 };
 
-const keyword_t directions[MAXDIRECTIONS] = { K_NORTH, K_SOUTH, K_EAST, K_WEST, K_MIR, K_YDD };
-
-char itemskill[] = {
+skill_t itemskill[] = {
     SK_MINING,
     SK_LUMBERJACK,
     SK_QUARRYING,
@@ -461,7 +453,7 @@ char itemskill[] = {
     SK_ARMORER,
 };
 
-char rawmaterial[] = {
+item_t rawmaterial[] = {
     0,
     0,
     0,
@@ -776,48 +768,22 @@ void addstrlist(strlist ** SP, char *s)
     *SP = makestrlist(s);
 }
 
-static int transform_kwd(int *x, int *y, keyword_t kwd)
+/* directions: N S E W M Y */
+static struct { int x, y; } offset[MAXDIRECTIONS] = { { 0, -1 }, { 0, 1 }, { -1, 0 }, { 1, 0 }, { -1, -1 }, { 1, 1 } };
+
+void transform(int *x, int *y, int direction)
 {
+    assert(direction>=0 && direction<MAXDIRECTIONS);
     assert(x || !"invalid reference to X coordinate");
     assert(y || !"invalid reference to Y coordinate");
-    if (kwd==K_NORTH) {
-        --*y;
-    }
-    else if (kwd==K_SOUTH) {
-        ++*y;
-    }
-    else if (kwd==K_WEST) {
-        --*x;
-    }
-    else if (kwd==K_EAST) {
-        ++*x;
-    }
-    else if (kwd==K_MIR) {
-        --*x;
-        --*y;
-    }
-    else if (kwd==K_YDD) {
-        ++*x;
-        ++*y;
-    }
-    else {
-        return EINVAL;
-    }
+    *x += offset[direction].x;
+    *y += offset[direction].y;
     if (config.width && config.height) {
-        if (*x<0) *x+=config.width;
-        if (*y<0) *y+=config.height;
-        if (*x>=config.width) *x-=config.width;
-        if (*y>=config.height) *y-=config.height;
+      if (*x<0) *x += config.width;
+      if (*y<0) *y += config.height;
+      if (*x >= config.width) *x -= config.width;
+      if (*y >= config.height) *y -= config.height;
     }
-    return 0;
-}
-
-int transform(int *x, int *y, int direction)
-{
-    keyword_t kwd;
-    assert(direction<=MAXDIRECTIONS);
-    kwd = (direction<MAXDIRECTIONS) ? directions[direction] : MAXKEYWORDS;
-    return transform_kwd(x, y, kwd);
 }
 
 int effskill(const unit * u, int i)
@@ -1055,7 +1021,7 @@ void connectregion(region * r)
 void connectregions(void)
 {
     ql_iter rli;
-    assert(config.width>0 && config.height>0 || !"call update_world first");
+    assert((config.width>0 && config.height>0) || !"call update_world first");
     for (rli = qli_init(&regions); qli_more(rli);) {
         region *r = (region *)qli_next(&rli);
         connectregion(r);
@@ -1079,7 +1045,7 @@ bool regionnameinuse(const char *s)
 
 void initregion(region *r) {
     if (region_isocean(r)) {
-        int i, n = 0;
+        unsigned int i, n = 0;
         ql_iter rli;
 
         for (rli = qli_init(&regions); qli_more(rli);) {
@@ -2011,7 +1977,7 @@ void writesummary(void)
     fclose(F);
 }
 
-int outi;
+unsigned int outi;
 char outbuf[256];
 
 void rnl(FILE * F)
@@ -2266,7 +2232,7 @@ static void report(faction * f)
                 } else {
                     scat(", ");
                 }
-                scat(keywords[directions[d]]);
+                scat(direction_name(d));
             }
         }
         scat(".");
@@ -2617,37 +2583,7 @@ int magicians(faction * f)
 
 region *movewhere(region * r)
 {
-    int dir = -1;
-    keyword_t kwd = (keyword_t)getkeyword();
-
-    switch (kwd) {
-    case K_NORTH:
-        dir = 0;
-        break;
-
-    case K_SOUTH:
-        dir = 1;
-        break;
-
-    case K_EAST:
-        dir = 2;
-        break;
-
-    case K_WEST:
-        dir = 3;
-        break;
-#if MAXDIRECTIONS > 5
-    case K_MIR:
-        dir = 4;
-        break;
-
-    case K_YDD:
-        dir = 5;
-        break;
-#endif
-    default:
-        dir = -1;
-    }
+    int dir = finddirection(igetstr(0));
 
     if (dir>=0) {
         return r->connect[dir];
@@ -3087,6 +3023,9 @@ void do_leave_and_enter(job *j) {
         u->owner = 0;
         u2->owner = 1;
         break;
+    default:
+        // not handled here
+        break;
     }
 }
 
@@ -3291,7 +3230,7 @@ void processorders(void)
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
                 const char *s = (const char *)qli_next(&oli);
                 switch (igetkeyword(s)) {
-                case -1:
+                case MAXKEYWORDS:
                     mistakes(u, s, "Order not recognized");
                     break;
 
@@ -3481,6 +3420,9 @@ void processorders(void)
 
                     u->faction->showdata[i] = 1;
                     break;
+                default:
+                    // do not care
+                    break;
                 }
             }
         }
@@ -3506,6 +3448,9 @@ void processorders(void)
                     break;
                 case K_FIND:
                     cmd_find(u, s);
+                    break;
+                default:
+                    // not handled here
                     break;
                 }
             }
@@ -3737,6 +3682,9 @@ void processorders(void)
 
                     removelist(&r->ships, sh);
                     break;
+                default:
+                    // not handled here
+                    break;
                 }
             }
         }
@@ -3748,18 +3696,17 @@ void processorders(void)
                 const char *s = (const char *)qli_next(&oli);
                 int j;
 
-                switch (igetkeyword(s)) {
-                case K_TRANSFER:
+                if (igetkeyword(s)==K_TRANSFER) {
                     j = getseen(r, u->faction, &u2);
 
                     if (u2) {
                         if (u->skills[SK_MAGIC] || u2->skills[SK_MAGIC] || !accepts(u2, u)) {
                             mistakes(u, s, "Unit does not accept your gift");
-                            break;
+                            continue;
                         }
                     } else if (j==U_PEASANTS) {
                         mistakes(u, s, "Unit not found");
-                        break;
+                        continue;
                     }
 
                     n = atoi(igetstr(0));
@@ -3769,7 +3716,7 @@ void processorders(void)
 
                     if (n <= 0) {
                         mistakes(u, s, "No people available");
-                        break;
+                        continue;
                     }
 
                     if (u->skills[SK_MAGIC] && u2) {
@@ -3781,7 +3728,7 @@ void processorders(void)
 
                         if (k > 3) {
                             mistakes(u, s, "Only 3 magicians per faction");
-                            break;
+                            continue;
                         }
                     }
 
@@ -3789,8 +3736,9 @@ void processorders(void)
 
                     for (i = 0; i != MAXSKILLS; i++) {
                         j = distribute(u->number, k, u->skills[i]);
-                        if (u2)
+                        if (u2) {
                             u2->skills[i] += u->skills[i] - j;
+                        }
                         u->skills[i] = j;
                     }
 
@@ -3799,12 +3747,11 @@ void processorders(void)
                     if (u2) {
                         u2->number += n;
 
-                        for (i = 0; i != MAXSPELLS; i++)
-                            if (u->spells[i]
-                                && effskill(u2,
-                                            SK_MAGIC) / 2 >= spelllevel[i])
+                        for (i = 0; i != MAXSPELLS; i++) {
+                            if (u->spells[i] && effskill(u2, SK_MAGIC) / 2 >= spelllevel[i]) {
                                 u2->spells[i] = 1;
-
+                            }
+                        }
                         sprintf(buf, "%s transfers ", unitid(u));
                         if (k) {
                             icat(n);
@@ -3812,19 +3759,20 @@ void processorders(void)
                         }
                         scat("to ");
                         scat(unitid(u2));
-                        if (u->faction != u2->faction)
+                        if (u->faction != u2->faction) {
                             addevent(u2->faction, buf);
+                        }
                     } else {
                         r->peasants += n;
 
-                        if (k)
+                        if (k) {
                             sprintf(buf, "%s disbands %d.", unitid(u), n);
-                        else
+                        } else {
                             sprintf(buf, "%s disbands.", unitid(u));
+                        }
                     }
 
                     addevent(u->faction, buf);
-                    break;
                 }
             }
         }
@@ -3836,17 +3784,13 @@ void processorders(void)
                 const char *s = (const char *)qli_next(&oli);
                 unit *u2 = 0;
 
-                switch (igetkeyword(s)) {
-                case K_TAX:
-                    if (taxed)
-                        break;
-
+                if (igetkeyword(s)==K_TAX && !taxed) {
                     n = armedmen(u);
 
                     if (!n) {
                         mistakes(u, s,
                                  "Unit is not armed and combat trained");
-                        break;
+                        continue;
                     }
 
                     for (u2=r->units;u2;u2=u2->next) {
@@ -3856,16 +3800,14 @@ void processorders(void)
                             break;
                         }
                     }
-                    if (u2)
-                        break;
-
-                    o = (order *)malloc(sizeof(order));
-                    o->qty = n * TAXINCOME;
-                    o->unit = u;
-                    o->next = taxorders;
-                    taxorders = o;
-                    taxed = 1;
-                    break;
+                    if (!u2) {
+                        o = (order *)malloc(sizeof(order));
+                        o->qty = n * TAXINCOME;
+                        o->unit = u;
+                        o->next = taxorders;
+                        taxorders = o;
+                        taxed = 1;
+                    }
                 }
             }
         }
@@ -3945,6 +3887,9 @@ void processorders(void)
 
                     availmoney -= o->qty * RECRUITCOST;
                     break;
+                default:
+                    // not handlede in here
+                    break;
                 }
             }
         }
@@ -3980,15 +3925,12 @@ void processorders(void)
             ql_iter oli;
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
                 const char *s = (const char *)qli_next(&oli);
-                switch (igetkeyword(s)) {
-                case K_QUIT:
+                if (igetkeyword(s)==K_QUIT) {
                     if (atoi(igetstr(0)) != u->faction->no) {
                         mistakes(u, s, "Correct faction number not given");
-                        break;
+                    } else {
+                        destroyfaction(u->faction);
                     }
-
-                    destroyfaction(u->faction);
-                    break;
                 }
             }
         }
@@ -4027,6 +3969,8 @@ void processorders(void)
                 case K_TEACH:
                 case K_WORK:
                     nstrcpy(u->thisorder, s, sizeof u->thisorder);
+                    break;
+                default:
                     break;
                 }
             }
@@ -4207,6 +4151,8 @@ void processorders(void)
                 o->next = workorders;
                 workorders = o;
                 break;
+	    default:
+	        break;
             }
         }            
         /* Entertainment */
@@ -4290,25 +4236,24 @@ void processorders(void)
         if (!region_isocean(r)) {
             unit *u;
             for (u=r->units;u;u=u->next) {
-                switch (igetkeyword(u->thisorder)) {
-                case K_STUDY:
+	        if (igetkeyword(u->thisorder)==K_STUDY) {
                     i = getskill();
 
                     if (i < 0) {
                         mistakeu(u, "Skill not recognized");
-                        break;
+                        continue;
                     }
 
                     if (i == SK_TACTICS || i == SK_MAGIC) {
                         if (u->money < STUDYCOST * u->number) {
                             mistakeu(u, "Insufficient funds");
-                            break;
+                            continue;
                         }
 
                         if (i == SK_MAGIC && !u->skills[SK_MAGIC] &&
                             magicians(u->faction) + u->number > 3) {
                             mistakeu(u, "Only 3 magicians per faction");
-                            break;
+                            continue;
                         }
 
                         u->money -= STUDYCOST * u->number;
@@ -4320,8 +4265,7 @@ void processorders(void)
 
                     u->skills[i] += (u->number * 30) + u->learning;
                     u->learning = 0;
-                    break;
-                }
+                }	       
             }
         }
     }
@@ -4347,13 +4291,12 @@ void processorders(void)
                 unit *u2;
                 ql_iter fli;
 
-                switch (igetkeyword(u->thisorder)) {
-                case K_CAST:
+	        if (igetkeyword(u->thisorder)==K_CAST) {
                     i = getspell();
 
                     if (i < 0 || !cancast(u, i)) {
                         mistakeu(u, "Spell not found");
-                        break;
+                        continue;
                     }
 
                     j = spellitem(i);
@@ -4361,7 +4304,7 @@ void processorders(void)
                     if (j >= 0) {
                         if (u->money < 200 * spelllevel[i]) {
                             mistakeu(u, "Insufficient funds");
-                            break;
+                            continue;
                         }
 
                         n = MIN(u->number,
@@ -4373,12 +4316,12 @@ void processorders(void)
                         sprintf(buf, "%s casts %s.", unitid(u),
                                 spellnames[i]);
                         addevent(u->faction, buf);
-                        break;
+                        continue;
                     }
 
                     if (u->money < 50) {
                         mistakeu(u, "Insufficient funds");
-                        break;
+                        continue;
                     }
 
                     switch (i) {
@@ -4392,9 +4335,7 @@ void processorders(void)
                         n = lovar(n * 50);
                         n = MIN(n, r->peasants);
 
-                        if (!n)
-                            break;
-
+                        if (!n) break;
                         r->peasants -= n;
 
                         for (fli = qli_init(&factions); qli_more(fli);) {
@@ -4479,8 +4420,6 @@ void processorders(void)
                     default:
                         mistakeu(u, "Spell not usable with CAST command");
                     }
-
-                    break;
                 }
             }
         }
@@ -4681,10 +4620,11 @@ int read_game(const char *filename)
         int x, y, n, uid = 0;
         char name[DISPLAYSIZE];
         unit **up = 0;
-        region dummy = { 0 };
+        region dummy;
         const terrain *t;
         const ship_type * stype = get_shiptype(SH_LONGBOAT);
 
+        memset(&dummy, 0, sizeof(dummy));
         if (version>=VER_REGIONUID) {
             store.api->r_int(store.handle, &uid);
         }
