@@ -1,6 +1,7 @@
 #!/bin/sh
 
 uname -a
+cmake --version
 s/cmake-init
 s/build VERBOSE=1
 s/runtests
