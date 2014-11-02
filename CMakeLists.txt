@@ -126,7 +126,7 @@ set (BIND_SRC ${TOLUA_SRC} ${BIND_SRC})
 endif ()
 
 add_library (atlantisdll SHARED ${BIND_SRC})
-target_link_libraries (atlantisdll ${LUA_LIBRARIES} ${ATLANTIS_LIBRARIES})
+target_link_libraries (atlantisdll ${LUA_LIBRARIES}) # ${ATLANTIS_LIBRARIES})
 if (TOLUA_FOUND)
 target_link_libraries (atlantisdll ${TOLUA_LIBRARY})
 endif (TOLUA_FOUND)
