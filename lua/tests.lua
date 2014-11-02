@@ -1,2 +1,16 @@
 require 'atlantis'
+-- for k,v in pairs(atlantis) do print(k, v, type(v)) end
 assert(type(atlantis) == 'table')
+assert(type(atlantis.region) == 'table')
+assert(type(atlantis.regions) == 'table')
+assert(type(atlantis.unit) == 'table')
+assert(type(atlantis.faction) == 'table')
+assert(type(atlantis.factions) == 'table')
+assert(type(atlantis.read_config) == 'function')
+assert(type(atlantis.read_orders) == 'function')
+assert(type(atlantis.read_game) == 'function')
+assert(type(atlantis.write_game) == 'function')
+assert(type(atlantis.write_reports) == 'function')
+assert(type(atlantis.free_game) == 'function')
+assert(type(atlantis.process) == 'function')
+print("All tests PASSED.")
