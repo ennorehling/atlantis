@@ -7,7 +7,7 @@ $#include "game.h"
 
 module atlantis {
     struct unit {
-    		int no @ id;
+        int no @ id;
         tolua_readonly faction *faction;
         tolua_readonly region *region;
         tolua_outside tolua_property char * unit_name @ name;
@@ -36,7 +36,7 @@ module atlantis {
     int turn;
     void cleargame @ free_game(bool conf);
     int read_config(const char *filename);
-	  int read_game(const char *filename);
+    int read_game(const char *filename);
     int write_game(const char *filename);
     void write_reports(faction *f);
     int readorders @ read_orders(const char *filename);
