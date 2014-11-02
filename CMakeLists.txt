@@ -130,9 +130,9 @@ target_link_libraries (atlantisdll ${LUA_LIBRARIES} ${ATLANTIS_LIBRARIES})
 if (TOLUA_FOUND)
 target_link_libraries (atlantisdll ${TOLUA_LIBRARY})
 endif (TOLUA_FOUND)
+set_target_properties(atlantisdll PROPERTIES POSITION_INDEPENDENT_CODE True)
 set_target_properties(atlantisdll PROPERTIES OUTPUT_NAME atlantis)
 set_target_properties(atlantisdll PROPERTIES PREFIX "")
-#set_target_properties(atlantisdll PROPERTIES COMPILE_FLAGS "-DTOLUA_DLL")
 
 ENDIF(LUA_FOUND)
 
