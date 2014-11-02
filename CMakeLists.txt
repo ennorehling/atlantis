@@ -114,6 +114,7 @@ SET(TOLUA_SRC
 set (BIND_SRC bindings.pkg.c luabind.c luabind.h)
 
 if (NOT TOLUA_FOUND)
+INCLUDE_DIRECTORIES (${CMAKE_SOURCE_DIR}/tolua/include)
 set (BIND_SRC ${TOLUA_SRC})
 endif ()
 
