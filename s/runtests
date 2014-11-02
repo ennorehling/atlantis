@@ -2,7 +2,7 @@
 
 pwd=$PWD
 while [ ! -d .git ] ; do
-  if [ "$PWD"="/" ] ; then
+  if [ "$PWD" = "/" ] ; then
     echo "$0 must be run from inside the repository"
     cd $pwd
     exit 1

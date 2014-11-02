@@ -98,13 +98,14 @@ static int tolua_get_factions(lua_State * L)
 
 extern int tolua_bindings_open(lua_State* tolua_S);
 
+#undef DLLEXPORT
 #ifdef _MSC_VER
 #define DLLEXPORT __declspec(dllexport)
 #else
 #define DLLEXPORT TOLUA_API
 #endif
 
-DLLEXPORT int luaopen_atlantis(lua_State* tolua_S) {
+TOLUA_API int luaopen_atlantis(lua_State* tolua_S) {
     tolua_bindings_open(tolua_S);
     tolua_usertype(tolua_S, "faction_list");
     tolua_usertype(tolua_S, "region_list");

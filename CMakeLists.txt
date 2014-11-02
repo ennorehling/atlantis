@@ -115,7 +115,7 @@ set (BIND_SRC bindings.pkg.c luabind.c luabind.h)
 
 if (NOT TOLUA_FOUND)
 INCLUDE_DIRECTORIES (${CMAKE_SOURCE_DIR}/tolua/include)
-set (BIND_SRC ${TOLUA_SRC})
+set (BIND_SRC ${TOLUA_SRC} ${BIND_SRC})
 endif ()
 
 add_library (atlantisdll SHARED ${BIND_SRC})
@@ -125,6 +125,7 @@ target_link_libraries (atlantisdll ${TOLUA_LIBRARY})
 endif (TOLUA_FOUND)
 set_target_properties(atlantisdll PROPERTIES OUTPUT_NAME atlantis)
 set_target_properties(atlantisdll PROPERTIES PREFIX "")
+#set_target_properties(atlantisdll PROPERTIES COMPILE_FLAGS "-DTOLUA_DLL")
 
 ENDIF(LUA_FOUND)
 

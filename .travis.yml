@@ -5,4 +5,4 @@ compiler:
 script: s/travis-build
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install -qq liblua5.2-dev
+  - sudo apt-get install -qq liblua5.2-dev lua5.2
