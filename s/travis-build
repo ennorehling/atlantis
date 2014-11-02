@@ -1,11 +1,5 @@
 #!/bin/sh
 
 uname -a
-[ -d build ] || mkdir build 
-cd build && cmake .. \
- -DCMAKE_MODULE_PATH=$PWD/../cmake/Modules \
- -DCMAKE_BUILD_TYPE=Debug .. && \
-make && make test
-
-# -DCMAKE_INCLUDE_PATH=$HOME/usr/include \
-# -DCMAKE_PREFIX_PATH=$HOME/usr \
+s/cmake-init
+s/build

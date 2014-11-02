@@ -4134,10 +4134,11 @@ void processorders(void)
                     u->spells[j] = 2;
                     u->skills[SK_MAGIC] += 10;
                 }
-
+/*
                 for (j = 0; j != MAXSPELLS; j++)
                     if (u->spells[j] == 2)
                         u->spells[j] = 1;
+ */
                 break;
 
             case K_TEACH:
