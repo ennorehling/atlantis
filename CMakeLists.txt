@@ -14,12 +14,13 @@ IF (MSVC)
     # Force to always compile with W4
     MSVC_SET_WARNING_LEVEL(4)
 ELSEIF(CMAKE_COMPILER_IS_GNUCC)
-#    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -g -fPIC")
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Werror -g")
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
 ELSE(MSVC)
     MESSAGE(STATUS "Unknown compiler ${CMAKE_C_COMPILER_ID}")
 ENDIF(MSVC)
+
+SET (CMAKE_POSITION_INDEPENDENT_CODE True)
 
 ADD_SUBDIRECTORY (storage)
 ADD_SUBDIRECTORY (quicklist)
@@ -80,11 +81,11 @@ FILE (GLOB LIB_SRC atlantis.c report.c parser.c game.c combat.c battle.c
 set (ATLANTIS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "atlantis headers")
 set (ATLANTIS_LIBRARIES atlantislib ${STORAGE_LIBRARIES} ${QUICKLIST_LIBRARIES} ${CRYPTO_LIBRARIES} ${CJSON_LIBRARIES} CACHE INTERNAL "atlantis libraries")
 add_library (atlantislib STATIC ${BIND_SRC} ${LIB_SRC} ${LIB_HDR})
-set_target_properties (atlantislib storage quicklist crypto cjson PROPERTIES POSITION_INDEPENDENT_CODE True)
 
 ADD_EXECUTABLE (test_atlantis atlantis.test.c)
 TARGET_LINK_LIBRARIES (test_atlantis ${CUTEST_LIBRARIES} ${ATLANTIS_LIBRARIES})
 ADD_TEST (atlantis test_atlantis)
+set_target_properties (test_atlantis PROPERTIES POSITION_INDEPENDENT_CODE False)
 
 IF (LUA_FOUND)
 INCLUDE_DIRECTORIES (${LUA_INCLUDE_DIR})
