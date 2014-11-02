@@ -3,3 +3,4 @@
 uname -a
 s/cmake-init
 s/build
+s/runtests

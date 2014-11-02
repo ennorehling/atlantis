@@ -101,7 +101,7 @@ extern int tolua_bindings_open(lua_State* tolua_S);
 #ifdef _MSC_VER
 #define DLLEXPORT __declspec(dllexport)
 #else
-#define DLLEXPORT
+#define DLLEXPORT TOLUA_API
 #endif
 
 DLLEXPORT int luaopen_atlantis(lua_State* tolua_S) {

@@ -9,5 +9,5 @@ while [ ! -d .git ] ; do
   fi
   cd ..
 done
-cd build && make && make test
-cd $pwd
+
+cd build && make test && lua ../lua/tests.lua
