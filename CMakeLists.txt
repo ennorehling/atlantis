@@ -25,8 +25,9 @@ ELSE(MSVC)
 ENDIF(MSVC)
 
 find_package (Lua)
+IF(MSVC)
 find_package (ToLua REQUIRED)
-IF(NOT MSVC)
+ELSE()
 find_package (ToLua++)
 ENDIF()
 
@@ -84,7 +85,10 @@ TARGET_LINK_LIBRARIES (test_atlantis ${CUTEST_LIBRARIES} ${ATLANTIS_LIBRARIES})
 ADD_TEST (atlantis test_atlantis)
 
 IF (LUA_FOUND)
-INCLUDE_DIRECTORIES (${LUA_INCLUDE_DIR} ${TOLUA_INCLUDE_DIR})
+INCLUDE_DIRECTORIES (${LUA_INCLUDE_DIR})
+IF (TOLUA_FOUND)
+INCLUDE_DIRECTORIES (${LUA_INCLUDE_DIR})
+ENDIF(TOLUA_FOUND)
 
 IF (TOLUA++_FOUND)
 MACRO(TOLUA_BINDING PKGFILE FILES)
@@ -99,9 +103,25 @@ ENDMACRO(TOLUA_BINDING)
 TOLUA_BINDING(bindings.pkg luabind.h atlantis.h faction.h region.h unit.h ship.h building.h game.h)
 ENDIF()
 
+SET(TOLUA_SRC
+ tolua/lib/tolua_event.c
+ tolua/lib/tolua_map.c
+ tolua/lib/tolua_to.c
+ tolua/lib/tolua_is.c  
+ tolua/lib/tolua_push.c
+)
+
 set (BIND_SRC bindings.pkg.c luabind.c luabind.h)
+
+if (NOT TOLUA_FOUND)
+set (BIND_SRC ${TOLUA_SRC})
+endif ()
+
 add_library (lua-atlantis SHARED ${BIND_SRC})
-target_link_libraries (lua-atlantis ${TOLUA_LIBRARY} ${LUA_LIBRARIES} ${ATLANTIS_LIBRARIES})
+target_link_libraries (lua-atlantis ${LUA_LIBRARIES} ${ATLANTIS_LIBRARIES})
+if (TOLUA_FOUND)
+target_link_libraries (lua-atlantis ${TOLUA_LIBRARY})
+endif (TOLUA_FOUND)
 set_target_properties(lua-atlantis PROPERTIES OUTPUT_NAME atlantis)
 set_target_properties(lua-atlantis PROPERTIES PREFIX "")
 
