@@ -38,11 +38,10 @@ typedef struct settings {
     char **directions[MAXDIRECTIONS];
 } settings;
 
-extern struct settings config;
-
 void read_config_json(struct cJSON*);
 int read_config(const char *filename);
-
+struct settings * get_config(void);
+#define config (*get_config())
 #define ORDERGAP 4
 #define MAXPERBLOCK 5
 #define BLOCKSIZE 8

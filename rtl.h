@@ -55,7 +55,7 @@ char *rtl_strlwr(char *str);
 
 #if !defined(HAVE__STRDUP)
 #if defined(HAVE_STRDUP)
-#define _strdup(a) strdup(a)
+# define _strdup(a) (a ? strdup(a) : 0)
 #else
 #define _strdup(a) rtl_strdup(a)
 #endif

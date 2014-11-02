@@ -13,7 +13,11 @@
 #include <stdio.h>
 #include <cJSON.h>
 
-struct settings config = { 0 };
+static struct settings config_;
+
+struct settings * get_config(void) {
+    return &config_;
+}
 
 void read_config_json(cJSON *json) {
     cJSON *item;
@@ -25,16 +29,16 @@ void read_config_json(cJSON *json) {
         cJSON *e = cJSON_GetArrayItem(item, k);
         if (e) {
           if (e->type == cJSON_String) {
-            config.directions[k] = (char **)calloc(2, sizeof(char *));
-            config.directions[k][0] = _strdup(e->valuestring);
+            config_.directions[k] = (char **)calloc(2, sizeof(char *));
+            config_.directions[k][0] = _strdup(e->valuestring);
           }
           else if (e->type == cJSON_Array) {
             cJSON *c;
             int j = 0;
-            config.directions[k] = (char **)calloc(1 + cJSON_GetArraySize(e), sizeof(char *));
+            config_.directions[k] = (char **)calloc(1 + cJSON_GetArraySize(e), sizeof(char *));
             for (c=e->child; c; c=c->next) {
               if (c->type == cJSON_String) {
-                config.directions[k][j++] = _strdup(c->valuestring);
+                config_.directions[k][j++] = _strdup(c->valuestring);
               }
             }
           }
@@ -44,53 +48,53 @@ void read_config_json(cJSON *json) {
     item = cJSON_GetObjectItem(json, "coordinates");
     if (item && item->type == cJSON_String) {
         if (strcmp(item->valuestring, "torus")==0) {
-            config.transform = COOR_TORUS;
+            config_.transform = COOR_TORUS;
         }
         else if (strcmp(item->valuestring, "alh")==0) {
-            config.transform = COOR_ALH;
+            config_.transform = COOR_ALH;
         }
         else if (strcmp(item->valuestring, "eressea")==0) {
-            config.transform = COOR_ERESSEA;
+            config_.transform = COOR_ERESSEA;
         } else {
-            config.transform = COOR_NONE;
+            config_.transform = COOR_NONE;
         }
     }
 
     item = cJSON_GetObjectItem(json, "startmoney");
     if (item && item->type == cJSON_Number) {
-        config.startmoney = item->valueint;
+        config_.startmoney = item->valueint;
     }
     item = cJSON_GetObjectItem(json, "startmen");
     if (item && item->type == cJSON_Number) {
-        config.startmen = item->valueint;
+        config_.startmen = item->valueint;
     }
 
     item = cJSON_GetObjectItem(json, "width");
     if (item && item->type == cJSON_Number) {
-        config.width = item->valueint;
+        config_.width = item->valueint;
     }
     item = cJSON_GetObjectItem(json, "height");
     if (item && item->type == cJSON_Number) {
-        config.height = item->valueint;
+        config_.height = item->valueint;
     }
     item = cJSON_GetObjectItem(json, "stacks");
     if (item && item->type==cJSON_True) {
-        config.features |= CFG_STACKS;
+        config_.features |= CFG_STACKS;
     }
     item = cJSON_GetObjectItem(json, "teachers");
     if (item && item->type == cJSON_True) {
-        config.features |= CFG_TEACHERS;
+        config_.features |= CFG_TEACHERS;
     }
     item = cJSON_GetObjectItem(json, "moves");
     if (item && item->type == cJSON_Number) {
-        config.moves = item->valueint;
-        if (config.moves>0) {
-            config.features |= CFG_MOVES;
+        config_.moves = item->valueint;
+        if (config_.moves>0) {
+            config_.features |= CFG_MOVES;
         }
     }
     item = cJSON_GetObjectItem(json, "upkeep");
     if (item && item->type == cJSON_Number) {
-        config.upkeep = item->valueint;
+        config_.upkeep = item->valueint;
     }
     item = cJSON_GetObjectItem(json, "ships");
     if (item && item->type == cJSON_Array) {
@@ -144,7 +148,7 @@ void read_config_json(cJSON *json) {
                             }
                         }
                     } else {
-                        fprintf(stderr, "config | invalid terrain '%s'\n", c->valuestring);
+                        fprintf(stderr, "config_ | invalid terrain '%s'\n", c->valuestring);
                         continue;
                     }
                 }

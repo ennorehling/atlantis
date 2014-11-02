@@ -1,4 +1,17 @@
 #!/bin/sh
+
+uname -a
+pwd=$PWD
+while [ ! -d .git ] ; do
+  if [ "$PWD"="/" ] ; then
+    echo "$0 must be run from inside the repository"
+    cd $pwd
+    exit 1
+  fi
+  cd ..
+done
+[ -d build ] || mkdir build
+cd build
 MACHINE=$(gcc -dumpmachine)
 rm -f CMakeCache.txt
 cmake .. \
@@ -7,4 +20,4 @@ cmake .. \
  -DCMAKE_LIBRARY_PATH=/usr/lib/$MACHINE/:$HOME/usr/lib:$HOME/usr/lib/$MACHINE \
  -DCMAKE_INCLUDE_PATH=/usr/include:$HOME/usr/include:$HOME/usr/include/$MACHINE \
  -DCMAKE_PREFIX_PATH=$HOME/usr:$HOME/usr/local $*
-
+cd $pwd

@@ -2,11 +2,12 @@
 #include "region.h"
 #include "unit.h"
 #include "faction.h"
+#include "atlantis.h"
 
 #include <quicklist.h>
 
 #include <lua.h>
-#include <tolua++.h>
+#include <tolua.h>
 
 void set_region_terrain(region *r, const char *terrain) {
     const struct terrain *t = get_terrain_by_name(terrain);
@@ -97,7 +98,14 @@ static int tolua_get_factions(lua_State * L)
 
 extern int tolua_bindings_open(lua_State* tolua_S);
 
-TOLUA_API int luaopen_atlantis (lua_State* tolua_S) {
+#undef DLLEXPORT
+#ifdef _MSC_VER
+#define DLLEXPORT __declspec(dllexport)
+#else
+#define DLLEXPORT TOLUA_API
+#endif
+
+TOLUA_API int luaopen_atlantis(lua_State* tolua_S) {
     tolua_bindings_open(tolua_S);
     tolua_usertype(tolua_S, "faction_list");
     tolua_usertype(tolua_S, "region_list");
