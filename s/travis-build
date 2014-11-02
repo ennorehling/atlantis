@@ -2,5 +2,5 @@
 
 uname -a
 s/cmake-init
-s/build
+s/build VERBOSE=1
 s/runtests
