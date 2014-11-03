@@ -66,7 +66,7 @@ int ignore_password = 0;
 #define HAS_STACKS 0x01
 #define HAS_FACTION_MONEY 0x02
 
-static void (*store_init)(struct storage *, FILE *) = binstore_init;
+static void (*store_init)(struct storage *, stream*) = binstore_init;
 static void (*store_done)(struct storage *) = binstore_done;
 
 typedef struct order {
@@ -4529,6 +4529,7 @@ int read_game(const char *filename)
     int features = 0;
     storage store;
     int version = VER_NOHEADER;
+    stream strm;
 
     minx = INT_MAX;
     maxx = INT_MIN;
@@ -4540,7 +4541,8 @@ int read_game(const char *filename)
         perror(filename);
         return -1;
     }
-    store_init(&store, F);
+    fstream_init(&strm, F);
+    store_init(&store, &strm);
 
     store.api->r_int(store.handle, &n);
     if (n==-1) {
@@ -4858,6 +4860,7 @@ int read_game(const char *filename)
         connectregions();
     }
     store_done(&store);
+    fstream_done(&strm);
     return 0;
 }
 
@@ -4884,6 +4887,7 @@ int writegame(void)
 int write_game(const char *filename)
 {
     storage store;
+    stream strm;
     int i;
     int features = 0;
     ql_iter rli, fli;
@@ -4898,7 +4902,8 @@ int write_game(const char *filename)
         perror(filename);
         return -1;
     }
-    store_init(&store, F);
+    fstream_init(&strm, F);
+    store_init(&store, &strm);
     store.api->w_int(store.handle, -1);
     store.api->w_int(store.handle, VER_CURRENT);
     store.api->w_int(store.handle, turn);
@@ -5021,6 +5026,7 @@ int write_game(const char *filename)
         store.api->w_int(store.handle, 0);
     }
     store_done(&store);
+    fstream_done(&strm);
     return 0;
 }
 
