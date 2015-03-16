@@ -1364,16 +1364,11 @@ void reportevent(region * r, char *s)
 
 void leave(unit * ux)
 {
-    building *b;
-    ship *sh;
-
     if (ux->building) {
-        b = ux->building;
         ux->building = 0;
     }
 
     if (ux->ship) {
-        sh = ux->ship;
         ux->ship = 0;
     }
 }
