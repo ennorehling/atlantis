@@ -109,7 +109,6 @@ const char *keywords[MAXKEYWORDS] = {
     "produce",
     "promote",
     "quit",
-    "recruit",
     "research",
     "reshow",
     "sail",
@@ -3111,14 +3110,13 @@ void processorders(void)
     int i, j, k;
     int n;
     int taxed;
-    int availmoney;
     char *sx, *sn;
     faction *f; 
     ql_iter rli, fli;
     building *b;
     ship *sh;
     unit *u2;
-    order *o, *taxorders, *recruitorders, *entertainorders, *workorders;
+    order *o, *taxorders, *entertainorders, *workorders;
     static order *produceorders[MAXITEMS];
 
     /* FORM orders */
@@ -3390,7 +3388,6 @@ void processorders(void)
         region *r = (region *)qli_next(&rli);
         unit *u;
         taxorders = 0;
-        recruitorders = 0;
 
         /* DEMOLISH, GIVE, PAY, SINK orders */
 
@@ -3759,63 +3756,7 @@ void processorders(void)
                 addevent(u->faction, buf);
             }
         }
-        /* GUARD 1, RECRUIT orders */
-
-        for (u=r->units;u;u=u->next) {
-            ql_iter oli;
-            availmoney = u->money;
-
-            for (oli = qli_init(&u->orders); qli_more(oli); ) {
-                const char *s = (const char *)qli_next(&oli);
-                switch (igetkeyword(s)) {
-                case K_RECRUIT:
-                    if (availmoney < RECRUITCOST)
-                        break;
-
-                    n = atoi(igetstr(0));
-                    if (n<=0) break;
-
-                    if (u->skills[SK_MAGIC] && magicians(u->faction) + n > 3) {
-                        mistakes(u, s, "Only 3 magicians per faction");
-                        break;
-                    }
-
-                    n = MIN(n, availmoney / RECRUITCOST);
-
-                    o = (order *)malloc(sizeof(order));
-                    o->qty = n;
-                    o->unit = u;
-                    o->next = recruitorders;
-                    recruitorders = o;
-
-                    availmoney -= o->qty * RECRUITCOST;
-                    break;
-                default:
-                    // not handlede in here
-                    break;
-                }
-            }
-        }
-
-        /* Do recruiting */
-        expandorders(r, recruitorders);
-
-        for (i = 0, n = r->peasants / RECRUITFRACTION; i != norders && n;
-             i++, n--) {
-            oa[i].unit->number++;
-            r->peasants--;
-            oa[i].unit->money -= RECRUITCOST;
-            r->money += RECRUITCOST;
-            oa[i].unit->n++;
-        }
-
-        for (u=r->units;u;u=u->next) {
-            if (u->n >= 0) {
-                sprintf(buf, "%s recruits %d.", unitid(u), u->n);
-                addevent(u->faction, buf);
-            }
-        }
-    }
+     }
 
     /* QUIT orders */
 

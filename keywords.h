@@ -33,7 +33,6 @@ typedef enum {
     K_PRODUCE,
     K_PROMOTE,
     K_QUIT,
-    K_RECRUIT,
     K_RESEARCH,
     K_RESHOW,
     K_SAIL,
