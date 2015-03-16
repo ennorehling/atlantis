@@ -201,7 +201,7 @@ static int tolua_bnd_release (lua_State* L)
 static void tolua_push_globals_table (lua_State* L)
 {
   lua_pushvalue(L,LUA_REGISTRYINDEX); /* registry */
-#if LUA_VERSION_NUM <520
+#if LUA_VERSION_NUM <502
   lua_pushnumber(L, LUA_GLOBALSINDEX); /* LUA_RIDX_GLOBALS registry globalsindex */
 #else
   lua_pushnumber(L, LUA_RIDX_GLOBALS); /* registry globalsindex */
