@@ -119,9 +119,6 @@ static cJSON * show_unit(const faction *f, region * r, const unit * u) {
         if (u->behind) {
             cJSON_AddTrueToObject(json, "behind");
         }
-        if (u->guard) {
-            cJSON_AddTrueToObject(json, "guard");
-        }
         chld = 0;
         for (i = 0; i != MAXSKILLS; i++) {
             if (u->skills[i]) {

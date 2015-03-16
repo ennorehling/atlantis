@@ -286,7 +286,7 @@ int getunit(region * r, const faction *f, unit **uptr)
     }
 
     for (u=r->units;u;u=u->next) {
-        if (u->no == n && !u->isnew) {
+        if (u->no == n) {
             *uptr = u;
             return U_UNIT;
         }

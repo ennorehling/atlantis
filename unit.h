@@ -35,7 +35,6 @@ typedef struct unit {
     int money;
     bool owner;
     bool behind;
-    bool guard;
     char thisorder[NAMESIZE];
     char lastorder[NAMESIZE];
     int combatspell;
@@ -45,11 +44,9 @@ typedef struct unit {
     struct quicklist *orders;
     int alias;
     int dead;
-    int learning;
     int n;
     int *litems;
     int side;
-    bool isnew;
 } unit;
 
 void unit_stack(struct unit* u, struct unit *stack);

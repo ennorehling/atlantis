@@ -37,6 +37,7 @@ void setup_terrains(void) {
     }
 }
 
+
 void setup_ships(void) {
     int i;
     for (i=0;i!=NUMSHIPS;++i) {

@@ -77,7 +77,7 @@ typedef struct order {
 
 char buf2[256];
 
-const char *keywords[] = {
+const char *keywords[MAXKEYWORDS] = {
     "accept",
     "address",
     "admit",
@@ -100,7 +100,6 @@ const char *keywords[] = {
     "form",
     "galleon",
     "give",
-    "guard",
     "leave",
     "longboat",
     "move",
@@ -117,9 +116,7 @@ const char *keywords[] = {
     "ship",
     "sink",
     "stack",
-    "study",
     "tax",
-    "teach",
     "transfer",
     "unit",
     "unstack",
@@ -816,7 +813,7 @@ int cansee(const faction * f, region * r, const unit * ux)
         return 2;
     }
     cansee = 0;
-    if (ux->guard || ux->building || ux->ship)
+    if (ux->building || ux->ship)
         cansee = 1;
 
     n = effskill(ux, SK_STEALTH);
@@ -973,7 +970,6 @@ faction * addplayer(region * r, const char * email, int no)
     u->combatspell = -1;
     u->number = config.startmen ? config.startmen : 1;
     u->money = config.startmoney ? config.startmoney : STARTMONEY;
-    u->isnew = true;
 
     f->origin_x = r->x;
     f->origin_y = r->y;
@@ -1279,9 +1275,6 @@ void spunit(strlist ** SP, const faction * f, region * r, const unit * u, int in
     if (u->behind && (battle || u->faction == f))
         scat(", behind");
 
-    if (u->guard)
-        scat(", on guard");
-
     if (u->faction == f && !battle && u->money) {
         scat(", $");
         icat(u->money);
@@ -1575,9 +1568,6 @@ void getmoney(region * r, unit * ux, int n)
 
 bool isallied(const unit * u, const unit * u2)
 {
-    if (!u2)
-        return u->guard;
-
     if (u->faction == u2->faction)
         return true;
 
@@ -2610,7 +2600,6 @@ void process_form(unit *u, region *r) {
             u2->building = u->building;
             u2->ship = u->ship;
             u2->behind = u->behind;
-            u2->guard = u->guard;
             region_addunit(r, u2, 0);
 
             free(s);
@@ -2684,74 +2673,6 @@ static void cmd_unstack(unit *u) {
         return;
     }
     unit_unstack(u);
-}
-
-static void cmd_teach(unit *u) {
-    int teaching, j, m;
-    region *r;
-    unit *uv[100];
-
-    if ((config.features&CFG_TEACHERS)==0) {
-        return;
-    }
-
-    teaching = u->number * 30 * TEACHNUMBER;
-    m = 0;
-    r = u->region;
-
-    do {
-        j = getseen(r, u->faction, uv+m);
-    } while (++m != 100 && j!=U_NONE);
-    --m;
-
-    for (j = 0; j != m; j++) {
-        unit *u2 = uv[j];
-        int n, i;
-
-        if (!u2) {
-            mistakeu(u, "Unit not found");
-            continue;
-        }
-
-        if (!accepts(u2, u)) {
-            mistakeu(u, "Unit does not accept teaching");
-            continue;
-        }
-
-        i = igetkeyword(u2->thisorder);
-
-        if (i != K_STUDY || (i = getskill()) < 0) {
-            mistakeu(u, "Unit not studying");
-            continue;
-        }
-
-        if (effskill(u, i) <= effskill(u2, i)) {
-            mistakeu(u,
-                        "Unit not studying a skill you can teach it");
-            continue;
-        }
-
-        n = (u2->number * 30) - u2->learning;
-        n = MIN(n, teaching);
-
-        if (n == 0)
-            continue;
-
-        u2->learning += n;
-        teaching -= u->number * 30;
-
-        strcpy(buf, unitid(u));
-        scat(" teaches ");
-        scat(unitid(u2));
-        scat(" ");
-        scat(skillnames[i]);
-        scat(".");
-
-        addevent(u->faction, buf);
-        if (u2->faction != u->faction)
-            addevent(u2->faction, buf);
-    }
-
 }
 
 static void cmd_find(unit *u, const char *s) {
@@ -3361,11 +3282,6 @@ void processorders(void)
                     nstrcpy(sn, sx, DISPLAYSIZE);
                     break;
 
-                case K_GUARD:
-                    if (atoi(igetstr(0)) == 0)
-                        u->guard = false;
-                    break;
-
                 case K_NAME:
                     switch (getkeyword()) {
                     case K_BUILDING:
@@ -3793,13 +3709,6 @@ void processorders(void)
                         continue;
                     }
 
-                    for (u2=r->units;u2;u2=u2->next) {
-                        if (u2->guard && u2->number && !admits(u2, u)) {
-                            sprintf(buf, "%s is on guard", unit_getname(u2));
-                            mistakes(u, s, buf);
-                            break;
-                        }
-                    }
                     if (!u2) {
                         o = (order *)malloc(sizeof(order));
                         o->qty = n * TAXINCOME;
@@ -3859,12 +3768,6 @@ void processorders(void)
             for (oli = qli_init(&u->orders); qli_more(oli); ) {
                 const char *s = (const char *)qli_next(&oli);
                 switch (igetkeyword(s)) {
-                case K_GUARD:
-                    if (atoi(igetstr(0))) {
-                        u->guard = true;
-                    }
-                    break;
-
                 case K_RECRUIT:
                     if (availmoney < RECRUITCOST)
                         break;
@@ -3965,8 +3868,6 @@ void processorders(void)
                 case K_PRODUCE:
                 case K_RESEARCH:
                 case K_SAIL:
-                case K_STUDY:
-                case K_TEACH:
                 case K_WORK:
                     nstrcpy(u->thisorder, s, sizeof u->thisorder);
                     break;
@@ -4134,15 +4035,6 @@ void processorders(void)
                     u->spells[j] = 2;
                     u->skills[SK_MAGIC] += 10;
                 }
-/*
-                for (j = 0; j != MAXSPELLS; j++)
-                    if (u->spells[j] == 2)
-                        u->spells[j] = 1;
- */
-                break;
-
-            case K_TEACH:
-                cmd_teach(u);
                 break;
 
             case K_WORK:
@@ -4227,49 +4119,6 @@ void processorders(void)
         }
     }
 
-    /* Study skills */
-
-    puts("Processing STUDY orders...");
-
-    for (rli = qli_init(&regions); qli_more(rli);) {
-        region *r = (region *)qli_next(&rli);
-
-        if (!region_isocean(r)) {
-            unit *u;
-            for (u=r->units;u;u=u->next) {
-	        if (igetkeyword(u->thisorder)==K_STUDY) {
-                    i = getskill();
-
-                    if (i < 0) {
-                        mistakeu(u, "Skill not recognized");
-                        continue;
-                    }
-
-                    if (i == SK_TACTICS || i == SK_MAGIC) {
-                        if (u->money < STUDYCOST * u->number) {
-                            mistakeu(u, "Insufficient funds");
-                            continue;
-                        }
-
-                        if (i == SK_MAGIC && !u->skills[SK_MAGIC] &&
-                            magicians(u->faction) + u->number > 3) {
-                            mistakeu(u, "Only 3 magicians per faction");
-                            continue;
-                        }
-
-                        u->money -= STUDYCOST * u->number;
-                    }
-
-                    sprintf(buf, "%s studies %s.", unitid(u),
-                            skillnames[i]);
-                    addevent(u->faction, buf);
-
-                    u->skills[i] += (u->number * 30) + u->learning;
-                    u->learning = 0;
-                }	       
-            }
-        }
-    }
     /* Ritual spells, and loss of spells where required */
     puts("Processing CAST orders...");
 
@@ -4776,8 +4625,6 @@ int read_game(const char *filename)
             store.api->r_int(store.handle, &no);
             u->behind = no != 0;
             store.api->r_int(store.handle, &no);
-            u->guard = no != 0;
-
 
             store.api->r_str(store.handle, u->lastorder, sizeof(u->lastorder));
             store.api->r_int(store.handle, &cs);
@@ -5005,7 +4852,6 @@ int write_game(const char *filename)
             store.api->w_int(store.handle, u->ship ? u->ship->no : 0);
             store.api->w_int(store.handle, u->owner);
             store.api->w_int(store.handle, u->behind);
-            store.api->w_int(store.handle, u->guard);
             store.api->w_str(store.handle, u->lastorder);
             store.api->w_int(store.handle, u->combatspell);
 
