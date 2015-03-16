@@ -223,55 +223,21 @@ char *igetstr(const char *s1)
     return buf;
 }
 
-unit *getnewunit(region * r, const faction * f)
-{
-    int n;
-    unit *u;
-
-    n = atoi(igetstr(0));
-
-    if (n <= 0) {
-        return 0;
-    }
-    for (u=r->units;u;u=u->next) {
-        if (u->faction == f && u->alias == n) {
-            return u;
-        }
-    }
-
-    return 0;
-}
-
-unit *getunitg(region *r, const faction *f)
+unit *getunitg(void)
 {
     const char *s;
 
     s = igetstr(0);
-
-    if (!_strcmpl(s, "new")) {
-        return getnewunit(r, f);
-    }
     return findunitg(atoi(s));
 }
 
-int getunit(region * r, const faction *f, unit **uptr)
+int getunit(region * r, unit **uptr)
 {
     int n;
     const char *s;
     unit *u;
 
     s = igetstr(0);
-
-    if (!_strcmpl(s, "new")) {
-        unit *u = getnewunit(r, f);
-        if (u) {
-            *uptr = u;
-            return U_UNIT;
-        } else {
-            *uptr = 0;
-            return U_NOTFOUND;
-        }
-    }
 
     if (!region_isocean(r) && !_strcmpl(s, "peasants")) {
         *uptr = 0;

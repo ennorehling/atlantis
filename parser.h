@@ -14,8 +14,8 @@ enum {
     U_PEASANTS,
 };
 
-int getunit(struct region * r, const struct faction *f, struct unit **uptr);
-struct unit *getunitg(struct region *r, const struct faction *f);
+int getunit(struct region * r, struct unit **uptr);
+struct unit *getunitg(void);
 
 extern const char *keywords[];
 extern const char *skillnames[];

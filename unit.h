@@ -41,7 +41,6 @@ typedef struct unit {
     int items[MAXITEMS];
     bool spells[MAXSPELLS];
     struct quicklist *orders;
-    int alias;
     int dead;
     int n;
     int *litems;

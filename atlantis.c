@@ -96,7 +96,6 @@ const char *keywords[MAXKEYWORDS] = {
     "entertain",
     "faction",
     "find",
-    "form",
     "galleon",
     "give",
     "leave",
@@ -2521,44 +2520,6 @@ region *movewhere(region * r)
     return 0;
 }
 
-void process_form(unit *u, region *r) {
-    ql_iter oli;
-    for (oli = qli_init(&u->orders); qli_more(oli); ) {
-        char *s = (char *)qli_get(oli);
-        unit *u2;
-
-        if (igetkeyword(s) == K_FORM) {
-            ql_delete(&oli.l, oli.i);
-
-            while (findunitg(nextunitid)) ++nextunitid;
-            u2 = create_unit(u->faction, nextunitid++);
-
-            u2->alias = atoi(igetstr(0));
-            if (u2->alias == 0)
-                u2->alias = atoi(igetstr(0));
-
-            u2->building = u->building;
-            u2->ship = u->ship;
-            u2->behind = u->behind;
-            region_addunit(r, u2, 0);
-
-            free(s);
-            while (qli_more(oli)) {
-                char *s = (char *)qli_get(oli);
-                ql_delete(&oli.l, oli.i);
-                if (igetkeyword(s) == K_END) {
-                    free(s);
-                    break;
-                } else {
-                    ql_push(&u2->orders, s);
-                }
-            }
-        } else {
-            qli_next(&oli);
-        }
-    }
-}
-
 static const char * getname(unit * u, const char *ord) {
     const char *s2 = igetstr(0);
     int i;
@@ -2579,7 +2540,7 @@ static const char * getname(unit * u, const char *ord) {
 
 int getseen(region *r, const faction *f, unit **uptr) {
     unit *u = 0;
-    int j = getunit(r, f, &u);
+    int j = getunit(r, &u);
     if (u && !cansee(f, r, u)) {
         j = U_NOTFOUND;
         u = 0;
@@ -3025,13 +2986,6 @@ void processorders(void)
         if (f->lastorders<turn) {
             sprintf(buf2, "Your faction has not received orders for the past %d turns.", turn-f->lastorders);
             ql_push(&f->mistakes, _strdup(buf2));
-        }
-    }
-    for (rli = qli_init(&regions); qli_more(rli);) {
-        region *r = (region *)qli_next(&rli);
-        unit *u;
-        for (u=r->units;u;u=u->next) {
-            process_form(u, r);
         }
     }
     /* Instant orders - diplomacy etc. */
@@ -3993,7 +3947,7 @@ void processorders(void)
                         break;
 
                     case SP_TELEPORT:
-                        u2 = getunitg(r, u->faction);
+                        u2 = getunitg();
 
                         if (!u2) {
                             mistakeu(u, "Unit not found");
@@ -4014,7 +3968,7 @@ void processorders(void)
                         n *= 10000;
 
                         for (;;) {
-                            unit *u3 = getunitg(r, u->faction);
+                            unit *u3 = getunitg();
                             j = getseen(r, u->faction, &u3);
                             if (!u3) {
                                 mistakeu(u, "Unit not found");

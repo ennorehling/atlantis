@@ -20,7 +20,6 @@ typedef enum {
     K_ENTERTAIN,
     K_FACTION,
     K_FIND,
-    K_FORM,
     K_GALLEON,
     K_GIVE,
     K_LEAVE,
