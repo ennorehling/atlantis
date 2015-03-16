@@ -24,9 +24,9 @@ ELSE(MSVC)
     MESSAGE(STATUS "Unknown compiler ${CMAKE_C_COMPILER_ID}")
 ENDIF(MSVC)
 
-find_package (Lua)
+find_package (Lua REQUIRED)
 IF(MSVC)
-find_package (ToLua REQUIRED)
+find_package (ToLua)
 ELSE()
 find_package (ToLua++)
 ENDIF()
@@ -53,8 +53,8 @@ CHECK_SYMBOL_EXISTS (mkdir "sys/stat.h" HAVE_SYS_STAT_MKDIR)
 CHECK_SYMBOL_EXISTS (mkdir "direct.h" HAVE_DIRECT_MKDIR)
 CHECK_SYMBOL_EXISTS (_mkdir "direct.h" HAVE_DIRECT__MKDIR)
 CONFIGURE_FILE (
-	${CMAKE_CURRENT_SOURCE_DIR}/config.h.in
-  ${CMAKE_BINARY_DIR}/include/config.h)
+    ${CMAKE_CURRENT_SOURCE_DIR}/config.h.in
+    ${CMAKE_BINARY_DIR}/include/config.h)
 
 INCLUDE_DIRECTORIES (${CMAKE_BINARY_DIR}/include)
 INCLUDE_DIRECTORIES (${CMAKE_CURRENT_SOURCE_DIR})
@@ -143,6 +143,7 @@ IF (MSVC)
     MSVC_CRT_SECURE_NO_WARNINGS (server test_server)
     MSVC_CRT_SECURE_NO_WARNINGS (test_atlantis test_rtl atlantislib)
     MSVC_CRT_SECURE_NO_WARNINGS (template)
+    MSVC_CRT_SECURE_NO_WARNINGS (atlantisdll)
 ENDIF (MSVC)
 
 install(TARGETS server DESTINATION bin)
