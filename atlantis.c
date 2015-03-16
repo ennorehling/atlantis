@@ -719,19 +719,6 @@ void rnd_seed(unsigned long x)
     init_genrand(x);
 }
 
-static void removelist(quicklist **qlp, void *data) {
-    ql_iter qli;
-    for (qli=qli_init(qlp);qli_more(qli);) {
-        void *x = qli_get(qli);
-        if (x==data) {
-            qli_delete(&qli);
-            break;
-        }
-        qli_next(&qli);
-    }
-}
-
-
 strlist *makestrlist(char *s)
 {
     strlist *S;
