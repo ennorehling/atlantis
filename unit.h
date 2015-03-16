@@ -33,7 +33,6 @@ typedef struct unit {
     char * display_;
     int number;
     int money;
-    bool owner;
     bool behind;
     char thisorder[NAMESIZE];
     char lastorder[NAMESIZE];

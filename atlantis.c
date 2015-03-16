@@ -90,7 +90,6 @@ const char *keywords[MAXKEYWORDS] = {
     "cast",
     "clipper",
     "combat",
-    "demolish",
     "display",
     "end",
     "enter",
@@ -107,13 +106,11 @@ const char *keywords[MAXKEYWORDS] = {
     "password",
     "pay",
     "produce",
-    "promote",
     "quit",
     "research",
     "reshow",
     "sail",
     "ship",
-    "sink",
     "stack",
     "tax",
     "transfer",
@@ -1366,7 +1363,7 @@ void reportevent(region * r, char *s)
     }
 }
 
-void leave(region * r, unit * ux)
+void leave(unit * ux)
 {
     building *b;
     ship *sh;
@@ -1374,47 +1371,11 @@ void leave(region * r, unit * ux)
     if (ux->building) {
         b = ux->building;
         ux->building = 0;
-
-        if (ux->owner) {
-            unit *u;
-            ux->owner = false;
-
-            for (u = r->units;u;u=u->next) {
-                if (u->faction == u->faction && u->building == b) {
-                    u->owner = true;
-                    return;
-                }
-            }
-            for (u = r->units;u;u=u->next) {
-                if (u->building == b) {
-                    u->owner = true;
-                    return;
-                }
-            }
-        }
     }
 
     if (ux->ship) {
         sh = ux->ship;
         ux->ship = 0;
-
-        if (ux->owner) {
-            unit *u;
-            ux->owner = false;
-
-            for (u = r->units;u;u=u->next) {
-                if (u->faction == ux->faction && u->ship == sh) {
-                    u->owner = true;
-                    return;
-                }
-            }
-            for (u = r->units;u;u=u->next) {
-                if (u->ship == sh) {
-                    u->owner = true;
-                    return;
-                }
-            }
-        }
     }
 }
 
@@ -1443,7 +1404,7 @@ void removeempty(void)
                 if (!region_isocean(r)) {
                     r->money += u->money;
                 }
-                leave(r, u);
+                leave(u);
                 region_rmunit(r, u, up);
                 free_unit(u);
             } else {
@@ -1591,33 +1552,26 @@ bool admits(const unit * u, const unit * u2)
 
 unit *buildingowner(region * r, const building * b)
 {
-    unit *u, *res = 0;
+    unit *u;
 
     for (u=r->units;u;u=u->next) {
         if (u->building == b) {
-            if (u->owner) {
-                return u;
-            }
-            res = u;
+            return u;
         }
     }
-    return res;
+    return 0;
 }
 
 unit *shipowner(region * r, const ship * sh)
 {
-    unit *res = 0;
     unit *u;
 
     for (u=r->units;u;u=u->next) {
         if (u->ship == sh) {
-            if (u->owner) {
-                return u;
-            }
-            res = u;
+            return u;
         }
     }
-    return res;
+    return 0;
 }
 
 bool mayenter(region * r, const unit * u, const building * b)
@@ -2264,13 +2218,7 @@ static void report(faction * f)
             rparagraph(F, buf, 4, 0);
 
             for (u=r->units;u;u=u->next) {
-                if (u->building == b && u->owner) {
-                    rpunit(F, f, r, u, 8, 0);
-                    break;
-                }
-            }
-            for (u=r->units;u;u=u->next) {
-                if (u->building == b && !u->owner) {
+                if (u->building == b) {
                     rpunit(F, f, r, u, 8, 0);
                 }
             }
@@ -2299,14 +2247,7 @@ static void report(faction * f)
             rparagraph(F, buf, 4, 0);
 
             for (u=r->units;u;u=u->next) {
-                if (u->ship == sh && u->owner) {
-                    rpunit(F, f, r, u, 8, 0);
-                    break;
-                }
-            }
-
-            for (u=r->units;u;u=u->next) {
-                if (u->ship == sh && !u->owner) {
+                if (u->ship == sh) {
                     rpunit(F, f, r, u, 8, 0);
                 }
             }
@@ -2756,8 +2697,7 @@ static void do_build(job *j) {
 
                 ql_push(&r->buildings, b);
             }
-            leave(r, u);
-            u->owner = 1;
+            leave(u);
             unit_setbuilding(u, b);
         }
 
@@ -2842,8 +2782,7 @@ static void do_build(job *j) {
         ship_setname(sh, buf2);
         ql_push(&r->ships, sh);
 
-        leave(r, u);
-        u->owner = 1;
+        leave(u);
         unit_setship(u, sh);
         goto BUILDSHIP;
 
@@ -2854,7 +2793,7 @@ static void do_build(job *j) {
 
 void do_leave_and_enter(job *j) {
     const char *s = j->order;
-    unit *u2, *u = j->unit;
+    unit *u = j->unit;
     region *r = u->region;
     ship *sh;
     building *b;
@@ -2873,10 +2812,7 @@ void do_leave_and_enter(job *j) {
             break;
         }
 
-        leave(r, u);
-        u->owner = false;
-        if (shipowner(r, sh) == 0)
-            u->owner = true;
+        leave(u);
         unit_setship(u, sh);
         break;
 
@@ -2893,10 +2829,7 @@ void do_leave_and_enter(job *j) {
             break;
         }
 
-        leave(r, u);
-        u->owner = 0;
-        if (buildingowner(r, b) == 0)
-            u->owner = 1;
+        leave(u);
         unit_setbuilding(u, b);
         break;
 
@@ -2906,43 +2839,9 @@ void do_leave_and_enter(job *j) {
             break;
         }
 
-        leave(r, u);
+        leave(u);
         break;
 
-    case K_PROMOTE:
-        if (!u->building && !u->ship) {
-            mistakes(u, s, "No building or ship to transfer ownership of");
-            break;
-        }
-
-        if (!u->owner) {
-            mistakes(u, s, "Not owned by you");
-            break;
-        }
-
-        if (getseen(r, u->faction, &u2)!=U_UNIT) {
-            mistakes(u, s, "Unit not found");
-            break;
-        }
-
-        if (!accepts(u2, u)) {
-            mistakes(u, s, "Unit does not accept ownership");
-            break;
-        }
-
-        if (u->building) {
-            if (u2->building != u->building) {
-                mistakes(u, s, "Unit not in same building");
-                break;
-            }
-        } else if (u2->ship != u->ship) {
-            mistakes(u, s, "Unit not on same ship");
-            break;
-        }
-
-        u->owner = 0;
-        u2->owner = 1;
-        break;
     default:
         // not handled here
         break;
@@ -2950,7 +2849,7 @@ void do_leave_and_enter(job *j) {
 }
 
 void process_leave_and_enter(region *r) {
-    int keywords[] = { K_BOARD, K_ENTER, K_LEAVE, K_PROMOTE, -1 };
+    int keywords[] = { K_BOARD, K_ENTER, K_LEAVE, -1 };
     quicklist *ql = select_orders(r, keywords);
     ql_foreach(ql, (ql_cb)do_leave_and_enter);
     ql_foreach(ql, free);
@@ -3005,7 +2904,7 @@ void process_move(void) {
                     break;
                 }
 
-                leave(r, u);
+                leave(u);
                 region_rmunit(r, u, up);
                 region_addunit(r2, u, 0);
                 u->thisorder[0] = 0;
@@ -3039,7 +2938,7 @@ void do_sail(job * j)
 
         if (!u->ship) {
             mistakeu(u, "Not on a ship");
-        } else if (!u->owner) {
+        } else if (u!=shipowner(r, u->ship)) {
             mistakeu(u, "Ship not owned by you");
         } else if (u->ship->left) {
             mistakeu(u, "Ship still under construction");
@@ -3113,8 +3012,6 @@ void processorders(void)
     char *sx, *sn;
     faction *f; 
     ql_iter rli, fli;
-    building *b;
-    ship *sh;
     unit *u2;
     order *o, *taxorders, *entertainorders, *workorders;
     static order *produceorders[MAXITEMS];
@@ -3237,7 +3134,7 @@ void processorders(void)
                             break;
                         }
 
-                        if (!u->owner) {
+                        if (u!=buildingowner(r, u->building)) {
                             mistakes(u, s, "Building not owned by you");
                             break;
                         }
@@ -3251,7 +3148,7 @@ void processorders(void)
                             break;
                         }
 
-                        if (!u->owner) {
+                        if (u!=shipowner(r, u->ship)) {
                             mistakes(u, s, "Ship not owned by you");
                             break;
                         }
@@ -3288,7 +3185,7 @@ void processorders(void)
                             break;
                         }
 
-                        if (!u->owner) {
+                        if (u != buildingowner(r, u->building)) {
                             mistakes(u, s, "Building not owned by you");
                             break;
                         }
@@ -3306,7 +3203,7 @@ void processorders(void)
                             break;
                         }
 
-                        if (!u->owner) {
+                        if (u != shipowner(r, u->ship)) {
                             mistakes(u, s, "Ship not owned by you");
                             break;
                         }
@@ -3399,32 +3296,6 @@ void processorders(void)
                 unit *u2;
                 int i, j, sp;
                 switch (igetkeyword(s)) {
-                case K_DEMOLISH:
-                    if (!u->building) {
-                        mistakes(u, s, "Not in a building");
-                        break;
-                    }
-
-                    if (!u->owner) {
-                        mistakes(u, s, "Building not owned by you");
-                        break;
-                    }
-
-                    b = u->building;
-
-                    for (u2=r->units;u;u=u->next) {
-                        if (u2->building == b) {
-                            u2->building = 0;
-                            u2->owner = 0;
-                        }
-                    }
-                    sprintf(buf, "%s demolishes %s.", unitid(u),
-                            buildingid(b));
-                    reportevent(r, buf);
-
-                    removelist(&r->buildings, b);
-                    break;
-
                 case K_GIVE:
                     j = getseen(r, u->faction, &u2);
 
@@ -3565,36 +3436,6 @@ void processorders(void)
                     addevent(u->faction, buf);
                     break;
 
-                case K_SINK:
-                    if (!u->ship) {
-                        mistakes(u, s, "Not on a ship");
-                        break;
-                    }
-
-                    if (!u->owner) {
-                        mistakes(u, s, "Ship not owned by you");
-                        break;
-                    }
-
-                    if (region_isocean(r)) {
-                        mistakes(u, s, "Ship is at sea");
-                        break;
-                    }
-
-                    sh = u->ship;
-
-                    for (u2=r->units;u2;u2=u2->next) {
-                        if (u2->ship == sh) {
-                            u2->ship = 0;
-                            u2->owner = 0;
-                        }
-                    }
-
-                    sprintf(buf, "%s sinks %s.", unitid(u), shipid(sh));
-                    reportevent(r, buf);
-
-                    removelist(&r->ships, sh);
-                    break;
                 default:
                     // not handled here
                     break;
@@ -4196,7 +4037,7 @@ void processorders(void)
                             }
 
                             n -= i;
-                            leave(r, u3);
+                            leave(u3);
                             region_rmunit(r, u3, 0);
 
                             u3->building = u2->building;
@@ -4562,10 +4403,7 @@ int read_game(const char *filename)
             u->ship = no ? findship(no) : 0;
 
             store.api->r_int(store.handle, &no);
-            u->owner = no != 0;
-            store.api->r_int(store.handle, &no);
             u->behind = no != 0;
-            store.api->r_int(store.handle, &no);
 
             store.api->r_str(store.handle, u->lastorder, sizeof(u->lastorder));
             store.api->r_int(store.handle, &cs);
@@ -4791,7 +4629,6 @@ int write_game(const char *filename)
             store.api->w_int(store.handle, u->money);
             store.api->w_int(store.handle, u->building ? u->building->no : 0);
             store.api->w_int(store.handle, u->ship ? u->ship->no : 0);
-            store.api->w_int(store.handle, u->owner);
             store.api->w_int(store.handle, u->behind);
             store.api->w_str(store.handle, u->lastorder);
             store.api->w_int(store.handle, u->combatspell);
